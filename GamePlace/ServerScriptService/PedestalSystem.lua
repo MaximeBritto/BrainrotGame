@@ -3,6 +3,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
+local PedestalUI = require(script.Parent.PedestalUI)
 
 local PedestalSystem = {}
 PedestalSystem.__index = PedestalSystem
@@ -59,33 +60,15 @@ function PedestalSystem:InitializePlayerBase(userId, baseNumber)
 	-- Create a BillboardGui above the base to show player name
 	local baseCenter = base:FindFirstChild("SpawnLocation") or base:FindFirstChildWhichIsA("BasePart")
 	if baseCenter then
-		local billboard = Instance.new("BillboardGui")
-		billboard.Name = "BaseOwnerLabel"
-		billboard.Size = UDim2.new(8, 0, 2, 0)
-		billboard.StudsOffset = Vector3.new(0, 10, 0)
-		billboard.AlwaysOnTop = true
-		billboard.Parent = baseCenter
-		
-		local label = Instance.new("TextLabel")
-		label.Size = UDim2.new(1, 0, 1, 0)
-		label.BackgroundTransparency = 0.5
-		label.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-		label.Text = "🏠 " .. playerName .. "'s Base"
-		label.TextColor3 = Color3.fromRGB(255, 255, 255)
-		label.TextScaled = true
-		label.Font = Enum.Font.GothamBold
-		label.TextStrokeTransparency = 0.5
-		label.Parent = billboard
+		PedestalUI.CreateBaseOwnerLabel(baseCenter, playerName)
 	end
 	
-	-- Find the 3 pedestals
+	-- Find the 10 pedestals (or however many exist)
 	local pedestals = {}
-	for i = 1, 3 do
+	for i = 1, 10 do
 		local pedestal = base:FindFirstChild("Pedestal" .. i)
 		if pedestal then
 			table.insert(pedestals, pedestal)
-		else
-			warn(string.format("Pedestal%d not found in %s", i, baseName))
 		end
 	end
 	
@@ -124,10 +107,11 @@ function PedestalSystem:FindNearestEmptyPedestal(userId, playerPosition, maxDist
 	local nearestDistance = maxDistance
 	
 	for _, pedestal in ipairs(playerBase.pedestals) do
-		-- Check if pedestal is empty
-		if not self.occupiedPedestals[pedestal] then
+		local isOccupied = self.occupiedPedestals[pedestal] ~= nil
+		
+		-- Check if pedestal is empty and within range
+		if not isOccupied then
 			local distance = (pedestal.Position - playerPosition).Magnitude
-			
 			if distance < nearestDistance then
 				nearestDistance = distance
 				nearestPedestal = pedestal
@@ -177,28 +161,9 @@ function PedestalSystem:PlaceBrainrotOnPedestal(pedestal, userId, brainrotName, 
 		end
 	end
 	
-	-- Create a label on the pedestal
-	local billboard = Instance.new("BillboardGui")
-	billboard.Name = "PedestalLabel"
-	billboard.Size = UDim2.new(6, 0, 1, 0)
-	billboard.StudsOffset = Vector3.new(0, 4, 0)
-	billboard.AlwaysOnTop = true
-	billboard.Parent = pedestal
-	
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.new(1, 0, 1, 0)
-	label.BackgroundTransparency = 0.3
-	label.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
-	label.Text = brainrotName
-	label.TextColor3 = Color3.fromRGB(255, 255, 255)
-	label.TextScaled = true
-	label.Font = Enum.Font.GothamBold
-	label.TextStrokeTransparency = 0.5
-	label.Parent = billboard
-	
-	-- Add a glow effect to the pedestal
-	pedestal.Material = Enum.Material.Neon
-	pedestal.Color = Color3.fromRGB(0, 255, 0)
+	-- Create UI label and style pedestal
+	PedestalUI.CreatePedestalLabel(pedestal, brainrotName)
+	PedestalUI.StyleOccupiedPedestal(pedestal)
 	
 	print(string.format("🏆 Placed '%s' on pedestal", brainrotName))
 end
@@ -234,6 +199,48 @@ function PedestalSystem:GetPlacedCount(userId)
 	end
 	
 	return count
+end
+
+--[[
+	Clears all Brainrots from a player's base (when they disconnect)
+	
+	@param userId number - The player's UserId
+]]
+function PedestalSystem:ClearPlayerBase(userId)
+	local playerBase = self.playerBases[userId]
+	if not playerBase then
+		return
+	end
+	
+	-- Clear all pedestals
+	for _, pedestal in ipairs(playerBase.pedestals) do
+		if self.occupiedPedestals[pedestal] then
+			-- Remove UI and reset appearance
+			PedestalUI.RemovePedestalLabel(pedestal)
+			PedestalUI.StyleEmptyPedestal(pedestal)
+			
+			-- Find and destroy any Brainrot models on this pedestal
+			for _, child in ipairs(workspace:GetChildren()) do
+				if child:IsA("Model") and child:FindFirstChild("Part") then
+					local part = child:FindFirstChildWhichIsA("BasePart")
+					if part then
+						local distance = (part.Position - pedestal.Position).Magnitude
+						if distance < 10 then -- If close to pedestal, it's probably the Brainrot
+							child:Destroy()
+						end
+					end
+				end
+			end
+			
+			-- Mark as empty
+			self.occupiedPedestals[pedestal] = nil
+		end
+	end
+	
+	-- Remove base from tracking
+	self.playerBases[userId] = nil
+	
+	print(string.format("✓ Cleared base for player %d", userId))
 end
 
 return PedestalSystem

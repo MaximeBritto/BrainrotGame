@@ -1,119 +1,35 @@
 -- Visual Inventory System
 -- Manages the visual display of body parts on player characters
--- Shows collected parts floating above the player's head
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local AttachmentHelper = require(script.Parent.AttachmentHelper)
 
 local VisualInventorySystem = {}
 VisualInventorySystem.__index = VisualInventorySystem
 
 function VisualInventorySystem.new()
 	local self = setmetatable({}, VisualInventorySystem)
-	
-	-- Track visual parts attached to players
-	-- Format: { [userId] = { [partId] = model } }
 	self.attachedParts = {}
-	
-	-- Track BillboardGuis for slot names
-	-- Format: { [userId] = { [slotIndex] = BillboardGui } }
 	self.slotNameGuis = {}
-	
 	return self
 end
 
---[[
-	Gets the attachment point for a body part based on slot and what's in that slot
-	Slots are positioned: Slot 1 (left), Slot 2 (center), Slot 3 (right)
-	
-	@param player Player - The player data structure
-	@param bodyPartType string - The type of body part (HEAD, BODY, LEGS)
-	@param slotIndex number - The slot index (1-3)
-	@param slotParts table - The parts currently in this slot
-	@return Instance - The parent object to attach to
-	@return Vector3 - The position offset
-]]
+-- Get attachment point for a body part based on slot and what's in that slot
 function VisualInventorySystem:GetSlotAttachmentPoint(player, bodyPartType, slotIndex, slotParts)
 	local character = player.character
 	local head = character:FindFirstChild("Head")
 	
 	if not head then
-		return nil, Vector3.new(0, 0, 0)
+		return nil, Vector3.new(0, 0, 0), nil
 	end
 	
-	-- Calculate horizontal offset based on slot
-	local horizontalOffset = 0
-	if slotIndex == 1 then
-		horizontalOffset = -4 -- Left
-	elseif slotIndex == 2 then
-		horizontalOffset = 0 -- Center
-	elseif slotIndex == 3 then
-		horizontalOffset = 4 -- Right
-	end
-	
-	-- Find what parts we already have in this slot
-	local hasHead = false
-	local hasBody = false
-	local headModel = nil
-	local bodyModel = nil
-	
-	for _, part in ipairs(slotParts) do
-		if part.type == "HEAD" then
-			hasHead = true
-			headModel = part.physicalObject
-		elseif part.type == "BODY" then
-			hasBody = true
-			bodyModel = part.physicalObject
-		end
-	end
-	
-	-- Determine where to attach based on part type and what we have
-	if bodyPartType == "HEAD" then
-		-- Heads attach to player head at slot position
-		return head, Vector3.new(horizontalOffset, 3, 0)
-		
-	elseif bodyPartType == "BODY" then
-		-- Body attaches under the head if we have one, otherwise to player head
-		if hasHead and headModel then
-			local headPart = headModel.PrimaryPart or headModel:FindFirstChildWhichIsA("BasePart")
-			if headPart then
-				return headPart, Vector3.new(0, -2.5, 0) -- Attach below head
-			end
-		end
-		-- No head, attach to player head at slot position
-		return head, Vector3.new(horizontalOffset, 1, 0)
-		
-	elseif bodyPartType == "LEGS" then
-		-- Legs attach under body if we have one, otherwise under head, otherwise to player head
-		if hasBody and bodyModel then
-			local bodyPart = bodyModel.PrimaryPart or bodyModel:FindFirstChildWhichIsA("BasePart")
-			if bodyPart then
-				return bodyPart, Vector3.new(0, -2.5, 0) -- Attach below body
-			end
-		elseif hasHead and headModel then
-			local headPart = headModel.PrimaryPart or headModel:FindFirstChildWhichIsA("BasePart")
-			if headPart then
-				return headPart, Vector3.new(0, -5, 0) -- Attach below head (leave space for body)
-			end
-		end
-		-- No head or body, attach to player head at slot position
-		return head, Vector3.new(horizontalOffset, -2, 0)
-	end
-	
-	-- Default fallback
-	return head, Vector3.new(horizontalOffset, 2, 0)
+	-- Delegate to AttachmentHelper
+	return AttachmentHelper.GetSlotAttachmentPoint(head, bodyPartType, slotIndex, slotParts)
 end
 
---[[
-	Attaches a body part model to a player's character in a specific slot
-	
-	@param player Player - The player data structure
-	@param bodyPart BodyPart - The body part to attach
-	@param slotIndex number - The slot index (1-3)
-	@param slotParts table - The parts currently in this slot
-]]
+-- Attaches a body part model to a player's character in a specific slot
 function VisualInventorySystem:AttachPartToPlayer(player, bodyPart, slotIndex, slotParts)
 	if not player.character then
-		warn("Cannot attach part: player has no character")
 		return
 	end
 	
@@ -121,14 +37,16 @@ function VisualInventorySystem:AttachPartToPlayer(player, bodyPart, slotIndex, s
 	local head = character:FindFirstChild("Head")
 	
 	if not head then
-		warn("Cannot attach part: character has no head")
 		return
 	end
 	
-	-- Get the physical model
 	local partModel = bodyPart.physicalObject
 	if not partModel then
-		warn("Cannot attach part: no physical object")
+		return
+	end
+	
+	local mainPart = partModel.PrimaryPart or partModel:FindFirstChildWhichIsA("BasePart")
+	if not mainPart then
 		return
 	end
 	
@@ -143,46 +61,59 @@ function VisualInventorySystem:AttachPartToPlayer(player, bodyPart, slotIndex, s
 		end
 	end
 	
-	-- Get attachment point based on assembly logic and slot
-	local attachToObject, positionOffset = self:GetSlotAttachmentPoint(player, bodyPart.type, slotIndex, slotParts or {})
+	-- Get attachment point
+	local attachToObject, positionOffset, customAttachment = self:GetSlotAttachmentPoint(player, bodyPart.type, slotIndex, slotParts or {})
 	
 	if not attachToObject then
-		warn("Cannot attach part: no attachment point found")
 		return
 	end
 	
 	-- Create attachment point on the parent object
-	local attachment = Instance.new("Attachment")
-	attachment.Name = "BodyPartAttachment_" .. bodyPart.id
-	attachment.Position = positionOffset
-	attachment.Parent = attachToObject
+	local attachment = nil
 	
-	-- Get main part of the model
-	local mainPart = partModel.PrimaryPart or partModel:FindFirstChildWhichIsA("BasePart")
-	if not mainPart then
-		warn("Cannot attach part: model has no parts")
-		return
+	if customAttachment then
+		attachment = customAttachment
+	else
+		attachment = Instance.new("Attachment")
+		attachment.Name = "BodyPartAttachment_" .. bodyPart.id
+		attachment.Position = positionOffset
+		attachment.Parent = attachToObject
 	end
 	
+	-- Look for TopAttachment in the body part model (for BODY and LEGS)
+	local partTopAttachment = AttachmentHelper.FindAttachment(partModel, "TopAttachment")
+	
 	-- Create attachment on the part
-	local partAttachment = Instance.new("Attachment")
-	partAttachment.Name = "PlayerAttachment"
-	partAttachment.Parent = mainPart
+	local partAttachment = nil
+	
+	if partTopAttachment and (bodyPart.type == "BODY" or bodyPart.type == "LEGS") then
+		partAttachment = partTopAttachment
+	else
+		partAttachment = Instance.new("Attachment")
+		partAttachment.Name = "PlayerAttachment"
+		partAttachment.Parent = mainPart
+	end
+	
+	-- Calculate forces based on model mass
+	local totalMass = AttachmentHelper.CalculateTotalMass(partModel)
+	local maxForce, maxTorque = AttachmentHelper.CalculateConstraintForces(totalMass)
 	
 	-- Create AlignPosition to make it follow
 	local alignPosition = Instance.new("AlignPosition")
 	alignPosition.Attachment0 = partAttachment
 	alignPosition.Attachment1 = attachment
-	alignPosition.MaxForce = 10000
-	alignPosition.Responsiveness = 20
+	alignPosition.MaxForce = maxForce
+	alignPosition.Responsiveness = 25
+	alignPosition.RigidityEnabled = true
 	alignPosition.Parent = mainPart
 	
 	-- Create AlignOrientation to keep it upright
 	local alignOrientation = Instance.new("AlignOrientation")
 	alignOrientation.Attachment0 = partAttachment
 	alignOrientation.Attachment1 = attachment
-	alignOrientation.MaxTorque = 10000
-	alignOrientation.Responsiveness = 20
+	alignOrientation.MaxTorque = maxTorque
+	alignOrientation.Responsiveness = 25
+	alignOrientation.RigidityEnabled = true
 	alignOrientation.Parent = mainPart
 	
 	-- Store reference
@@ -191,23 +122,15 @@ function VisualInventorySystem:AttachPartToPlayer(player, bodyPart, slotIndex, s
 	end
 	self.attachedParts[player.id][bodyPart.id] = {
 		model = partModel,
-		attachment = attachment,
+		attachment = customAttachment and nil or attachment,
 		type = bodyPart.type,
 		attachedTo = attachToObject,
-		slotIndex = slotIndex  -- Track which slot this part belongs to
+		slotIndex = slotIndex,
+		usingCustomAttachment = customAttachment ~= nil
 	}
-	
-	print(string.format("✨ Attached %s to %s in Slot %d (connected to %s)", 
-		bodyPart.type, player.username, slotIndex, attachToObject.Name))
 end
 
---[[
-	Detaches a body part from a player's character
-	
-	@param player Player - The player data structure
-	@param bodyPart BodyPart - The body part to detach
-	@return Model - The detached model
-]]
+-- Detaches a body part from a player's character
 function VisualInventorySystem:DetachPartFromPlayer(player, bodyPart)
 	if not self.attachedParts[player.id] then
 		return nil
@@ -218,8 +141,8 @@ function VisualInventorySystem:DetachPartFromPlayer(player, bodyPart)
 		return nil
 	end
 	
-	-- Remove attachment
-	if partData.attachment and partData.attachment.Parent then
+	-- Remove attachment (only if we created it, not if it's a custom one)
+	if partData.attachment and partData.attachment.Parent and not partData.usingCustomAttachment then
 		partData.attachment:Destroy()
 	end
 	
@@ -242,17 +165,10 @@ function VisualInventorySystem:DetachPartFromPlayer(player, bodyPart)
 	-- Remove from tracking
 	self.attachedParts[player.id][bodyPart.id] = nil
 	
-	print(string.format("✨ Detached %s from %s", bodyPart.type, player.username))
-	
 	return model
 end
 
---[[
-	Detaches all parts from a player
-	
-	@param player Player - The player data structure
-	@return table - Array of detached models
-]]
+-- Detaches all parts from a player
 function VisualInventorySystem:DetachAllParts(player)
 	local detachedModels = {}
 	
@@ -261,12 +177,10 @@ function VisualInventorySystem:DetachAllParts(player)
 	end
 	
 	for partId, partData in pairs(self.attachedParts[player.id]) do
-		-- Remove attachment
-		if partData.attachment and partData.attachment.Parent then
+		if partData.attachment and partData.attachment.Parent and not partData.usingCustomAttachment then
 			partData.attachment:Destroy()
 		end
 		
-		-- Remove constraints from model
 		local model = partData.model
 		if model then
 			for _, descendant in ipairs(model:GetDescendants()) do
@@ -285,63 +199,51 @@ function VisualInventorySystem:DetachAllParts(player)
 		end
 	end
 	
-	-- Clear tracking
 	self.attachedParts[player.id] = {}
-	
-	print(string.format("✨ Detached all parts from %s (%d parts)", player.username, #detachedModels))
 	
 	return detachedModels
 end
 
---[[
-	Shows a BillboardGui with the Brainrot name above a slot
-	
-	@param player Player - The player data structure
-	@param slotIndex number - The slot index (1-3)
-	@param brainrotName string - The name to display
-	@param slotParts table - The parts in this slot (to attach the GUI to)
-]]
+-- Shows a BillboardGui with the Brainrot name above a slot
 function VisualInventorySystem:ShowSlotName(player, slotIndex, brainrotName, slotParts)
 	if not player.character then
 		return
 	end
 	
-	-- Remove old GUI if exists
 	self:HideSlotName(player, slotIndex)
 	
 	-- Find the head part in this slot to attach the GUI to
 	local attachToPart = nil
+	
+	-- Try HEAD first
 	for _, part in ipairs(slotParts) do
 		if part.type == "HEAD" and part.physicalObject then
-			local model = part.physicalObject
-			attachToPart = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
-			break
+			attachToPart = AttachmentHelper.FindMainPart(part.physicalObject)
+			if attachToPart then break end
 		end
 	end
 	
-	-- If no head, use body, then legs
+	-- Try BODY if no HEAD
 	if not attachToPart then
 		for _, part in ipairs(slotParts) do
 			if part.type == "BODY" and part.physicalObject then
-				local model = part.physicalObject
-				attachToPart = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
-				break
+				attachToPart = AttachmentHelper.FindMainPart(part.physicalObject)
+				if attachToPart then break end
 			end
 		end
 	end
 	
+	-- Try LEGS if no HEAD or BODY
 	if not attachToPart then
 		for _, part in ipairs(slotParts) do
 			if part.type == "LEGS" and part.physicalObject then
-				local model = part.physicalObject
-				attachToPart = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
-				break
+				attachToPart = AttachmentHelper.FindMainPart(part.physicalObject)
+				if attachToPart then break end
 			end
 		end
 	end
 	
 	if not attachToPart then
-		warn("Cannot show slot name: no part to attach to")
 		return
 	end
 	
@@ -349,7 +251,7 @@ function VisualInventorySystem:ShowSlotName(player, slotIndex, brainrotName, slo
 	local billboard = Instance.new("BillboardGui")
 	billboard.Name = "SlotName_" .. slotIndex
 	billboard.Size = UDim2.new(6, 0, 1, 0)
-	billboard.StudsOffset = Vector3.new(0, 3, 0) -- Above the part
+	billboard.StudsOffset = Vector3.new(0, 3, 0)
 	billboard.AlwaysOnTop = true
 	billboard.Parent = attachToPart
 	
@@ -370,16 +272,9 @@ function VisualInventorySystem:ShowSlotName(player, slotIndex, brainrotName, slo
 		self.slotNameGuis[player.id] = {}
 	end
 	self.slotNameGuis[player.id][slotIndex] = billboard
-	
-	print(string.format("📛 Showing name for Slot %d: %s", slotIndex, brainrotName))
 end
 
---[[
-	Hides the BillboardGui for a slot
-	
-	@param player Player - The player data structure
-	@param slotIndex number - The slot index (1-3)
-]]
+-- Hides the BillboardGui for a slot
 function VisualInventorySystem:HideSlotName(player, slotIndex)
 	if not self.slotNameGuis[player.id] then
 		return
@@ -393,13 +288,7 @@ function VisualInventorySystem:HideSlotName(player, slotIndex)
 	self.slotNameGuis[player.id][slotIndex] = nil
 end
 
---[[
-	Detaches parts from a specific slot only
-	
-	@param player Player - The player data structure
-	@param slotIndex number - The slot index (1-3)
-	@return table - Array of detached models
-]]
+-- Detaches parts from a specific slot only
 function VisualInventorySystem:DetachSlotParts(player, slotIndex)
 	local detachedModels = {}
 	
@@ -407,17 +296,14 @@ function VisualInventorySystem:DetachSlotParts(player, slotIndex)
 		return detachedModels
 	end
 	
-	-- Find and detach only parts from the specified slot
 	local partsToRemove = {}
 	
 	for partId, partData in pairs(self.attachedParts[player.id]) do
 		if partData.slotIndex == slotIndex then
-			-- Remove attachment
-			if partData.attachment and partData.attachment.Parent then
+			if partData.attachment and partData.attachment.Parent and not partData.usingCustomAttachment then
 				partData.attachment:Destroy()
 			end
 			
-			-- Remove constraints from model
 			local model = partData.model
 			if model then
 				for _, descendant in ipairs(model:GetDescendants()) do
@@ -435,20 +321,15 @@ function VisualInventorySystem:DetachSlotParts(player, slotIndex)
 				table.insert(detachedModels, model)
 			end
 			
-			-- Mark for removal
 			table.insert(partsToRemove, partId)
 		end
 	end
 	
-	-- Remove from tracking
 	for _, partId in ipairs(partsToRemove) do
 		self.attachedParts[player.id][partId] = nil
 	end
 	
-	-- Also hide the slot name
 	self:HideSlotName(player, slotIndex)
-	
-	print(string.format("✨ Detached Slot %d parts from %s (%d parts)", slotIndex, player.username, #detachedModels))
 	
 	return detachedModels
 end

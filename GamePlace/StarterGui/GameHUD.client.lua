@@ -49,26 +49,6 @@ inventoryText.TextYAlignment = Enum.TextYAlignment.Top
 inventoryText.TextWrapped = true
 inventoryText.Parent = inventoryFrame
 
--- Match Timer Display
-local timerFrame = Instance.new("Frame")
-timerFrame.Name = "TimerFrame"
-timerFrame.Size = UDim2.new(0, 200, 0, 60)
-timerFrame.Position = UDim2.new(0.5, -100, 0, 10)
-timerFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-timerFrame.BackgroundTransparency = 0.5
-timerFrame.BorderSizePixel = 0
-timerFrame.Parent = screenGui
-
-local timerText = Instance.new("TextLabel")
-timerText.Name = "TimerText"
-timerText.Size = UDim2.new(1, 0, 1, 0)
-timerText.BackgroundTransparency = 1
-timerText.Text = "5:00"
-timerText.TextColor3 = Color3.fromRGB(255, 255, 255)
-timerText.TextSize = 32
-timerText.Font = Enum.Font.GothamBold
-timerText.Parent = timerFrame
-
 -- Score Display
 local scoreFrame = Instance.new("Frame")
 scoreFrame.Name = "ScoreFrame"
@@ -181,10 +161,6 @@ if ReplicatedStorage:FindFirstChild("RemoteEvents") then
 	
 	if remoteEvents:FindFirstChild("UpdateInventory") then
 		remoteEvents.UpdateInventory.OnClientEvent:Connect(UpdateInventory)
-	end
-	
-	if remoteEvents:FindFirstChild("UpdateTimer") then
-		remoteEvents.UpdateTimer.OnClientEvent:Connect(UpdateTimer)
 	end
 	
 	if remoteEvents:FindFirstChild("UpdateScore") then

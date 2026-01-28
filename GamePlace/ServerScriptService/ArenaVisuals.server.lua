@@ -6,7 +6,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
 local Arena = require(script.Parent.Arena)
-local GameConfig = require(ReplicatedStorage.GameConfig)
 
 local ArenaVisuals = {}
 
@@ -118,10 +117,98 @@ function ArenaVisuals.CreateBoundary(arena)
 	return nil
 end
 
--- Initialize arena visuals on server start
-local arena = Arena.createDefault()
-local boundaryFolder = ArenaVisuals.CreateBoundary(arena)
+-- Initialize arena visuals based on ArenaFloor in workspace
+print("🔍 Searching for ArenaFloor...")
 
-print("✓ Arena boundary created:", arena:GetDimensions().type)
+-- Function to recursively search for ArenaFloor
+local function findArenaFloorRecursive(parent, depth)
+	depth = depth or 0
+	if depth > 5 then return nil end -- Limit recursion depth
+	
+	for _, child in ipairs(parent:GetChildren()) do
+		if child.Name == "ArenaFloor" and child:IsA("BasePart") then
+			return child
+		end
+		
+		-- Search in folders and models
+		if child:IsA("Folder") or child:IsA("Model") then
+			local found = findArenaFloorRecursive(child, depth + 1)
+			if found then return found end
+		end
+	end
+	
+	return nil
+end
+
+-- Try multiple search strategies
+local arenaFloor = nil
+
+-- Strategy 1: Direct child of Workspace
+arenaFloor = Workspace:FindFirstChild("ArenaFloor")
+if arenaFloor and arenaFloor:IsA("BasePart") then
+	print(string.format("✓ Found ArenaFloor as direct child of Workspace"))
+else
+	-- Strategy 2: Recursive search from Workspace
+	arenaFloor = findArenaFloorRecursive(Workspace)
+	if arenaFloor then
+		print(string.format("✓ Found ArenaFloor via recursive search: %s", arenaFloor:GetFullName()))
+	else
+		-- Strategy 3: Wait a bit and try again (in case it's loading)
+		print("⏳ Waiting for ArenaFloor to load...")
+		task.wait(0.5)
+		arenaFloor = findArenaFloorRecursive(Workspace)
+		if arenaFloor then
+			print(string.format("✓ Found ArenaFloor after waiting: %s", arenaFloor:GetFullName()))
+		end
+	end
+end
+
+-- Debug: List all parts in Workspace if still not found
+if not arenaFloor then
+	print("❌ ArenaFloor not found! Listing all BaseParts in Workspace:")
+	for _, child in ipairs(Workspace:GetDescendants()) do
+		if child:IsA("BasePart") and child.Name:lower():find("floor") then
+			print(string.format("  - Found part with 'floor' in name: %s (%s)", child:GetFullName(), tostring(child.Size)))
+		end
+	end
+end
+
+local arena
+if arenaFloor and arenaFloor:IsA("BasePart") then
+	-- Create arena based on ArenaFloor dimensions
+	local floorSize = arenaFloor.Size
+	local floorPosition = arenaFloor.Position
+	
+	print(string.format("✓ Found ArenaFloor: size=%s, position=%s", tostring(floorSize), tostring(floorPosition)))
+	
+	-- Determine if we should use circular or rectangular based on floor shape
+	local isCircular = math.abs(floorSize.X - floorSize.Z) < 5 -- If X and Z are similar, treat as circular
+	
+	if isCircular then
+		-- Use the average of X and Z as DIAMETER, then divide by 2 for radius
+		local diameter = (floorSize.X + floorSize.Z) / 2
+		local radius = diameter / 2
+		arena = Arena.createCircular(floorPosition, radius)
+		print(string.format("✓ Created circular arena from ArenaFloor (diameter: %.1f, radius: %.1f)", diameter, radius))
+	else
+		-- Use rectangular
+		arena = Arena.createRectangular(floorPosition, floorSize.X, floorSize.Z)
+		print(string.format("✓ Created rectangular arena from ArenaFloor (%.1f x %.1f)", floorSize.X, floorSize.Z))
+	end
+	
+	-- Don't create visual boundary walls - just use ArenaFloor surface
+	print("✓ Arena configured (using ArenaFloor surface only, no boundary walls)")
+else
+	warn("❌ ArenaFloor not found anywhere! Using default arena.")
+	warn("⚠️ Please check where ArenaFloor is located in your Studio hierarchy.")
+	
+	arena = Arena.createDefault()
+	
+	-- Don't create visual boundary walls
+	print("✓ Arena configured (default, no boundary walls)")
+end
+
+-- Store arena globally so GameServer can access it
+_G.Arena = arena
 
 return ArenaVisuals

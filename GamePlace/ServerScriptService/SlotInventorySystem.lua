@@ -59,11 +59,7 @@ function SlotInventorySystem:AddBodyPart(userId, bodyPart)
 		local slot = slots[slotIndex]
 		
 		if not slot[partType] then
-			-- Add to this slot
 			slot[partType] = bodyPart
-			
-			print(string.format("📦 Added %s to Slot %d", bodyPart.type, slotIndex))
-			
 			return slotIndex, partType
 		end
 	end
@@ -113,8 +109,6 @@ function SlotInventorySystem:ClearSlot(userId, slotIndex)
 	slot.legs = nil
 	slot.assembled = false
 	slot.brainrotName = nil
-	
-	print(string.format("🗑️ Cleared Slot %d", slotIndex))
 end
 
 --[[
@@ -196,8 +190,6 @@ function SlotInventorySystem:MarkSlotAssembled(userId, slotIndex, brainrotName)
 	local slot = self.playerSlots[userId].slots[slotIndex]
 	slot.assembled = true
 	slot.brainrotName = brainrotName
-	
-	print(string.format("✅ Slot %d marked as assembled: %s", slotIndex, brainrotName))
 end
 
 --[[

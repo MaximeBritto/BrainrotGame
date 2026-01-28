@@ -4,6 +4,69 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 
 ---
 
+## [1.1.0] - 2024 - Améliorations des Canons 🎯
+
+### ✨ Ajouté
+
+#### Système de Canons Physiques
+- ✅ **Détection automatique** - Le système cherche les canons dans le dossier "Cannons" du Workspace
+- ✅ **Support des modèles Studio** - Utilise les canons placés manuellement dans Roblox Studio
+- ✅ **Fallback intelligent** - Crée des canons virtuels si aucun canon physique n'est trouvé
+
+#### Effets Visuels de Tir
+- ✅ **Flash de bouche** - Boule orange néon qui s'agrandit et disparaît
+- ✅ **Fumée** - Nuage gris qui monte après chaque tir
+- ✅ **Projectiles améliorés** - Boules rouges plus grosses (3x3x3) avec traînée orange
+- ✅ **Particules de fumée** - Trail de particules qui suit le projectile
+- ✅ **Effet d'impact** - Onde de choc jaune au sol quand la pièce atterrit
+
+#### Trajectoire Balistique Réaliste
+- ✅ **Ciblage aléatoire** - Chaque tir vise une position aléatoire sur toute la surface
+- ✅ **Calcul physique** - Formule balistique pour atteindre précisément la cible
+- ✅ **Couverture totale** - Les pièces pleuvent sur TOUTE la surface de jeu (150-180 studs)
+- ✅ **Arcs variés** - Angle de tir 55-70° pour trajectoires différentes
+- ✅ **Vitesse adaptative** - Calculée automatiquement selon la distance (50-200 studs/s)
+- ✅ **Détection intelligente** - Atterrissage basé sur proximité de la cible
+- ✅ **Distribution uniforme** - Coordonnées polaires pour répartition équitable
+- ✅ **Logs de debug** - Messages détaillés pour suivre chaque tir
+
+#### Ramassage Accéléré
+- ✅ **Temps réduit** - Ramassage en 0.7 secondes (au lieu de 1.5)
+- ✅ **Plus dynamique** - Gameplay plus fluide et rapide
+
+#### Documentation
+- ✅ **CANNON_SETUP_GUIDE.md** - Guide pour placer les canons dans Studio
+- ✅ **CANNON_IMPROVEMENTS_SUMMARY.md** - Résumé complet des améliorations
+- ✅ **BALLISTIC_TRAJECTORY_UPDATE.md** - Explication détaillée de la physique balistique
+- ✅ **CANNON_RAIN_EFFECT.md** - Guide visuel simple de l'effet de pluie
+- ✅ **FINAL_CANNON_IMPROVEMENTS.md** - Résumé final avec statistiques
+
+### 🔧 Modifié
+- **CannonSystem.lua** - Refonte complète du système de tir
+  - Nouvelle méthode `InitializeCannons()` avec détection physique
+  - Nouvelle méthode `CreateFireEffect()` pour effets visuels
+  - Nouvelle méthode `GetRandomArenaFloorPosition()` pour ciblage aléatoire
+  - Nouvelle méthode `CalculateBallisticTrajectory()` pour calcul physique
+  - Trajectoires balistiques réalistes avec formule physique
+  - Détection d'atterrissage basée sur proximité de la cible
+  - Projectiles plus visibles et spectaculaires
+  - Protection contre division par zéro et NaN
+  - Logs de debug détaillés
+  
+- **CollectionUI.client.lua** - Temps de ramassage réduit
+  - `COLLECTION_TIME` passé de 1.5s à 0.7s
+  - Ramassage plus rapide et fluide
+
+### 🐛 Corrigé
+- ❌ **Problème:** Les projectiles tombaient juste en bas du canon
+- ✅ **Solution:** Calcul de trajectoire balistique vers positions aléatoires sur toute la surface
+- ❌ **Problème:** Ramassage trop lent (1.5 secondes)
+- ✅ **Solution:** Temps réduit à 0.7 secondes
+- ❌ **Problème:** Erreurs de calcul avec division par zéro
+- ✅ **Solution:** Protection et gestion des cas limites
+
+---
+
 ## [1.0.0] - 2024 - Version Initiale Complète ✅
 
 ### 🎉 Première Release

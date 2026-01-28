@@ -204,4 +204,48 @@ function Arena:GetDimensions()
 	return nil
 end
 
+--[[
+	Helper function: Creates a default circular arena
+	
+	@return Arena - Default arena instance
+]]
+function Arena.createDefault()
+	return Arena.new(
+		Arena.BoundaryType.CIRCULAR,
+		GameConfig.ARENA_CENTER,
+		{ radius = GameConfig.ARENA_RADIUS }
+	)
+end
+
+--[[
+	Helper function: Creates a circular arena with custom dimensions
+	
+	@param center Vector3 - Center position
+	@param radius number - Arena radius
+	@return Arena - Circular arena instance
+]]
+function Arena.createCircular(center, radius)
+	return Arena.new(
+		Arena.BoundaryType.CIRCULAR,
+		center,
+		{ radius = radius }
+	)
+end
+
+--[[
+	Helper function: Creates a rectangular arena with custom dimensions
+	
+	@param center Vector3 - Center position
+	@param width number - Arena width (X dimension)
+	@param length number - Arena length (Z dimension)
+	@return Arena - Rectangular arena instance
+]]
+function Arena.createRectangular(center, width, length)
+	return Arena.new(
+		Arena.BoundaryType.RECTANGULAR,
+		center,
+		{ width = width, length = length }
+	)
+end
+
 return Arena

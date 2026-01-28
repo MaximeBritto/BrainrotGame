@@ -10,7 +10,7 @@ local player = Players.LocalPlayer
 
 -- Settings
 local DETECTION_RADIUS = 8 -- Distance to detect body parts
-local COLLECTION_TIME = 1.5 -- Time to hold E to collect (seconds)
+local COLLECTION_TIME = 0.7 -- Time to hold E to collect (seconds)
 
 -- State
 local character = nil
