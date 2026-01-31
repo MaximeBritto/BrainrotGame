@@ -1320,12 +1320,30 @@ btnSync.MouseButton1Click:Connect(function()
 	local function checkAndDeleteScripts(parent, currentPath)
 		for _, child in ipairs(parent:GetChildren()) do
 			if child:IsA("LuaSourceContainer") then
-				-- Construire le chemin complet du script
-				local scriptPath = currentPath .. "/" .. child.Name .. ".lua"
+				-- Le nom du script dans Roblox (sans extension)
+				local scriptName = child.Name
 				
-				-- Si ce script n'existe pas sur le disque, le supprimer
-				if not diskScriptPaths[scriptPath] then
-					print("🗑️ Suppression (n'existe plus sur disque):", scriptPath)
+				-- Construire tous les chemins possibles pour ce script
+				-- Car sur le disque, il peut avoir différentes extensions
+				local possiblePaths = {
+					currentPath .. "/" .. scriptName .. ".lua",
+					currentPath .. "/" .. scriptName .. ".client.lua",
+					currentPath .. "/" .. scriptName .. ".server.lua",
+					currentPath .. "/" .. scriptName .. ".module.lua"
+				}
+				
+				-- Vérifier si AU MOINS UN de ces chemins existe sur le disque
+				local existsOnDisk = false
+				for _, possiblePath in ipairs(possiblePaths) do
+					if diskScriptPaths[possiblePath] then
+						existsOnDisk = true
+						break
+					end
+				end
+				
+				-- Si AUCUN chemin n'existe sur le disque, supprimer le script
+				if not existsOnDisk then
+					print("🗑️ Suppression (n'existe plus sur disque):", scriptName)
 					child:Destroy()
 					deleted = deleted + 1
 				end
