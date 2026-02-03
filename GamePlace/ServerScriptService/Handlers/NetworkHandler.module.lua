@@ -20,12 +20,9 @@ local NetworkSetup = nil
 local DataService = nil
 local PlayerService = nil
 
--- Systèmes (seront ajoutés dans les phases suivantes)
--- local BaseSystem = nil
--- local EconomySystem = nil
--- local InventorySystem = nil
--- local CraftingSystem = nil
--- local DoorSystem = nil
+-- Systèmes (Phase 2+)
+local BaseSystem = nil
+local DoorSystem = nil
 
 local NetworkHandler = {}
 NetworkHandler._initialized = false
@@ -47,10 +44,9 @@ function NetworkHandler:Init(services)
     DataService = services.DataService
     PlayerService = services.PlayerService
     
-    -- Récupérer les systèmes (sera ajouté plus tard)
-    -- BaseSystem = services.BaseSystem
-    -- EconomySystem = services.EconomySystem
-    -- ...
+    -- Récupérer les systèmes (Phase 2+)
+    BaseSystem = services.BaseSystem
+    DoorSystem = services.DoorSystem
     
     -- Connecter les handlers
     self:_ConnectHandlers()
@@ -162,7 +158,21 @@ function NetworkHandler:_HandleActivateDoor(player)
     -- Phase 2: DoorSystem:ActivateDoor(player)
     print("[NetworkHandler] ActivateDoor reçu de " .. player.Name)
     
-    self:_SendNotification(player, "Info", "Porte non implémentée (Phase 2)")
+    if not DoorSystem then
+        self:_SendNotification(player, "Info", "Door system not loaded")
+        return
+    end
+    
+    local result = DoorSystem:ActivateDoor(player)
+    
+    if result == Constants.ActionResult.Success then
+        self:_SendNotification(player, "Success", "Door closed for 30 seconds!", 3)
+    elseif result == Constants.ActionResult.OnCooldown then
+        local doorState = DoorSystem:GetDoorState(player)
+        self:_SendNotification(player, "Warning", "Door already closed! " .. doorState.RemainingTime .. "s remaining", 2)
+    elseif result == Constants.ActionResult.NotOwner then
+        self:_SendNotification(player, "Error", "This is not your base!", 2)
+    end
 end
 
 function NetworkHandler:_HandleDropPieces(player)

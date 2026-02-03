@@ -19,6 +19,7 @@ local Constants = require(Shared["Constants.module"])
 -- Services (seront injectés)
 local DataService = nil
 local NetworkSetup = nil
+local BaseSystem = nil -- Phase 2
 
 local PlayerService = {}
 PlayerService._runtimeData = {} -- {[userId] = RuntimeData}
@@ -47,7 +48,7 @@ end
 
 --[[
     Initialise le service
-    @param services: table - {DataService = ..., NetworkSetup = ...}
+    @param services: table - {DataService = ..., NetworkSetup = ..., BaseSystem = ...}
 ]]
 function PlayerService:Init(services)
     if self._initialized then
@@ -60,6 +61,7 @@ function PlayerService:Init(services)
     -- Récupérer les services injectés
     DataService = services.DataService
     NetworkSetup = services.NetworkSetup
+    BaseSystem = services.BaseSystem -- Phase 2 (peut être nil au début)
     
     if not DataService then
         error("[PlayerService] DataService requis!")
@@ -109,7 +111,14 @@ function PlayerService:OnPlayerJoin(player)
         self:OnCharacterAdded(player, character)
     end)
     
-    -- 4. Envoyer les données au client
+    -- 4. Si le personnage existe déjà, le gérer maintenant
+    if player.Character then
+        task.spawn(function()
+            self:OnCharacterAdded(player, player.Character)
+        end)
+    end
+    
+    -- 5. Envoyer les données au client
     local remotes = NetworkSetup:GetAllRemotes()
     if remotes.SyncPlayerData then
         remotes.SyncPlayerData:FireClient(player, playerData)
@@ -126,13 +135,18 @@ end
 function PlayerService:OnPlayerLeave(player)
     print("[PlayerService] Joueur quitte: " .. player.Name)
     
-    -- 1. Sauvegarder les données
+    -- 1. Libérer la base (Phase 2)
+    if self.BaseSystem then
+        self.BaseSystem:ReleaseBase(player)
+    end
+    
+    -- 2. Sauvegarder les données
     DataService:SavePlayerData(player)
     
-    -- 2. Nettoyer le cache DataService
+    -- 3. Nettoyer le cache DataService
     DataService:CleanupPlayer(player)
     
-    -- 3. Nettoyer les données runtime
+    -- 4. Nettoyer les données runtime
     self._runtimeData[player.UserId] = nil
     
     print("[PlayerService] Joueur nettoyé: " .. player.Name)
@@ -154,8 +168,29 @@ function PlayerService:OnCharacterAdded(player, character)
         self:OnPlayerDied(player)
     end)
     
-    -- TODO Phase 2: Téléporter à la base assignée
-    -- BaseSystem:SpawnPlayerAtBase(player)
+    -- Assigner une base si pas encore fait (Phase 2)
+    -- Utiliser self.BaseSystem car il est injecté après Init()
+    if self.BaseSystem then
+        print("[PlayerService] BaseSystem trouvé, assignation de base...")
+        local runtimeData = self._runtimeData[player.UserId]
+        
+        -- Si pas de base assignée, en assigner une
+        if not runtimeData or not runtimeData.AssignedBase then
+            print("[PlayerService] Assignation de base pour " .. player.Name)
+            local base = self.BaseSystem:AssignBase(player)
+            
+            if not base then
+                warn("[PlayerService] Impossible d'assigner une base à " .. player.Name)
+                -- Ne pas kick, juste laisser au spawn par défaut
+            end
+        end
+        
+        -- Téléporter à la base
+        task.wait(0.5) -- Attendre que le personnage soit complètement chargé
+        self.BaseSystem:SpawnPlayerAtBase(player)
+    else
+        print("[PlayerService] BaseSystem non disponible, pas de téléportation")
+    end
 end
 
 --[[

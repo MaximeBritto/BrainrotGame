@@ -37,13 +37,12 @@ local Handlers = ServerScriptService:WaitForChild("Handlers")
 local NetworkHandler = require(Handlers["NetworkHandler.module"])
 
 -- ═══════════════════════════════════════════════════════
--- PHASE 3 : Charger les systèmes (sera ajouté plus tard)
+-- PHASE 3 : Charger les systèmes
 -- ═══════════════════════════════════════════════════════
 
--- local Systems = ServerScriptService:WaitForChild("Systems")
--- local BaseSystem = require(Systems:WaitForChild("BaseSystem"))
--- local EconomySystem = require(Systems:WaitForChild("EconomySystem"))
--- ...
+local Systems = ServerScriptService:WaitForChild("Systems")
+local BaseSystem = require(Systems["BaseSystem.module"])
+local DoorSystem = require(Systems["DoorSystem.module"])
 
 -- ═══════════════════════════════════════════════════════
 -- INITIALISATION
@@ -63,19 +62,44 @@ print("[GameServer] DataService: OK")
 PlayerService:Init({
     DataService = DataService,
     NetworkSetup = NetworkSetup,
+    BaseSystem = nil, -- Sera initialisé après
 })
-print("[GameServer] PlayerService: OK")
+print("[GameServer] PlayerService: OK (sans BaseSystem)")
 
 -- 4. NetworkHandler
 NetworkHandler:Init({
     NetworkSetup = NetworkSetup,
     DataService = DataService,
     PlayerService = PlayerService,
+    BaseSystem = nil, -- Sera ajouté après
+    DoorSystem = nil, -- Sera ajouté après
 })
-print("[GameServer] NetworkHandler: OK")
+print("[GameServer] NetworkHandler: OK (sans systèmes)")
 
--- 5. Systèmes de jeu (sera ajouté en Phase 2+)
--- BaseSystem:Init({...})
+-- 5. BaseSystem (Phase 2)
+BaseSystem:Init({
+    DataService = DataService,
+    PlayerService = PlayerService,
+    NetworkSetup = NetworkSetup,
+})
+print("[GameServer] BaseSystem: OK")
+
+-- 5.1. Injecter BaseSystem dans PlayerService et NetworkHandler
+PlayerService.BaseSystem = BaseSystem
+NetworkHandler.BaseSystem = BaseSystem
+
+-- 6. DoorSystem (Phase 2)
+DoorSystem:Init({
+    BaseSystem = BaseSystem,
+    PlayerService = PlayerService,
+    NetworkSetup = NetworkSetup,
+})
+print("[GameServer] DoorSystem: OK")
+
+-- 6.1. Injecter DoorSystem dans NetworkHandler
+NetworkHandler.DoorSystem = DoorSystem
+
+-- 7. Autres systèmes (sera ajouté en Phase 3+)
 -- EconomySystem:Init({...})
 -- ...
 

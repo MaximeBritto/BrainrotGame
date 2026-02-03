@@ -20,6 +20,7 @@ local Constants = require(Shared["Constants.module"])
 
 -- Contrôleurs (charger depuis le même dossier)
 local UIController = require(script.Parent:WaitForChild("UIController.module"))
+local DoorController = require(script.Parent:WaitForChild("DoorController.module"))
 
 -- Attendre les Remotes
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
@@ -60,7 +61,7 @@ end)
 local syncDoorState = Remotes:WaitForChild("SyncDoorState")
 syncDoorState.OnClientEvent:Connect(function(data)
     print("[ClientMain] SyncDoorState received: " .. data.State)
-    -- TODO Phase 2: DoorController:UpdateDoorState(data)
+    DoorController:UpdateDoorState(data.State, data.ReopenTime)
 end)
 
 -- ═══════════════════════════════════════════════════════
@@ -174,6 +175,9 @@ end)
 -- ═══════════════════════════════════════════════════════
 -- TERMINÉ
 -- ═══════════════════════════════════════════════════════
+
+-- Initialiser DoorController
+DoorController:Init()
 
 print("═══════════════════════════════════════════════")
 print("   BRAINROT GAME - Client ready!")
