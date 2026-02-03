@@ -9,7 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Charger les constantes
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local Constants = require(Shared:WaitForChild("Constants"))
+local Constants = require(Shared["Constants.module"])
 
 local NetworkSetup = {}
 

@@ -8,7 +8,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = ReplicatedStorage:WaitForChild("Config")
-local GameConfig = require(Config:WaitForChild("GameConfig"))
+local GameConfig = require(Config["GameConfig.module"])
 
 local DefaultPlayerData = {
     -- Version pour migrations futures
