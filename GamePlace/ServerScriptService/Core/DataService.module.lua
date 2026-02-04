@@ -36,14 +36,20 @@ DataService.OnDataError = Instance.new("BindableEvent")
 
 --[[
     Initialise le DataStore
+    @param services: table (optionnel) - { NetworkSetup = ... } pour Phase 6 (SyncCodex)
 ]]
-function DataService:Init()
+function DataService:Init(services)
     if self._initialized then
         warn("[DataService] Déjà initialisé!")
         return
     end
     
     print("[DataService] Initialisation...")
+    
+    -- Phase 6: stocker NetworkSetup pour SyncCodex après UnlockCodexEntry
+    if services and services.NetworkSetup then
+        self._networkSetup = services.NetworkSetup
+    end
     
     -- Tenter de créer le DataStore
     local success, result = pcall(function()
@@ -317,10 +323,39 @@ function DataService:_StartAutoSave()
 end
 
 --[[
-    Débloque une entrée du Codex
+    Débloque une partie du Codex (Head, Body ou Legs)
     @param player: Player
     @param setName: string
-    @return boolean - true si débloqué (false si déjà débloqué)
+    @param partType: string - "Head", "Body" ou "Legs"
+    @return boolean
+]]
+function DataService:UnlockCodexPart(player, setName, partType)
+    local playerData = self:GetPlayerData(player)
+    if not playerData then return false end
+    if not playerData.CodexUnlocked then playerData.CodexUnlocked = {} end
+
+    local setData = playerData.CodexUnlocked[setName]
+    if type(setData) == "boolean" then
+        setData = {Head = true, Body = true, Legs = true}
+        playerData.CodexUnlocked[setName] = setData
+    elseif not setData then
+        setData = {Head = false, Body = false, Legs = false}
+        playerData.CodexUnlocked[setName] = setData
+    end
+
+    if setData[partType] then
+        return false
+    end
+    setData[partType] = true
+    self:_SendCodexToClient(player)
+    return true
+end
+
+--[[
+    Débloque tout un set du Codex (Head + Body + Legs) - ex. après un craft
+    @param player: Player
+    @param setName: string
+    @return boolean
 ]]
 function DataService:UnlockCodexEntry(player, setName)
     local playerData = self:GetPlayerData(player)
@@ -329,23 +364,43 @@ function DataService:UnlockCodexEntry(player, setName)
         return false
     end
     
-    -- Initialiser CodexUnlocked si nécessaire
     if not playerData.CodexUnlocked then
         playerData.CodexUnlocked = {}
     end
     
-    -- Vérifier si déjà débloqué
-    if playerData.CodexUnlocked[setName] then
-        print("[DataService] Codex déjà débloqué: " .. player.Name .. " - " .. setName)
+    local setData = playerData.CodexUnlocked[setName]
+    if type(setData) == "table" and setData.Head and setData.Body and setData.Legs then
+        return false
+    end
+    if type(setData) == "boolean" and setData then
         return false
     end
     
-    -- Débloquer
-    playerData.CodexUnlocked[setName] = true
-    
-    print("[DataService] Codex débloqué: " .. player.Name .. " - " .. setName)
-    
+    playerData.CodexUnlocked[setName] = {Head = true, Body = true, Legs = true}
+    print("[DataService] Codex débloqué: " .. player.Name .. " - " .. setName .. " (3/3)")
+    self:_SendCodexToClient(player)
     return true
+end
+
+function DataService:_SendCodexToClient(player)
+    local playerData = self:GetPlayerData(player)
+    if not playerData then return end
+    if self._codexService then
+        self._codexService:SendCodexToPlayer(player)
+    elseif self._networkSetup then
+        local remotes = self._networkSetup:GetAllRemotes()
+        if remotes and remotes.SyncCodex then
+            remotes.SyncCodex:FireClient(player, playerData.CodexUnlocked)
+        end
+    end
+end
+
+--[[
+    Phase 6: Injecte CodexService pour centraliser l'envoi SyncCodex
+    @param codexService: CodexService module
+]]
+function DataService:SetCodexService(codexService)
+    self._codexService = codexService
 end
 
 return DataService

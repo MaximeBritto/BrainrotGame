@@ -23,6 +23,7 @@ local UIController = require(script.Parent:WaitForChild("UIController.module"))
 local DoorController = require(script.Parent:WaitForChild("DoorController.module"))
 local EconomyController = require(script.Parent:WaitForChild("EconomyController.module"))
 local ArenaController = require(script.Parent:WaitForChild("ArenaController.module"))
+local CodexController = require(script.Parent:WaitForChild("CodexController.module"))
 
 -- Son (optionnel : si Assets/Sounds n'existe pas, pas d'erreur)
 local SoundHelper = nil
@@ -35,6 +36,9 @@ end
 
 -- Attendre les Remotes
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
+
+-- Phase 6 : CodexController (CodexUI, SyncCodex, bouton Fermer)
+CodexController:Init()
 
 -- ═══════════════════════════════════════════════════════
 -- CONNEXION AUX REMOTES (Serveur → Client)
@@ -91,7 +95,7 @@ end)
 local syncCodex = Remotes:WaitForChild("SyncCodex")
 syncCodex.OnClientEvent:Connect(function(data)
     print("[ClientMain] SyncCodex received")
-    -- TODO Phase 6: CodexController:UpdateCodex(data)
+    CodexController:UpdateCodex(data)
 end)
 
 -- SyncDoorState: Reçoit les mises à jour de l'état de la porte (Phase 2)
@@ -122,6 +126,22 @@ if craftButton then
         print("[ClientMain] Craft button clicked")
         craft:FireServer()
     end)
+end
+
+-- ═══════════════════════════════════════════════════════
+-- BOUTON CODEX (Phase 6) – CodexButton est enfant direct de MainHUD
+-- ═══════════════════════════════════════════════════════
+
+local playerGui = player:WaitForChild("PlayerGui")
+local mainHUD = playerGui:WaitForChild("MainHUD", 10)
+if mainHUD then
+    local codexButton = mainHUD:FindFirstChild("CodexButton") or mainHUD:FindFirstChild("Codex")
+    if codexButton and codexButton:IsA("TextButton") then
+        codexButton.MouseButton1Click:Connect(function()
+            CodexController:Open()
+        end)
+        print("[ClientMain] Codex button connected")
+    end
 end
 
 -- ═══════════════════════════════════════════════════════

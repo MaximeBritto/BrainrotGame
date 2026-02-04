@@ -20,6 +20,7 @@ local Constants = require(Shared["Constants.module"])
 local DataService = nil
 local NetworkSetup = nil
 local BaseSystem = nil -- Phase 2
+local CodexService = nil -- Phase 6
 
 local PlayerService = {}
 PlayerService._runtimeData = {} -- {[userId] = RuntimeData}
@@ -62,6 +63,7 @@ function PlayerService:Init(services)
     DataService = services.DataService
     NetworkSetup = services.NetworkSetup
     BaseSystem = services.BaseSystem -- Phase 2 (peut être nil au début)
+    CodexService = services.CodexService -- Phase 6 (optionnel)
     
     if not DataService then
         error("[PlayerService] DataService requis!")
@@ -123,6 +125,12 @@ function PlayerService:OnPlayerJoin(player)
     if remotes.SyncPlayerData then
         remotes.SyncPlayerData:FireClient(player, playerData)
         print("[PlayerService] Données envoyées au client: " .. player.Name)
+    end
+    -- Phase 6: envoyer le Codex au client (via CodexService si disponible)
+    if CodexService then
+        CodexService:SendCodexToPlayer(player)
+    elseif remotes and remotes.SyncCodex then
+        remotes.SyncCodex:FireClient(player, playerData.CodexUnlocked or {})
     end
     
     print("[PlayerService] Joueur initialisé: " .. player.Name)

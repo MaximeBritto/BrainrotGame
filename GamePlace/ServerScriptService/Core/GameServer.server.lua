@@ -116,6 +116,19 @@ do
     end
 end
 
+-- Phase 6: Codex
+local CodexService, codexLoadErr
+do
+    local ok, mod = pcall(function()
+        return require(Systems["CodexService.module"])
+    end)
+    if ok then
+        CodexService = mod
+    else
+        codexLoadErr = mod
+    end
+end
+
 -- ═══════════════════════════════════════════════════════
 -- INITIALISATION
 -- ═══════════════════════════════════════════════════════
@@ -127,14 +140,24 @@ local remotesFolder = NetworkSetup:Init()
 print("[GameServer] NetworkSetup: OK")
 
 -- 2. DataService (gestion DataStore)
-DataService:Init()
+DataService:Init({ NetworkSetup = NetworkSetup })
 print("[GameServer] DataService: OK")
+
+-- 2.1. CodexService (Phase 6) - centralise l'envoi SyncCodex
+if CodexService then
+    CodexService:Init({ DataService = DataService, NetworkSetup = NetworkSetup })
+    DataService:SetCodexService(CodexService)
+    print("[GameServer] CodexService: OK")
+else
+    warn("[GameServer] CodexService non chargé (Phase 6):", codexLoadErr or "inconnu")
+end
 
 -- 3. PlayerService (gestion connexion/déconnexion)
 PlayerService:Init({
     DataService = DataService,
     NetworkSetup = NetworkSetup,
     BaseSystem = nil, -- Sera initialisé après
+    CodexService = CodexService,
 })
 print("[GameServer] PlayerService: OK (sans BaseSystem)")
 
