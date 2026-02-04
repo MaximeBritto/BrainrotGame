@@ -122,6 +122,9 @@ function BaseSystem:AssignBase(player)
         BaseIndex = baseIndex,
     }
     
+    -- Attribut pour que le client trouve sa base (EconomyController, etc.)
+    baseModel:SetAttribute("OwnerUserId", player.UserId)
+    
     -- Mettre à jour les données runtime du joueur
     local runtimeData = PlayerService:GetRuntimeData(player)
     if runtimeData then
@@ -148,6 +151,9 @@ function BaseSystem:ReleaseBase(player)
     
     -- Nettoyer les Brainrots visuels de la base
     self:_CleanupBaseBrainrots(assignment.Base)
+    
+    -- Retirer l'attribut pour que le client ne prenne plus cette base
+    assignment.Base:SetAttribute("OwnerUserId", nil)
     
     -- Remettre la base dans les disponibles
     table.insert(self._availableBases, assignment.BaseIndex)
@@ -263,6 +269,13 @@ function BaseSystem:PlaceBrainrotOnSlot(player, slotIndex, brainrotData)
         return false
     end
     
+    -- Retirer l'ancien Brainrot visuel sur ce slot (évite les doublons)
+    for _, child in ipairs(slot:GetChildren()) do
+        if child:IsA("Model") and child.Name:match("^Brainrot_") then
+            child:Destroy()
+        end
+    end
+    
     -- Créer le Model visuel du Brainrot
     local brainrotModel = self:_CreateBrainrotModel(brainrotData)
     
@@ -275,9 +288,11 @@ function BaseSystem:PlaceBrainrotOnSlot(player, slotIndex, brainrotData)
     brainrotModel.Parent = slot
     
     -- Sauvegarder dans les données
-    DataService:UpdateValue(player, "PlacedBrainrots", playerData.PlacedBrainrots or {})
     local playerData = DataService:GetPlayerData(player)
+    if not playerData then return false end
+    if not playerData.PlacedBrainrots then playerData.PlacedBrainrots = {} end
     playerData.PlacedBrainrots[slotIndex] = brainrotData
+    DataService:UpdateValue(player, "PlacedBrainrots", playerData.PlacedBrainrots)
     
     print("[BaseSystem] Brainrot placé sur Slot_" .. slotIndex .. " pour " .. player.Name)
     
@@ -311,22 +326,16 @@ function BaseSystem:CheckFloorUnlock(player)
     for floorNum, threshold in pairs(GameConfig.Base.FloorUnlockThresholds) do
         if ownedSlots == threshold then
             local floor = floorsFolder:FindFirstChild("Floor_" .. floorNum)
-            
-            if floor and floor.Transparency > 0 then
-                -- Débloquer l'étage
-                floor.Transparency = 0
-                floor.CanCollide = true
-                
-                -- Notification
+            if floor then
+                self:_SetFloorVisible(floor, true)
                 local remotes = NetworkSetup:GetAllRemotes()
-                if remotes.Notification then
+                if remotes and remotes.Notification then
                     remotes.Notification:FireClient(player, {
                         Type = "Success",
                         Message = "Floor " .. floorNum .. " unlocked!",
                         Duration = 3,
                     })
                 end
-                
                 print("[BaseSystem] Floor_" .. floorNum .. " débloqué pour " .. player.Name)
                 return floorNum
             end
@@ -334,6 +343,113 @@ function BaseSystem:CheckFloorUnlock(player)
     end
     
     return nil
+end
+
+--[[
+    Réapplique la visibilité des étages selon OwnedSlots (sauvegardé).
+    À appeler au chargement du joueur / spawn pour que les étages débloqués restent visibles après reconnexion.
+    @param player: Player
+]]
+function BaseSystem:ApplyFloorVisibility(player)
+    local base = self:GetPlayerBase(player)
+    if not base then return end
+    
+    local playerData = DataService:GetPlayerData(player)
+    if not playerData then return end
+    
+    local ownedSlots = playerData.OwnedSlots or GameConfig.Base.StartingSlots
+    local floorsFolder = base:FindFirstChild(Constants.WorkspaceNames.FloorsFolder)
+    if not floorsFolder then return end
+    
+    for floorNum, threshold in pairs(GameConfig.Base.FloorUnlockThresholds) do
+        if ownedSlots >= threshold then
+            local floor = floorsFolder:FindFirstChild("Floor_" .. floorNum)
+            if floor then
+                self:_SetFloorVisible(floor, true)
+            end
+        end
+    end
+end
+
+--[[
+    Réapplique la visibilité des slots selon OwnedSlots (slots 1..ownedSlots visibles, reste cachés).
+    À appeler au chargement du joueur et après chaque achat de slot.
+    @param player: Player
+]]
+function BaseSystem:ApplySlotVisibility(player)
+    local base = self:GetPlayerBase(player)
+    if not base then return end
+    
+    local playerData = DataService:GetPlayerData(player)
+    if not playerData then return end
+    
+    local ownedSlots = playerData.OwnedSlots or GameConfig.Base.StartingSlots
+    local slotsFolder = base:FindFirstChild(Constants.WorkspaceNames.SlotsFolder)
+    if not slotsFolder then return end
+    
+    for _, slot in ipairs(slotsFolder:GetChildren()) do
+        local num = slot.Name:match("^Slot_(%d+)$")
+        if num then
+            local slotIndex = tonumber(num)
+            local visible = (slotIndex <= ownedSlots)
+            self:_SetFloorVisible(slot, visible)
+        end
+    end
+end
+
+--[[
+    Débloque et affiche un étage dans la base du joueur (appelé par EconomySystem à l'achat du slot).
+    @param player: Player
+    @param floorNum: number - Numéro de l'étage (1 = Floor_1, 2 = Floor_2)
+    @return boolean - true si l'étage a été affiché
+]]
+function BaseSystem:UnlockFloor(player, floorNum)
+    local base = self:GetPlayerBase(player)
+    if not base then return false end
+    
+    local floorsFolder = base:FindFirstChild(Constants.WorkspaceNames.FloorsFolder)
+    if not floorsFolder then
+        warn("[BaseSystem] Floors folder not found in base " .. base.Name)
+        return false
+    end
+    
+    local floor = floorsFolder:FindFirstChild("Floor_" .. floorNum)
+    if not floor then
+        warn("[BaseSystem] Floor_" .. floorNum .. " not found in " .. floorsFolder:GetFullName())
+        return false
+    end
+    
+    self:_SetFloorVisible(floor, true)
+    print("[BaseSystem] Floor_" .. floorNum .. " unlocked (visible) for " .. player.Name)
+    return true
+end
+
+--[[
+    Rend un étage visible ou invisible (Part unique ou Model avec plusieurs Parts).
+    @param floor: Instance - Part, Model ou Folder contenant des BaseParts
+    @param visible: boolean
+]]
+function BaseSystem:_SetFloorVisible(floor, visible)
+    if floor:IsA("BasePart") then
+        floor.Transparency = visible and 0 or 1
+        floor.CanCollide = visible
+        return
+    end
+    
+    if floor:IsA("Model") or floor:IsA("Folder") then
+        for _, desc in ipairs(floor:GetDescendants()) do
+            if desc:IsA("BasePart") then
+                desc.Transparency = visible and 0 or 1
+                desc.CanCollide = visible
+            end
+        end
+        return
+    end
+    
+    -- Fallback: un seul enfant Part
+    for _, child in ipairs(floor:GetChildren()) do
+        self:_SetFloorVisible(child, visible)
+    end
 end
 
 --[[

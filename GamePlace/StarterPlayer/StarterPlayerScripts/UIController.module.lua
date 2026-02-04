@@ -48,7 +48,7 @@ local notifTemplate = notifContainer:WaitForChild("Template")
 -- État local
 local currentPlayerData = {
     Cash = 0,
-    OwnedSlots = 1,
+    OwnedSlots = 10,   -- Floor 0 par défaut (remplacé au premier SyncPlayerData)
     SlotCash = {},
     PiecesInHand = {},
 }
@@ -283,6 +283,95 @@ end
 ]]
 function UIController:GetCurrentData()
     return currentPlayerData
+end
+
+-- ═══════════════════════════════════════════════════════
+-- ANIMATIONS ARGENT (Phase 3)
+-- ═══════════════════════════════════════════════════════
+
+--[[
+    Animation de gain d'argent (nombre qui monte)
+    @param amount: number - Montant gagné
+    @param sourcePosition: Vector3 | nil - Position 3D source (optionnel)
+]]
+function UIController:AnimateCashGain(amount, sourcePosition)
+    -- Créer un TextLabel temporaire
+    local floatingText = Instance.new("TextLabel")
+    floatingText.Name = "CashGain"
+    floatingText.Size = UDim2.new(0, 150, 0, 40)
+    floatingText.Position = UDim2.new(0.5, -75, 0.4, 0)
+    floatingText.BackgroundTransparency = 1
+    floatingText.Text = "+$" .. self:FormatNumber(amount)
+    floatingText.TextColor3 = Color3.fromRGB(0, 255, 100)
+    floatingText.TextScaled = true
+    floatingText.Font = Enum.Font.GothamBold
+    floatingText.TextStrokeTransparency = 0.5
+    floatingText.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    floatingText.Parent = mainHUD
+    
+    -- Animation: monter et disparaître
+    local tweenUp = TweenService:Create(floatingText, TweenInfo.new(1.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        Position = UDim2.new(0.5, -75, 0.2, 0),
+        TextTransparency = 1,
+        TextStrokeTransparency = 1,
+    })
+    
+    tweenUp:Play()
+    tweenUp.Completed:Connect(function()
+        floatingText:Destroy()
+    end)
+end
+
+--[[
+    Animation de perte d'argent
+    @param amount: number - Montant perdu
+]]
+function UIController:AnimateCashLoss(amount)
+    local floatingText = Instance.new("TextLabel")
+    floatingText.Name = "CashLoss"
+    floatingText.Size = UDim2.new(0, 150, 0, 40)
+    floatingText.Position = UDim2.new(0.5, -75, 0.4, 0)
+    floatingText.BackgroundTransparency = 1
+    floatingText.Text = "-$" .. self:FormatNumber(amount)
+    floatingText.TextColor3 = Color3.fromRGB(255, 80, 80)
+    floatingText.TextScaled = true
+    floatingText.Font = Enum.Font.GothamBold
+    floatingText.TextStrokeTransparency = 0.5
+    floatingText.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    floatingText.Parent = mainHUD
+    
+    -- Animation: descendre et disparaître
+    local tweenDown = TweenService:Create(floatingText, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+        Position = UDim2.new(0.5, -75, 0.6, 0),
+        TextTransparency = 1,
+        TextStrokeTransparency = 1,
+    })
+    
+    tweenDown:Play()
+    tweenDown.Completed:Connect(function()
+        floatingText:Destroy()
+    end)
+end
+
+--[[
+    Met à jour l'affichage de l'argent avec animation
+    @param newCash: number
+    @param oldCash: number | nil
+]]
+function UIController:UpdateCashAnimated(newCash, oldCash)
+    oldCash = oldCash or currentPlayerData.Cash
+    
+    local difference = newCash - oldCash
+    
+    -- Mettre à jour l'affichage
+    self:UpdateCash(newCash)
+    
+    -- Animer si changement significatif
+    if difference > 0 then
+        self:AnimateCashGain(difference)
+    elseif difference < 0 then
+        self:AnimateCashLoss(math.abs(difference))
+    end
 end
 
 return UIController

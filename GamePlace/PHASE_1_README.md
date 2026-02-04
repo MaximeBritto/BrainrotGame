@@ -76,8 +76,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = ReplicatedStorage:WaitForChild("Config")
 local Data = ReplicatedStorage:WaitForChild("Data")
 
-local GameConfig = require(Config:WaitForChild("GameConfig"))
-local DefaultPlayerData = require(Data:WaitForChild("DefaultPlayerData"))
+local GameConfig = require(Config:WaitForChild("GameConfig.module"))
+local DefaultPlayerData = require(Data:WaitForChild("DefaultPlayerData.module"))
 
 -- DataStore (désactivé en Studio si pas de API access)
 local dataStore = nil
@@ -413,7 +413,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Modules
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local Constants = require(Shared:WaitForChild("Constants"))
+local Constants = require(Shared:WaitForChild("Constants.module"))
 
 -- Services (seront injectés)
 local DataService = nil
@@ -786,7 +786,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Modules
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local Constants = require(Shared:WaitForChild("Constants"))
+local Constants = require(Shared:WaitForChild("Constants.module"))
 
 -- Services (seront injectés)
 local NetworkSetup = nil
@@ -1370,7 +1370,7 @@ local playerGui = player:WaitForChild("PlayerGui")
 
 -- Modules
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local Constants = require(Shared:WaitForChild("Constants"))
+local Constants = require(Shared:WaitForChild("Constants.module"))
 
 -- UI Elements
 local mainHUD = playerGui:WaitForChild("MainHUD")
@@ -1679,7 +1679,7 @@ local player = Players.LocalPlayer
 
 -- Modules
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local Constants = require(Shared:WaitForChild("Constants"))
+local Constants = require(Shared:WaitForChild("Constants.module"))
 
 -- Contrôleurs (charger depuis le même dossier)
 local UIController = require(script.Parent:WaitForChild("UIController"))

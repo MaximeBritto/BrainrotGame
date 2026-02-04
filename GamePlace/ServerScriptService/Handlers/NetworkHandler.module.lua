@@ -23,6 +23,7 @@ local PlayerService = nil
 -- Systèmes (Phase 2+)
 local BaseSystem = nil
 local DoorSystem = nil
+local EconomySystem = nil
 
 local NetworkHandler = {}
 NetworkHandler._initialized = false
@@ -47,6 +48,7 @@ function NetworkHandler:Init(services)
     -- Récupérer les systèmes (Phase 2+)
     BaseSystem = services.BaseSystem
     DoorSystem = services.DoorSystem
+    EconomySystem = services.EconomySystem
     
     -- Connecter les handlers
     self:_ConnectHandlers()
@@ -130,28 +132,80 @@ function NetworkHandler:_HandlePickupPiece(player, pieceId)
     print("[NetworkHandler] PickupPiece reçu de " .. player.Name .. " pour " .. tostring(pieceId))
     
     -- Placeholder: envoyer une notification
-    self:_SendNotification(player, "Info", "Pickup non implémenté (Phase 4)")
+    self:_SendNotification(player, "Info", "Pickup not implemented (Phase 4)")
 end
 
 function NetworkHandler:_HandleCraft(player)
     -- Phase 5: CraftingSystem:TryCraft(player)
     print("[NetworkHandler] Craft reçu de " .. player.Name)
     
-    self:_SendNotification(player, "Info", "Craft non implémenté (Phase 5)")
+    self:_SendNotification(player, "Info", "Craft not implemented (Phase 5)")
 end
 
+--[[
+    Handler: Achat de slot
+    @param player: Player
+]]
 function NetworkHandler:_HandleBuySlot(player)
-    -- Phase 3: EconomySystem:BuyNextSlot(player)
     print("[NetworkHandler] BuySlot reçu de " .. player.Name)
     
-    self:_SendNotification(player, "Info", "Achat slot non implémenté (Phase 3)")
+    if not EconomySystem then
+        self:_SendNotification(player, "Error", "Economy system not initialized")
+        return
+    end
+    
+    local result, newSlotCount = EconomySystem:BuyNextSlot(player)
+    
+    if result == "Success" then
+        local nextPrice = EconomySystem:GetNextSlotPrice(player)
+        local message = "Slot " .. newSlotCount .. " purchased!"
+        if nextPrice then
+            message = message .. " Next: $" .. nextPrice
+        else
+            message = message .. " (Max reached)"
+        end
+        self:_SendNotification(player, "Success", message)
+    elseif result == "NotEnoughMoney" then
+        local nextPrice = EconomySystem:GetNextSlotPrice(player)
+        self:_SendNotification(player, "Error", "Not enough money! ($" .. (nextPrice or 0) .. " required)")
+    elseif result == "MaxSlotsReached" then
+        self:_SendNotification(player, "Warning", "Maximum slots reached!")
+    else
+        self:_SendNotification(player, "Error", "Purchase error")
+    end
 end
 
+--[[
+    Handler: Collecte de l'argent d'un slot
+    @param player: Player
+    @param slotIndex: number | nil - Si nil, collecte tout
+]]
 function NetworkHandler:_HandleCollectSlotCash(player, slotIndex)
-    -- Phase 3: EconomySystem:CollectSlotCash(player, slotIndex)
     print("[NetworkHandler] CollectSlotCash reçu de " .. player.Name .. " pour slot " .. tostring(slotIndex))
     
-    self:_SendNotification(player, "Info", "Collecte non implémentée (Phase 3)")
+    if not EconomySystem then
+        self:_SendNotification(player, "Error", "Economy system not initialized")
+        return
+    end
+    
+    -- Accepter slotIndex en number ou string (sérialisation Remote)
+    if type(slotIndex) == "string" and slotIndex ~= "" then
+        slotIndex = tonumber(slotIndex)
+    end
+    
+    local amount
+    
+    if slotIndex and type(slotIndex) == "number" then
+        -- Collecter un slot spécifique
+        amount = EconomySystem:CollectSlotCash(player, slotIndex)
+    else
+        -- Collecter tous les slots
+        amount = EconomySystem:CollectAllSlotCash(player)
+    end
+    
+    if amount > 0 then
+        self:_SendNotification(player, "Success", "+$" .. amount .. " collected!")
+    end
 end
 
 function NetworkHandler:_HandleActivateDoor(player)
@@ -189,7 +243,7 @@ function NetworkHandler:_HandleDropPieces(player)
     end
     
     if #pieces > 0 then
-        self:_SendNotification(player, "Info", #pieces .. " pièce(s) lâchée(s)")
+        self:_SendNotification(player, "Info", #pieces .. " piece(s) dropped")
     end
 end
 
@@ -204,7 +258,7 @@ function NetworkHandler:_HandleGetFullPlayerData(player)
     local fullData = {
         -- Données sauvegardées
         Cash = playerData and playerData.Cash or 0,
-        OwnedSlots = playerData and playerData.OwnedSlots or 1,
+        OwnedSlots = playerData and (playerData.OwnedSlots or 10),
         PlacedBrainrots = playerData and playerData.PlacedBrainrots or {},
         SlotCash = playerData and playerData.SlotCash or {},
         CodexUnlocked = playerData and playerData.CodexUnlocked or {},
@@ -266,6 +320,24 @@ function NetworkHandler:SyncInventory(player)
     if remotes.SyncInventory then
         remotes.SyncInventory:FireClient(player, piecesInHand)
     end
+end
+
+--[[
+    Met à jour les systèmes après leur initialisation
+    @param systems: table - {BaseSystem, DoorSystem, EconomySystem, ...}
+]]
+function NetworkHandler:UpdateSystems(systems)
+    if systems.BaseSystem then
+        BaseSystem = systems.BaseSystem
+    end
+    if systems.DoorSystem then
+        DoorSystem = systems.DoorSystem
+    end
+    if systems.EconomySystem then
+        EconomySystem = systems.EconomySystem
+    end
+    
+    print("[NetworkHandler] Systèmes mis à jour")
 end
 
 return NetworkHandler

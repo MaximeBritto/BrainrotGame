@@ -20,14 +20,14 @@ local GameConfig = {
     -- BASE
     -- ═══════════════════════════════════════
     Base = {
-        MaxSlots = 30,                      -- Maximum de slots achetables
+        MaxSlots = 30,                      -- Total slots (1-30)
         SlotsPerFloor = 10,                 -- Slots par étage
-        StartingSlots = 1,                  -- Slots au départ
+        StartingSlots = 10,                 -- Floor 0 : slots 1-10 débloqués par défaut. Premier achat = slot 11
         
-        -- Étages débloqués automatiquement
+        -- Étages débloqués automatiquement (seuils = nombre total de slots possédés)
         FloorUnlockThresholds = {
-            [1] = 11,                       -- Floor_1 à 11 slots
-            [2] = 21,                       -- Floor_2 à 21 slots
+            [1] = 11,                       -- Floor_1 débloqué à 11 slots (1er achat)
+            [2] = 21,                       -- Floor_2 débloqué à 21 slots
         },
     },
     

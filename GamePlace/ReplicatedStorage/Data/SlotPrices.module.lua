@@ -2,22 +2,24 @@
     SlotPrices.lua
     Prix pour acheter chaque slot de la base
     
-    Index = numéro du slot
-    Valeur = prix en $
+    Slots 1-10 = Floor 0, débloqués par défaut (non achetables).
+    Premier slot à acheter = 11. Index = numéro du slot, Valeur = prix en $.
 ]]
 
 local SlotPrices = {
-    [1] = 0,        -- Slot 1 gratuit (déjà possédé)
-    [2] = 100,
-    [3] = 150,
-    [4] = 200,
-    [5] = 275,
-    [6] = 350,
-    [7] = 450,
-    [8] = 575,
-    [9] = 700,
-    [10] = 850,     -- Fin rez-de-chaussée
-    [11] = 1000,    -- Début 1er étage
+    -- Floor 0 (slots 1-10) : donnés au départ, pas d'achat
+    [1] = 0,
+    [2] = 0,
+    [3] = 0,
+    [4] = 0,
+    [5] = 0,
+    [6] = 0,
+    [7] = 0,
+    [8] = 0,
+    [9] = 0,
+    [10] = 0,
+    -- À partir du slot 11 = premier achat, puis Floor 1
+    [11] = 1000,    -- Premier slot achetable, débloque Floor_1
     [12] = 1200,
     [13] = 1400,
     [14] = 1650,

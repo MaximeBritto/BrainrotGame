@@ -188,6 +188,9 @@ function PlayerService:OnCharacterAdded(player, character)
         -- Téléporter à la base
         task.wait(0.5) -- Attendre que le personnage soit complètement chargé
         self.BaseSystem:SpawnPlayerAtBase(player)
+        -- Réappliquer la visibilité des étages et des slots débloqués (OwnedSlots est sauvegardé)
+        self.BaseSystem:ApplyFloorVisibility(player)
+        self.BaseSystem:ApplySlotVisibility(player)
     else
         print("[PlayerService] BaseSystem non disponible, pas de téléportation")
     end
@@ -217,7 +220,7 @@ function PlayerService:OnPlayerDied(player)
             if remotes.Notification then
                 remotes.Notification:FireClient(player, {
                     Type = "Warning",
-                    Message = "Vous êtes mort! " .. lostPieces .. " pièce(s) perdue(s).",
+                    Message = "You died! " .. lostPieces .. " piece(s) lost.",
                     Duration = 3,
                 })
             end

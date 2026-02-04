@@ -21,6 +21,16 @@ local Constants = require(Shared["Constants.module"])
 -- Contrôleurs (charger depuis le même dossier)
 local UIController = require(script.Parent:WaitForChild("UIController.module"))
 local DoorController = require(script.Parent:WaitForChild("DoorController.module"))
+local EconomyController = require(script.Parent:WaitForChild("EconomyController.module"))
+
+-- Son (optionnel : si Assets/Sounds n'existe pas, pas d'erreur)
+local SoundHelper = nil
+do
+    local ok, mod = pcall(function()
+        return require(Shared:WaitForChild("SoundHelper.module"))
+    end)
+    if ok and mod then SoundHelper = mod end
+end
 
 -- Attendre les Remotes
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
@@ -34,6 +44,19 @@ local syncPlayerData = Remotes:WaitForChild("SyncPlayerData")
 syncPlayerData.OnClientEvent:Connect(function(data)
     print("[ClientMain] SyncPlayerData received")
     UIController:UpdateAll(data)
+    
+    -- Mettre à jour EconomyController avec les données pertinentes
+    if data.OwnedSlots or data.SlotCash or data.UnlockedFloor then
+        EconomyController:UpdateData(data)
+    end
+    
+    -- Animer les changements d'argent
+    if data.Cash ~= nil then
+        local oldCash = UIController:GetCurrentData().Cash
+        if oldCash and oldCash ~= data.Cash then
+            UIController:UpdateCashAnimated(data.Cash, oldCash)
+        end
+    end
 end)
 
 -- SyncInventory: Reçoit les mises à jour de l'inventaire (pièces en main)
@@ -48,6 +71,19 @@ local notification = Remotes:WaitForChild("Notification")
 notification.OnClientEvent:Connect(function(data)
     print("[ClientMain] Notification received: " .. data.Type .. " - " .. data.Message)
     UIController:ShowNotification(data.Type, data.Message, data.Duration)
+    -- Sons économiques (Phase 3)
+    if SoundHelper then
+        local msg = data.Message or ""
+        if data.Type == "Success" then
+            if string.find(msg, "collected") then
+                SoundHelper.Play("CashCollect")
+            elseif string.find(msg, "purchased") or string.find(msg, "Slot") then
+                SoundHelper.Play("SlotBuy")
+            end
+        elseif data.Type == "Error" and string.find(msg, "money") then
+            SoundHelper.Play("NotEnoughMoney")
+        end
+    end
 end)
 
 -- SyncCodex: Reçoit les mises à jour du Codex (Phase 6)
@@ -178,6 +214,46 @@ end)
 
 -- Initialiser DoorController
 DoorController:Init()
+
+-- Initialiser EconomyController
+EconomyController:Init(UIController)
+
+-- ═══════════════════════════════════════════════════════
+-- PROXIMITÉ SHOP ET COLLECTPADS (Phase 3)
+-- ═══════════════════════════════════════════════════════
+
+local ProximityPromptService = game:GetService("ProximityPromptService")
+
+-- Écouter tous les ProximityPrompts
+ProximityPromptService.PromptTriggered:Connect(function(prompt, playerWhoTriggered)
+    if playerWhoTriggered ~= player then return end
+    
+    local parent = prompt.Parent
+    
+    -- Vérifier si c'est un SlotShop
+    if parent and parent.Name == "Sign" then
+        local grandParent = parent.Parent
+        if grandParent and grandParent.Name == "SlotShop" then
+            print("[ClientMain] SlotShop ProximityPrompt déclenché")
+            EconomyController:OpenShop()
+        end
+    end
+    
+    -- Vérifier si c'est un CollectPad (pour collecter l'argent d'un slot)
+    if parent and parent.Name == "CollectPad" then
+        local slot = parent.Parent
+        if slot then
+            local slotIndex = slot:GetAttribute("SlotIndex")
+            if not slotIndex and slot.Name:match("^Slot_(%d+)$") then
+                slotIndex = tonumber(slot.Name:match("^Slot_(%d+)$"))
+            end
+            if slotIndex then
+                print("[ClientMain] CollectPad ProximityPrompt déclenché pour slot " .. slotIndex)
+                EconomyController:RequestCollectSlot(slotIndex)
+            end
+        end
+    end
+end)
 
 print("═══════════════════════════════════════════════")
 print("   BRAINROT GAME - Client ready!")

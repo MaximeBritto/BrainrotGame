@@ -83,6 +83,8 @@ Pour chaque fichier `.lua` du dossier `GamePlace/` :
 | `ReplicatedStorage/Shared/Utils.module.lua` | ModuleScript | ReplicatedStorage > Shared > Utils |
 | `ServerScriptService/Core/NetworkSetup.module.lua` | ModuleScript | ServerScriptService > Core > NetworkSetup |
 
+**Convention des noms dans le code :** Les fichiers `*.module.lua` correspondent à des ModuleScript dont le nom d’instance est `NomDuModule.module` (ex. `Constants.module`, `GameConfig.module`, `SlotPrices.module`). Dans les scripts, utiliser par exemple `Shared:WaitForChild("Constants.module")` et non `"Constants"` pour éviter un « Infinite yield possible ».
+
 ---
 
 ## Étape 3 : Créer la Base Template

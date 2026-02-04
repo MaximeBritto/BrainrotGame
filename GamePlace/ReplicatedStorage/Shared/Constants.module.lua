@@ -102,29 +102,29 @@ local Constants = {
     },
     
     -- ═══════════════════════════════════════
-    -- MESSAGES D'ERREUR (pour UI)
+    -- ERROR MESSAGES (for UI)
     -- ═══════════════════════════════════════
     ErrorMessages = {
-        NotEnoughMoney = "Pas assez d'argent!",
-        NoSlotAvailable = "Aucun slot disponible! Achetez-en un.",
-        InventoryFull = "Inventaire plein! (Max 3 pièces)",
-        InvalidPiece = "Cette pièce n'existe plus!",
-        MissingPieces = "Il vous faut 3 pièces différentes!",
-        MaxSlotsReached = "Vous avez déjà tous les slots!",
-        OnCooldown = "Veuillez patienter...",
-        NotOwner = "Ce n'est pas votre base!",
+        NotEnoughMoney = "Not enough money!",
+        NoSlotAvailable = "No slot available! Buy one.",
+        InventoryFull = "Inventory full! (Max 3 pieces)",
+        InvalidPiece = "This piece no longer exists!",
+        MissingPieces = "You need 3 different pieces!",
+        MaxSlotsReached = "You already have all slots!",
+        OnCooldown = "Please wait...",
+        NotOwner = "This is not your base!",
     },
     
     -- ═══════════════════════════════════════
-    -- MESSAGES DE SUCCÈS
+    -- SUCCESS MESSAGES
     -- ═══════════════════════════════════════
     SuccessMessages = {
-        PiecePickedUp = "Pièce ramassée!",
-        BrainrotCrafted = "Brainrot créé!",
-        SlotPurchased = "Nouveau slot acheté!",
-        CashCollected = "Argent collecté du slot!",
-        DoorActivated = "Porte fermée pour 30 secondes!",
-        SetCompleted = "Set complété! Bonus reçu!",
+        PiecePickedUp = "Piece picked up!",
+        BrainrotCrafted = "Brainrot created!",
+        SlotPurchased = "New slot purchased!",
+        CashCollected = "Cash collected from slot!",
+        DoorActivated = "Door closed for 30 seconds!",
+        SetCompleted = "Set completed! Bonus received!",
     },
 }
 
