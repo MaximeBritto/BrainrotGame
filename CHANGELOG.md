@@ -4,6 +4,71 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 
 ---
 
+## [1.5.5] - 2026-02-04 - Phase 5.5 DEV A : Système Attachments 🔗
+
+### ✨ Ajouté
+
+#### BrainrotModelSystem - Assemblage par Attachments
+- ✅ **Système d'assemblage par Attachments** - Connexion précise via Attachment.CFrame
+- ✅ **CreateBrainrotModel** - Clone et assemble Head + Body + Legs via Attachments
+- ✅ **Positionnement automatique** - Alignement parfait avec CFrame math
+- ✅ **Soudure automatique** - WeldConstraints entre les pièces
+- ✅ **Fallback intelligent** - Positionnement manuel si Attachments manquent
+- ✅ **DestroyBrainrotModel** - Détruit le Brainrot assemblé
+- ✅ **GetBrainrotModel** - Récupère le modèle d'un slot
+- ✅ **Visibilité par propriétaire** - Préparé pour filtrage côté client
+- ✅ **Attributs étendus** - HeadSet, BodySet, LegsSet pour traçabilité
+- ✅ **Logs détaillés** - Debug des connexions Attachments
+
+#### Structure BodyPartTemplates
+- ✅ **HeadTemplate** - Models avec BottomAttachment
+- ✅ **BodyTemplate** - Models avec TopAttachment + BottomAttachment
+- ✅ **LegsTemplate** - Models avec TopAttachment
+- ✅ **Nommage flexible** - Noms de templates libres (brrbrr, lalero, patapim)
+
+#### CraftingSystem - Stockage Templates
+- ✅ **Stockage des noms de templates** - HeadSet, BodySet, LegsSet
+- ✅ **Support mix & match** - Craft avec n'importe quelle combinaison
+
+#### Intégration PlacementSystem
+- ✅ **Création automatique** - Brainrot assemblé lors du placement
+- ✅ **Destruction automatique** - Brainrot détruit lors du retrait
+- ✅ **Injection de dépendance** - BrainrotModelSystem injecté
+
+#### GameServer
+- ✅ **Initialisation BrainrotModelSystem** - Chargement et init du système
+- ✅ **Gestion d'erreurs** - Pcall pour éviter les crashes
+
+### 📚 Documentation
+- ✅ **PHASE_5.5_STUDIO_GUIDE.md** - Guide adapté pour structure BodyPartTemplates
+- ✅ **Structure avec Attachments** - HeadTemplate, BodyTemplate, LegsTemplate
+- ✅ **Instructions Attachments** - Où et comment les placer
+- ✅ **Checklist simplifiée** - Juste 3 Attachments à ajouter
+
+### 🎮 Gameplay
+- ✅ **Combinaisons infinies** - Nombre illimité de Brainrots uniques!
+- ✅ **Exemple:** brrbrr + lalero + patapim = Brainrot unique
+- ✅ **Alignement parfait** - Pas de gaps grâce aux Attachments
+
+### 🔧 Technique
+- ✅ **CFrame math** - `bodyPart.CFrame * bodyTopAtt.CFrame * headBottomAtt.CFrame:Inverse()`
+- ✅ **Rotation automatique** - Les pièces s'alignent en rotation
+- ✅ **Modularité** - Facile d'ajouter de nouveaux templates
+- ✅ **Fallback robuste** - Fonctionne même sans Attachments
+
+### 🔄 Modifié
+- ✅ **BrainrotModelSystem** - Assemblage par Attachments au lieu de positionnement manuel
+- ✅ **CraftingSystem** - Stockage des noms de templates
+- ✅ **PlacementSystem** - Intégration avec BrainrotModelSystem
+- ✅ **GameServer** - Ajout de l'initialisation Phase 5.5
+- ✅ **PHASE_5.5_STATUS.md** - Mise à jour des tâches DEV A
+- ✅ **PHASE_5.5_STUDIO_GUIDE.md** - Adapté pour BodyPartTemplates
+
+### 📝 À faire (Studio)
+- ⏳ **Ajouter 3 Attachments** - BottomAttachment (Head), TopAttachment + BottomAttachment (Body)
+
+---
+
 ## [1.1.0] - 2024 - Améliorations des Canons 🎯
 
 ### ✨ Ajouté

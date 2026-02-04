@@ -191,6 +191,43 @@ function PlayerService:OnCharacterAdded(player, character)
         -- Réappliquer la visibilité des étages et des slots débloqués (OwnedSlots est sauvegardé)
         self.BaseSystem:ApplyFloorVisibility(player)
         self.BaseSystem:ApplySlotVisibility(player)
+        
+        -- Recréer les Brainrots sauvegardés (Phase 5.5)
+        if self.BrainrotModelSystem then
+            task.wait(0.5) -- Délai plus long pour que la base soit complètement prête
+            local playerData = DataService:GetPlayerData(player)
+            if playerData and playerData.Brainrots then
+                local brainrotCount = 0
+                for _ in pairs(playerData.Brainrots) do
+                    brainrotCount = brainrotCount + 1
+                end
+                
+                if brainrotCount > 0 then
+                    print("[PlayerService] Recréation de " .. brainrotCount .. " Brainrot(s) pour " .. player.Name)
+                    
+                    for slotIndex, brainrotData in pairs(playerData.Brainrots) do
+                        if brainrotData.HeadSet and brainrotData.BodySet and brainrotData.LegsSet then
+                            print("[PlayerService] Recréation Brainrot slot " .. slotIndex .. ": " .. brainrotData.HeadSet .. " + " .. brainrotData.BodySet .. " + " .. brainrotData.LegsSet)
+                            
+                            local success = self.BrainrotModelSystem:CreateBrainrotModel(player, slotIndex, brainrotData)
+                            if success then
+                                print("[PlayerService] ✓ Brainrot slot " .. slotIndex .. " recréé avec succès")
+                            else
+                                warn("[PlayerService] ✗ Échec recréation Brainrot slot " .. slotIndex)
+                            end
+                        else
+                            warn("[PlayerService] Brainrot incomplet slot " .. slotIndex)
+                        end
+                    end
+                else
+                    print("[PlayerService] Pas de Brainrots à recréer pour " .. player.Name)
+                end
+            else
+                print("[PlayerService] Pas de Brainrots à recréer pour " .. player.Name)
+            end
+        else
+            warn("[PlayerService] BrainrotModelSystem non disponible pour recréation")
+        end
     else
         print("[PlayerService] BaseSystem non disponible, pas de téléportation")
     end

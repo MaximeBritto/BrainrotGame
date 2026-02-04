@@ -10,91 +10,53 @@ local BrainrotData = {
     -- SETS DE BRAINROTS
     -- ═══════════════════════════════════════
     Sets = {
-        ["Skibidi"] = {
+        ["brrbrrPatapim"] = {
             Rarity = "Common",
             Head = {
                 Price = 50,
-                DisplayName = "Skibidi",
-                ModelName = "Skibidi_Head",     -- Nom dans ReplicatedStorage/Assets/Pieces
-                SpawnWeight = 10,               -- Probabilité relative de spawn
+                DisplayName = "Brr Brr",
+                ModelName = "brrbrrPatapim_Head",
+                TemplateName = "brrbrr",  -- Template dans HeadTemplate folder
+                SpawnWeight = 10,
             },
             Body = {
                 Price = 75,
-                DisplayName = "Skibidi",
-                ModelName = "Skibidi_Body",
-                SpawnWeight = 10,
+                DisplayName = "Brr Brr Body",
+                ModelName = "brrbrrPatapim_Body",
+                TemplateName = "",  -- Pas de template pour l'instant
+                SpawnWeight = 0,  -- Pas de body pour l'instant
             },
             Legs = {
                 Price = 60,
-                DisplayName = "Skibidi",
-                ModelName = "Skibidi_Legs",
+                DisplayName = "Pata Pim",
+                ModelName = "brrbrrPatapim_Legs",
+                TemplateName = "patapim",  -- Template dans LegsTemplate folder
                 SpawnWeight = 10,
             },
         },
         
-        ["Rizz"] = {
+        ["TralaleroTralala"] = {
             Rarity = "Common",
             Head = {
                 Price = 80,
-                DisplayName = "Rizz",
-                ModelName = "Rizz_Head",
-                SpawnWeight = 10,
+                DisplayName = "Tra La La Head",
+                ModelName = "TralaleroTralala_Head",
+                TemplateName = "",  -- Pas de template pour l'instant
+                SpawnWeight = 0,  -- Pas de head pour l'instant
             },
             Body = {
                 Price = 100,
-                DisplayName = "Rizz",
-                ModelName = "Rizz_Body",
+                DisplayName = "La Le Ro",
+                ModelName = "TralaleroTralala_Body",
+                TemplateName = "lalero",  -- Template dans BodyTemplate folder
                 SpawnWeight = 10,
             },
             Legs = {
                 Price = 90,
-                DisplayName = "Rizz",
-                ModelName = "Rizz_Legs",
-                SpawnWeight = 10,
-            },
-        },
-        
-        ["Fanum"] = {
-            Rarity = "Rare",
-            Head = {
-                Price = 150,
-                DisplayName = "Fanum",
-                ModelName = "Fanum_Head",
-                SpawnWeight = 5,                -- Plus rare
-            },
-            Body = {
-                Price = 200,
-                DisplayName = "Fanum",
-                ModelName = "Fanum_Body",
-                SpawnWeight = 5,
-            },
-            Legs = {
-                Price = 175,
-                DisplayName = "Fanum",
-                ModelName = "Fanum_Legs",
-                SpawnWeight = 5,
-            },
-        },
-        
-        ["Gyatt"] = {
-            Rarity = "Epic",
-            Head = {
-                Price = 400,
-                DisplayName = "Gyatt",
-                ModelName = "Gyatt_Head",
-                SpawnWeight = 2,
-            },
-            Body = {
-                Price = 500,
-                DisplayName = "Gyatt",
-                ModelName = "Gyatt_Body",
-                SpawnWeight = 2,
-            },
-            Legs = {
-                Price = 450,
-                DisplayName = "Gyatt",
-                ModelName = "Gyatt_Legs",
-                SpawnWeight = 2,
+                DisplayName = "Tra La La Legs",
+                ModelName = "TralaleroTralala_Legs",
+                TemplateName = "",  -- Pas de template pour l'instant
+                SpawnWeight = 0,  -- Pas de legs pour l'instant
             },
         },
     },

@@ -202,6 +202,81 @@ testRemote.OnServerEvent:Connect(function(player, action, value)
                 OwnedSlots = newSlots
             })
         end
+        
+    elseif action == "ClearBrainrots" then
+        -- Clear tous les Brainrots
+        print("[TEST HANDLER] Clear Brainrots pour " .. player.Name)
+        
+        -- 1. Détruire tous les modèles 3D
+        local BrainrotModelSystem = require(game.ServerScriptService.Systems["BrainrotModelSystem.module"])
+        if BrainrotModelSystem and BrainrotModelSystem._models and BrainrotModelSystem._models[player.UserId] then
+            for slotIndex, model in pairs(BrainrotModelSystem._models[player.UserId]) do
+                if model then
+                    model:Destroy()
+                    print("[TEST HANDLER] Modèle détruit: slot " .. slotIndex)
+                end
+            end
+            BrainrotModelSystem._models[player.UserId] = {}
+        end
+        
+        -- 2. Clear les données sauvegardées (Brainrots ET PlacedBrainrots)
+        DataService:UpdateValue(player, "Brainrots", {})
+        DataService:UpdateValue(player, "PlacedBrainrots", {})
+        
+        -- 3. Arrêter la génération d'argent dans EconomySystem
+        local EconomySystem = require(game.ServerScriptService.Systems["EconomySystem.module"])
+        if EconomySystem and EconomySystem._slotRevenue and EconomySystem._slotRevenue[player.UserId] then
+            EconomySystem._slotRevenue[player.UserId] = {}
+            print("[TEST HANDLER] Revenue slots cleared")
+        end
+        
+        -- 4. Forcer save
+        task.wait(0.5)
+        local success = DataService:SavePlayerData(player)
+        
+        print("[TEST HANDLER] Brainrots cleared, saved: " .. tostring(success))
+        
+        local notifRemote = remotes:FindFirstChild("Notification")
+        if notifRemote then
+            notifRemote:FireClient(player, {
+                Type = "Success",
+                Message = "🗑️ All Brainrots cleared!",
+                Duration = 3
+            })
+        end
+        
+        -- Sync avec le client
+        local syncRemote = remotes:FindFirstChild("SyncPlayerData")
+        if syncRemote then
+            syncRemote:FireClient(player, DataService:GetPlayerData(player))
+        end
+        
+    elseif action == "ClearSlotCash" then
+        -- Clear l'argent des slots
+        print("[TEST HANDLER] Clear SlotCash pour " .. player.Name)
+        
+        DataService:UpdateValue(player, "SlotCash", {})
+        
+        -- Forcer save
+        task.wait(0.5)
+        local success = DataService:SavePlayerData(player)
+        
+        print("[TEST HANDLER] SlotCash cleared, saved: " .. tostring(success))
+        
+        local notifRemote = remotes:FindFirstChild("Notification")
+        if notifRemote then
+            notifRemote:FireClient(player, {
+                Type = "Success",
+                Message = "💰 Slot cash cleared!",
+                Duration = 3
+            })
+        end
+        
+        -- Sync avec le client
+        local syncRemote = remotes:FindFirstChild("SyncPlayerData")
+        if syncRemote then
+            syncRemote:FireClient(player, DataService:GetPlayerData(player))
+        end
     end
 end)
 

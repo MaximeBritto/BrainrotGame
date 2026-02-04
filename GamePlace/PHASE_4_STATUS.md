@@ -2,7 +2,7 @@
 
 **Date:** 2026-02-04  
 **Phase:** 4 - Arena & Inventory  
-**Status:** ⏳ À faire (Phase 3 complétée)
+**Status:** ✅ DEV A Complété | ⏳ DEV B À faire
 
 ---
 
@@ -10,7 +10,7 @@
 
 | Rôle | Scope | Statut |
 |------|--------|--------|
-| **DEV A** | ArenaSystem, InventorySystem, Handlers, GameServer, Spinner Kill | ⏳ |
+| **DEV A** | ArenaSystem, InventorySystem, Handlers, GameServer, Spinner Kill | ✅ |
 | **DEV B** | Arena Studio, Spinner Rotation, ArenaController, UI pièces | ⏳ |
 
 ---
@@ -21,19 +21,21 @@
 
 | Fichier | Type | Statut |
 |---------|------|--------|
-| `Systems/ArenaSystem.module.lua` | ModuleScript | ⏳ |
-| `Systems/InventorySystem.module.lua` | ModuleScript | ⏳ |
-| `Handlers/NetworkHandler.module.lua` | Modifié | ⏳ |
-| `Core/GameServer.server.lua` | Modifié | ⏳ |
+| `Systems/ArenaSystem.module.lua` | ModuleScript | ✅ |
+| `Systems/InventorySystem.module.lua` | ModuleScript | ✅ |
+| `Handlers/NetworkHandler.module.lua` | Modifié | ✅ |
+| `Core/GameServer.server.lua` | Modifié | ✅ |
+| `SpinnerRotation.server.lua` | Script | ✅ |
+| `StarterPlayerScripts/ArenaController.module.lua` | ModuleScript | ✅ |
 
 ### Tâches
 
-- [ ] A4.1 ArenaSystem (SpawnRandomPiece, SpawnLoop, CleanupLoop)
-- [ ] A4.2 InventorySystem (délégation PlayerService + TryPickupPiece)
-- [ ] A4.3 TryPickupPiece – 4 validations
-- [ ] A4.4 Spinner Kill (Touched → mort)
-- [ ] A4.5 Handlers PickupPiece / DropPieces
-- [ ] A4.6 Intégration GameServer
+- [x] A4.1 ArenaSystem (SpawnRandomPiece, SpawnLoop, CleanupLoop)
+- [x] A4.2 InventorySystem (délégation PlayerService + TryPickupPiece)
+- [x] A4.3 TryPickupPiece – 4 validations
+- [x] A4.4 Spinner Kill (Touched → mort)
+- [x] A4.5 Handlers PickupPiece / DropPieces
+- [x] A4.6 Intégration GameServer
 
 ---
 

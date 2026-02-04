@@ -137,6 +137,18 @@ CreateButton("FullTest", "🧪 FULL TEST\n(+$5000, +5 slots)", Color3.fromRGB(20
     print("[TEST SERVER] Test complet lancé")
 end).LayoutOrder = 7
 
+-- BOUTON 8: Clear tous les Brainrots
+CreateButton("ClearBrainrots", "🗑️ CLEAR ALL BRAINROTS", Color3.fromRGB(200, 50, 50), function()
+    testRemote:FireServer("ClearBrainrots")
+    print("[TEST SERVER] Clear Brainrots demandé")
+end).LayoutOrder = 8
+
+-- BOUTON 9: Clear SlotCash
+CreateButton("ClearSlotCash", "💰 CLEAR SLOT CASH", Color3.fromRGB(200, 100, 0), function()
+    testRemote:FireServer("ClearSlotCash")
+    print("[TEST SERVER] Clear SlotCash demandé")
+end).LayoutOrder = 9
+
 -- Info label
 local infoLabel = Instance.new("TextLabel")
 infoLabel.Name = "Info"
@@ -148,7 +160,7 @@ infoLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
 infoLabel.TextScaled = true
 infoLabel.Font = Enum.Font.Gotham
 infoLabel.TextWrapped = true
-infoLabel.LayoutOrder = 8
+infoLabel.LayoutOrder = 10
 infoLabel.Parent = container
 
 local infoCorner = Instance.new("UICorner")

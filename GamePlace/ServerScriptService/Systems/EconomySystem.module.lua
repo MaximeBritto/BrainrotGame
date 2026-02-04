@@ -290,27 +290,59 @@ function EconomySystem:_ProcessPlayerRevenue(player)
     if not data then return end
     
     -- Compter les Brainrots placés et calculer les revenus par slot
-    if not data.PlacedBrainrots then return end
+    if not data.Brainrots then 
+        -- Debug: vérifier si les données existent
+        -- print("[EconomySystem] Pas de Brainrots pour " .. player.Name)
+        return 
+    end
+    
+    -- Compter combien de Brainrots on a
+    local brainrotCount = 0
+    for _ in pairs(data.Brainrots) do
+        brainrotCount = brainrotCount + 1
+    end
+    
+    if brainrotCount == 0 then
+        -- print("[EconomySystem] Aucun Brainrot placé pour " .. player.Name)
+        return
+    end
+    
+    -- Charger BrainrotData pour récupérer les prix des pièces
+    local BrainrotData = require(ReplicatedStorage:WaitForChild("Data"):WaitForChild("BrainrotData.module"))
     
     local totalRevenue = 0
-    local revenuePerBrainrot = GameConfig.Economy.RevenuePerBrainrot
     
-    for slotIndex, brainrotData in pairs(data.PlacedBrainrots) do
-        if brainrotData then
-            -- Calculer le bonus de rareté (optionnel)
-            local multiplier = self:_GetRarityMultiplier(brainrotData)
-            local slotRevenue = revenuePerBrainrot * multiplier
+    for slotIndex, brainrotData in pairs(data.Brainrots) do
+        if brainrotData and brainrotData.HeadSet and brainrotData.BodySet and brainrotData.LegsSet then
+            -- Calculer le revenu basé sur les prix des pièces
+            local headSetData = BrainrotData.Sets[brainrotData.HeadSet]
+            local bodySetData = BrainrotData.Sets[brainrotData.BodySet]
+            local legsSetData = BrainrotData.Sets[brainrotData.LegsSet]
+            
+            local slotRevenue = 0
+            if headSetData and headSetData.Head then
+                slotRevenue = slotRevenue + (headSetData.Head.Price or 0)
+            end
+            if bodySetData and bodySetData.Body then
+                slotRevenue = slotRevenue + (bodySetData.Body.Price or 0)
+            end
+            if legsSetData and legsSetData.Legs then
+                slotRevenue = slotRevenue + (legsSetData.Legs.Price or 0)
+            end
             
             -- Ajouter au slot correspondant
-            self:AddSlotCash(player, slotIndex, slotRevenue)
-            totalRevenue = totalRevenue + slotRevenue
+            if slotRevenue > 0 then
+                self:AddSlotCash(player, slotIndex, slotRevenue)
+                totalRevenue = totalRevenue + slotRevenue
+                print("[EconomySystem] Slot " .. slotIndex .. " génère $" .. slotRevenue .. "/s")
+            end
         end
     end
     
     -- Si des revenus ont été générés, sync vers le client
     if totalRevenue > 0 then
         self:_SyncSlotCash(player, data.SlotCash)
-        -- print("[EconomySystem] " .. player.Name .. " revenus: +$" .. totalRevenue)
+        print("[EconomySystem] " .. player.Name .. " revenus totaux: +$" .. totalRevenue)
     end
 end
 

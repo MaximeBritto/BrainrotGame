@@ -55,6 +55,67 @@ do
     end
 end
 
+-- Phase 4: Arena & Inventory
+local ArenaSystem, arenaLoadErr
+local InventorySystem, inventoryLoadErr
+do
+    local ok, mod = pcall(function()
+        return require(Systems["ArenaSystem.module"])
+    end)
+    if ok then
+        ArenaSystem = mod
+    else
+        arenaLoadErr = mod
+    end
+end
+do
+    local ok, mod = pcall(function()
+        return require(Systems["InventorySystem.module"])
+    end)
+    if ok then
+        InventorySystem = mod
+    else
+        inventoryLoadErr = mod
+    end
+end
+
+-- Phase 5: Crafting & Placement
+local CraftingSystem, craftingLoadErr
+local PlacementSystem, placementLoadErr
+local BrainrotModelSystem, brainrotModelLoadErr
+do
+    local ok, mod = pcall(function()
+        return require(Systems["CraftingSystem.module"])
+    end)
+    if ok then
+        CraftingSystem = mod
+    else
+        craftingLoadErr = mod
+    end
+end
+do
+    local ok, mod = pcall(function()
+        return require(Systems["PlacementSystem.module"])
+    end)
+    if ok then
+        PlacementSystem = mod
+    else
+        placementLoadErr = mod
+    end
+end
+
+-- Phase 5.5: Brainrot Models
+do
+    local ok, mod = pcall(function()
+        return require(Systems["BrainrotModelSystem.module"])
+    end)
+    if ok then
+        BrainrotModelSystem = mod
+    else
+        brainrotModelLoadErr = mod
+    end
+end
+
 -- ═══════════════════════════════════════════════════════
 -- INITIALISATION
 -- ═══════════════════════════════════════════════════════
@@ -205,8 +266,125 @@ if EconomySystem and BaseSystem then
     end
 end
 
--- 9. Autres systèmes (sera ajouté en Phase 4+)
--- ArenaSystem:Init({...})
+-- 9. ArenaSystem & InventorySystem (Phase 4)
+if ArenaSystem and InventorySystem then
+    ArenaSystem:Init()
+    print("[GameServer] ArenaSystem: OK")
+    
+    InventorySystem:Init({
+        PlayerService = PlayerService,
+        ArenaSystem = ArenaSystem,
+    })
+    print("[GameServer] InventorySystem: OK")
+    
+    NetworkHandler:UpdateSystems({
+        ArenaSystem = ArenaSystem,
+        InventorySystem = InventorySystem,
+    })
+else
+    if not ArenaSystem then
+        warn("[GameServer] ArenaSystem non chargé:", arenaLoadErr or "inconnu")
+    end
+    if not InventorySystem then
+        warn("[GameServer] InventorySystem non chargé:", inventoryLoadErr or "inconnu")
+    end
+end
+
+-- 10. Spinner Kill (Phase 4) - Mort au contact de la barre
+if ArenaSystem then
+    local Workspace = game:GetService("Workspace")
+    local Players = game:GetService("Players")
+    
+    local arena = Workspace:FindFirstChild("Arena")
+    if arena then
+        local spinner = arena:FindFirstChild("Spinner")
+        if spinner then
+            -- Trouver la barre mortelle (attribut Deadly = true)
+            local bar = spinner:FindFirstChild("Bar")
+            if bar and bar:IsA("BasePart") and bar:GetAttribute("Deadly") == true then
+                local debounce = {}
+                
+                bar.Touched:Connect(function(hit)
+                    local character = hit:FindFirstAncestorOfClass("Model")
+                    if not character then return end
+                    
+                    local humanoid = character:FindFirstChild("Humanoid")
+                    if not humanoid or humanoid.Health <= 0 then return end
+                    
+                    local player = Players:GetPlayerFromCharacter(character)
+                    if not player then return end
+                    
+                    -- Debounce pour éviter de tuer plusieurs fois
+                    if debounce[player.UserId] then return end
+                    debounce[player.UserId] = true
+                    
+                    -- Tuer le joueur
+                    humanoid.Health = 0
+                    print("[GameServer] " .. player.Name .. " tué par le Spinner")
+                    
+                    -- Réinitialiser le debounce après 3 secondes
+                    task.delay(3, function()
+                        debounce[player.UserId] = nil
+                    end)
+                end)
+                
+                print("[GameServer] Spinner Kill: activé (Bar.Deadly = true)")
+            else
+                warn("[GameServer] Spinner Bar manquante ou attribut Deadly non défini")
+            end
+        else
+            warn("[GameServer] Spinner manquant dans Arena")
+        end
+    else
+        warn("[GameServer] Arena manquante dans Workspace")
+    end
+end
+
+-- 11. CraftingSystem & PlacementSystem (Phase 5)
+if CraftingSystem and PlacementSystem then
+    -- Phase 5.5: BrainrotModelSystem
+    if BrainrotModelSystem then
+        BrainrotModelSystem:Init({
+            BaseSystem = BaseSystem,
+        })
+        print("[GameServer] BrainrotModelSystem: OK")
+        
+        -- Injecter dans PlayerService pour la recréation au spawn
+        PlayerService.BrainrotModelSystem = BrainrotModelSystem
+    else
+        warn("[GameServer] BrainrotModelSystem non chargé:", brainrotModelLoadErr or "inconnu")
+    end
+    
+    PlacementSystem:Init({
+        DataService = DataService,
+        PlayerService = PlayerService,
+        BaseSystem = BaseSystem,
+        BrainrotModelSystem = BrainrotModelSystem,
+    })
+    print("[GameServer] PlacementSystem: OK")
+    
+    CraftingSystem:Init({
+        DataService = DataService,
+        PlayerService = PlayerService,
+        InventorySystem = InventorySystem,
+        PlacementSystem = PlacementSystem,
+    })
+    print("[GameServer] CraftingSystem: OK")
+    
+    NetworkHandler:UpdateSystems({
+        CraftingSystem = CraftingSystem,
+        PlacementSystem = PlacementSystem,
+    })
+else
+    if not CraftingSystem then
+        warn("[GameServer] CraftingSystem non chargé:", craftingLoadErr or "inconnu")
+    end
+    if not PlacementSystem then
+        warn("[GameServer] PlacementSystem non chargé:", placementLoadErr or "inconnu")
+    end
+end
+
+-- 12. Autres systèmes (Phase 6+)
 -- ...
 
 -- ═══════════════════════════════════════════════════════

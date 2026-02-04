@@ -316,4 +316,36 @@ function DataService:_StartAutoSave()
     print("[DataService] Auto-save démarré (intervalle: " .. GameConfig.DataStore.AutoSaveInterval .. "s)")
 end
 
+--[[
+    Débloque une entrée du Codex
+    @param player: Player
+    @param setName: string
+    @return boolean - true si débloqué (false si déjà débloqué)
+]]
+function DataService:UnlockCodexEntry(player, setName)
+    local playerData = self:GetPlayerData(player)
+    if not playerData then
+        warn("[DataService] Impossible de débloquer Codex: données introuvables")
+        return false
+    end
+    
+    -- Initialiser CodexUnlocked si nécessaire
+    if not playerData.CodexUnlocked then
+        playerData.CodexUnlocked = {}
+    end
+    
+    -- Vérifier si déjà débloqué
+    if playerData.CodexUnlocked[setName] then
+        print("[DataService] Codex déjà débloqué: " .. player.Name .. " - " .. setName)
+        return false
+    end
+    
+    -- Débloquer
+    playerData.CodexUnlocked[setName] = true
+    
+    print("[DataService] Codex débloqué: " .. player.Name .. " - " .. setName)
+    
+    return true
+end
+
 return DataService

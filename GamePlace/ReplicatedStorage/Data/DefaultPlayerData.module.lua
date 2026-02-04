@@ -25,15 +25,19 @@ local DefaultPlayerData = {
     -- ═══════════════════════════════════════
     OwnedSlots = GameConfig.Base.StartingSlots,  -- Nombre de slots possédés
     
-    -- Brainrots placés sur les slots
+    -- Brainrots craftés (données de craft)
     -- Format: {[slotIndex] = BrainrotData}
     -- BrainrotData = {
-    --     Name = "Skibidi Rizz Fanum",      -- Nom chimérique
-    --     HeadSet = "Skibidi",              -- Set de la tête
-    --     BodySet = "Rizz",                 -- Set du corps
-    --     LegsSet = "Fanum",                -- Set des jambes
-    --     CreatedAt = 1234567890,           -- Timestamp création
+    --     HeadSet = "brrbrrPatapim",        -- Set de la tête
+    --     BodySet = "TralaleroTralala",     -- Set du corps
+    --     LegsSet = "brrbrrPatapim",        -- Set des jambes
+    --     SlotIndex = 1,                    -- Index du slot
+    --     PlacedAt = 1234567890,            -- Timestamp placement
     -- }
+    Brainrots = {},
+    
+    -- Brainrots placés sur les slots (legacy, peut être supprimé)
+    -- Format: {[slotIndex] = BrainrotData}
     PlacedBrainrots = {},
     
     -- Argent stocké par slot (collecté en marchant sur CollectPad)

@@ -22,6 +22,7 @@ local Constants = require(Shared["Constants.module"])
 local UIController = require(script.Parent:WaitForChild("UIController.module"))
 local DoorController = require(script.Parent:WaitForChild("DoorController.module"))
 local EconomyController = require(script.Parent:WaitForChild("EconomyController.module"))
+local ArenaController = require(script.Parent:WaitForChild("ArenaController.module"))
 
 -- Son (optionnel : si Assets/Sounds n'existe pas, pas d'erreur)
 local SoundHelper = nil
@@ -217,6 +218,9 @@ DoorController:Init()
 
 -- Initialiser EconomyController
 EconomyController:Init(UIController)
+
+-- Initialiser ArenaController (Phase 4)
+ArenaController:Init()
 
 -- ═══════════════════════════════════════════════════════
 -- PROXIMITÉ SHOP ET COLLECTPADS (Phase 3)

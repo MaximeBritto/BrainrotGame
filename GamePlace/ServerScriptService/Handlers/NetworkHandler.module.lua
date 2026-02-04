@@ -25,6 +25,14 @@ local BaseSystem = nil
 local DoorSystem = nil
 local EconomySystem = nil
 
+-- Systèmes (Phase 4)
+local ArenaSystem = nil
+local InventorySystem = nil
+
+-- Systèmes (Phase 5)
+local CraftingSystem = nil
+local PlacementSystem = nil
+
 local NetworkHandler = {}
 NetworkHandler._initialized = false
 
@@ -49,6 +57,14 @@ function NetworkHandler:Init(services)
     BaseSystem = services.BaseSystem
     DoorSystem = services.DoorSystem
     EconomySystem = services.EconomySystem
+    
+    -- Récupérer les systèmes (Phase 4)
+    ArenaSystem = services.ArenaSystem
+    InventorySystem = services.InventorySystem
+    
+    -- Récupérer les systèmes (Phase 5)
+    CraftingSystem = services.CraftingSystem
+    PlacementSystem = services.PlacementSystem
     
     -- Connecter les handlers
     self:_ConnectHandlers()
@@ -128,18 +144,71 @@ end
 -- ═══════════════════════════════════════════════════════
 
 function NetworkHandler:_HandlePickupPiece(player, pieceId)
-    -- Phase 4: InventorySystem:TryPickupPiece(player, piece)
     print("[NetworkHandler] PickupPiece reçu de " .. player.Name .. " pour " .. tostring(pieceId))
     
-    -- Placeholder: envoyer une notification
-    self:_SendNotification(player, "Info", "Pickup not implemented (Phase 4)")
+    if not InventorySystem then
+        self:_SendNotification(player, "Error", "Inventory system not initialized")
+        return
+    end
+    
+    -- Tenter de ramasser la pièce (4 validations)
+    local success, result, pieceData = InventorySystem:TryPickupPiece(player, pieceId)
+    
+    if success then
+        -- Sync l'inventaire avec le client
+        self:SyncInventory(player)
+        
+        -- Notification de succès
+        local message = Constants.SuccessMessages.PiecePickedUp
+        if pieceData then
+            message = pieceData.DisplayName .. " " .. pieceData.PieceType .. " picked up!"
+        end
+        self:_SendNotification(player, "Success", message, 2)
+    else
+        -- Notification d'erreur
+        local errorMessage = Constants.ErrorMessages[result] or "Cannot pickup this piece"
+        self:_SendNotification(player, "Error", errorMessage, 2)
+    end
 end
 
 function NetworkHandler:_HandleCraft(player)
-    -- Phase 5: CraftingSystem:TryCraft(player)
     print("[NetworkHandler] Craft reçu de " .. player.Name)
     
-    self:_SendNotification(player, "Info", "Craft not implemented (Phase 5)")
+    if not CraftingSystem then
+        self:_SendNotification(player, "Error", "Crafting system not initialized")
+        return
+    end
+    
+    -- Tenter de crafter
+    local success, result, craftData = CraftingSystem:TryCraft(player)
+    
+    if success then
+        -- Construire le message
+        local message = craftData.SetName .. " Brainrot crafted!"
+        if craftData.IsCompleteSet then
+            message = message .. " Complete set! +$" .. craftData.Bonus
+        end
+        
+        -- Notifier le succès
+        self:_SendNotification(player, "Success", message, 4)
+        
+        -- Sync l'inventaire (vide)
+        self:SyncInventory(player)
+        
+        -- Sync les données (cash, PlacedBrainrots, Codex)
+        local playerData = DataService:GetPlayerData(player)
+        if playerData then
+            self:SyncPlayerData(player, {
+                Cash = playerData.Cash,
+                PlacedBrainrots = playerData.PlacedBrainrots,
+                CodexUnlocked = playerData.CodexUnlocked,
+            })
+        end
+    else
+        -- Notifier l'échec
+        local errorMessage = Constants.ErrorMessages[result] or "Cannot craft"
+        self:_SendNotification(player, "Error", errorMessage, 3)
+    end
 end
 
 --[[
@@ -324,7 +393,7 @@ end
 
 --[[
     Met à jour les systèmes après leur initialisation
-    @param systems: table - {BaseSystem, DoorSystem, EconomySystem, ...}
+    @param systems: table - {BaseSystem, DoorSystem, EconomySystem, ArenaSystem, InventorySystem, CraftingSystem, PlacementSystem, ...}
 ]]
 function NetworkHandler:UpdateSystems(systems)
     if systems.BaseSystem then
@@ -335,6 +404,18 @@ function NetworkHandler:UpdateSystems(systems)
     end
     if systems.EconomySystem then
         EconomySystem = systems.EconomySystem
+    end
+    if systems.ArenaSystem then
+        ArenaSystem = systems.ArenaSystem
+    end
+    if systems.InventorySystem then
+        InventorySystem = systems.InventorySystem
+    end
+    if systems.CraftingSystem then
+        CraftingSystem = systems.CraftingSystem
+    end
+    if systems.PlacementSystem then
+        PlacementSystem = systems.PlacementSystem
     end
     
     print("[NetworkHandler] Systèmes mis à jour")
