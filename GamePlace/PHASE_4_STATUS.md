@@ -1,8 +1,8 @@
 # 📊 Phase 4 - Status Report
 
-**Date:** 2026-02-04  
+**Date:** 2026-02-05  
 **Phase:** 4 - Arena & Inventory  
-**Status:** ✅ DEV A Complété | ⏳ DEV B À faire
+**Status:** ✅ COMPLETE (DEV A + DEV B)
 
 ---
 
@@ -11,11 +11,11 @@
 | Rôle | Scope | Statut |
 |------|--------|--------|
 | **DEV A** | ArenaSystem, InventorySystem, Handlers, GameServer, Spinner Kill | ✅ |
-| **DEV B** | Arena Studio, Spinner Rotation, ArenaController, UI pièces | ⏳ |
+| **DEV B** | Arena Studio, Spinner Rotation, ArenaController, UI pièces | ✅ |
 
 ---
 
-## ✅ DEV A - Backend Arena (à compléter)
+## ✅ DEV A - Backend Arena (COMPLETE)
 
 ### Fichiers
 
@@ -39,37 +39,37 @@
 
 ---
 
-## ✅ DEV B - Frontend Arena (à compléter)
+## ✅ DEV B - Frontend Arena (COMPLETE)
 
 ### Fichiers / Studio
 
 | Élément | Type | Statut |
 |---------|------|--------|
-| Arena + SpawnZone + Spinner (Studio) | Workspace | ⏳ |
-| ActivePieces, Piece_Template | Workspace / ReplicatedStorage | ⏳ |
-| Spinner Rotation | Script | ⏳ |
-| `ArenaController.module.lua` | ModuleScript | ⏳ |
-| UI 3 slots pièces (MainHUD) | ScreenGui | ⏳ |
-| `ClientMain.client.lua` | Modifié | ⏳ |
+| Arena + SpawnZone + Spinner (Studio) | Workspace | ✅ |
+| ActivePieces, Piece_Template | Workspace / ReplicatedStorage | ✅ |
+| Spinner Rotation | Script | ✅ |
+| `ArenaController.module.lua` | ModuleScript | ✅ |
+| UI 3 slots pièces (MainHUD) | ScreenGui | ✅ |
+| `ClientMain.client.lua` | Modifié | ✅ |
 
 ### Tâches
 
-- [ ] B4.1 Vérification / complétion Arena Studio
-- [ ] B4.2 Spinner Rotation
-- [ ] B4.3 ArenaController (ProximityPrompt, SyncInventory)
-- [ ] B4.4 UI pièces en main
+- [x] B4.1 Vérification / complétion Arena Studio
+- [x] B4.2 Spinner Rotation
+- [x] B4.3 ArenaController (ProximityPrompt, SyncInventory)
+- [x] B4.4 UI pièces en main
 
 ---
 
-## 🔄 SYNC 4 – Checklist
+## ✅ SYNC 4 – Checklist
 
-- [ ] Pièces spawn dans l’arène
-- [ ] Max 50 pièces respecté
-- [ ] Pickup avec validations (inventaire plein, pièce invalide)
-- [ ] Pièce disparaît après pickup
-- [ ] UI pièces en main à jour
-- [ ] Mort au Spinner = pièces perdues, respawn base
-- [ ] DropPieces vide la main et met à jour l’UI
+- [x] Pièces spawn dans l’arène
+- [x] Max 50 pièces respecté
+- [x] Pickup avec validations (inventaire plein, pièce invalide)
+- [x] Pièce disparaît après pickup
+- [x] UI pièces en main à jour
+- [x] Mort au Spinner = pièces perdues, respawn base
+- [x] DropPieces vide la main et met à jour l’UI
 
 ---
 
@@ -83,4 +83,4 @@
 
 ---
 
-**Dernière mise à jour:** 2026-02-04
+**Dernière mise à jour:** 2026-02-05

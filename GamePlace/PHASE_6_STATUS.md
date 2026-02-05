@@ -1,8 +1,8 @@
 # 📊 Phase 6 - Status Report
 
-**Date:** 2026-02-04  
+**Date:** 2026-02-05  
 **Phase:** 6 - Codex & Progression  
-**Status:** ⏳ À faire (Phase 5.5 complétée)
+**Status:** ✅ COMPLETE (DEV A + DEV B)
 
 ---
 
@@ -10,62 +10,62 @@
 
 | Rôle | Scope | Statut |
 |------|--------|--------|
-| **DEV A** | SyncCodex à la connexion, après UnlockCodexEntry, optionnel CodexService | ⏳ |
-| **DEV B** | CodexUI (Studio), CodexController, ClientMain, ouverture/affichage sets | ⏳ |
+| **DEV A** | SyncCodex à la connexion, après UnlockCodexEntry, CodexService | ✅ |
+| **DEV B** | CodexUI (Studio), CodexController, ClientMain, ouverture/affichage sets | ✅ |
 
 ---
 
-## ⏳ DEV A - Backend Codex & Sync
+## ✅ DEV A - Backend Codex & Sync (COMPLETE)
 
 ### Fichiers
 
 | Fichier | Type | Statut |
 |---------|------|--------|
-| `Core/PlayerService.module.lua` | Modifié | ⏳ |
-| `Core/DataService.module.lua` | Modifié | ⏳ |
-| `Core/GameServer.server.lua` | Modifié (DataService:Init) | ⏳ |
-| `Systems/CodexService.module.lua` | Optionnel | ⏳ |
-| `Handlers/NetworkHandler.module.lua` | Vérification | ⏳ |
+| `Core/PlayerService.module.lua` | Modifié | ✅ |
+| `Core/DataService.module.lua` | Modifié | ✅ |
+| `Core/GameServer.server.lua` | Modifié (DataService:Init) | ✅ |
+| `Systems/CodexService.module.lua` | ModuleScript | ✅ |
+| `Handlers/NetworkHandler.module.lua` | Vérification | ✅ |
 
 ### Tâches
 
-- [ ] A6.1 Envoi SyncCodex à la connexion (PlayerService)
-- [ ] A6.2 Envoi SyncCodex après UnlockCodexEntry (DataService + Init NetworkSetup)
-- [ ] A6.3 (Optionnel) CodexService
-- [ ] A6.4 Vérification NetworkHandler
+- [x] A6.1 Envoi SyncCodex à la connexion (PlayerService)
+- [x] A6.2 Envoi SyncCodex après UnlockCodexEntry (DataService + CodexService)
+- [x] A6.3 CodexService centralisé
+- [x] A6.4 Vérification NetworkHandler
 
 ---
 
-## ⏳ DEV B - Frontend Codex
+## ✅ DEV B - Frontend Codex (COMPLETE)
 
 ### Fichiers / Studio
 
 | Élément | Type | Statut |
 |---------|------|--------|
-| CodexUI (ScreenGui) | StarterGui | ⏳ |
-| CodexController.module.lua | StarterPlayerScripts | ⏳ |
-| ClientMain.client.lua | Modifié | ⏳ |
-| MainHUD – bouton Codex (CodexButton) | StarterGui | ⏳ |
+| CodexUI (ScreenGui) | StarterGui | ✅ |
+| CodexController.module.lua | StarterPlayerScripts | ✅ |
+| ClientMain.client.lua | Modifié | ✅ |
+| MainHUD – bouton Codex (CodexButton) | StarterGui | ✅ |
 
 ### Tâches
 
-- [ ] B6.1 CodexUI ScreenGui (Studio)
-- [ ] B6.2 CodexController.module.lua
-- [ ] B6.3 Connexion ClientMain + SyncCodex
-- [ ] B6.4 Bouton Codex dans MainHUD
-- [ ] B6.5 Affichage sets (débloqués/verrouillés)
-- [ ] B6.6 Polish (animations, couleurs rareté)
+- [x] B6.1 CodexUI ScreenGui (Studio)
+- [x] B6.2 CodexController.module.lua
+- [x] B6.3 Connexion ClientMain + SyncCodex
+- [x] B6.4 Bouton Codex dans MainHUD
+- [x] B6.5 Affichage sets (débloqués/verrouillés)
+- [x] B6.6 Polish (animations, couleurs rareté)
 
 ---
 
-## 🔄 SYNC 6 – Checklist
+## ✅ SYNC 6 – Checklist
 
-- [ ] SyncCodex reçu à la connexion
-- [ ] SyncCodex reçu après craft (déblocage set)
-- [ ] Ouverture/fermeture Codex (bouton ou touche)
-- [ ] Sets débloqués affichent nom + rareté
-- [ ] Sets verrouillés affichent ??? / cadenas
-- [ ] (Optionnel) Compteur X/Y et couleurs rareté
+- [x] SyncCodex reçu à la connexion
+- [x] SyncCodex reçu après craft (déblocage set)
+- [x] Ouverture/fermeture Codex (bouton ou touche)
+- [x] Sets débloqués affichent nom + rareté
+- [x] Sets verrouillés affichent ??? / cadenas
+- [x] Compteur X/Y et couleurs rareté
 
 ---
 
@@ -78,4 +78,4 @@
 
 ---
 
-**Dernière mise à jour:** 2026-02-04
+**Dernière mise à jour:** 2026-02-05
