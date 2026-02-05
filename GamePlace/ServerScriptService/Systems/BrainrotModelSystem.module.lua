@@ -201,25 +201,27 @@ function BrainrotModelSystem:CreateBrainrotModel(player, slotIndex, brainrotData
     legsModel:Destroy()
     
     -- Positionner les Legs d'abord (base du Brainrot)
-    -- Les Legs doivent être posées SUR la plateforme
+    -- Les Legs doivent être posées SUR la plateforme avec la même orientation
     local platformTop = platform.Position.Y + platform.Size.Y / 2
     local legsBottomY = platformTop + legsPart.Size.Y / 2
+    
+    -- Utiliser l'orientation de la plateforme pour orienter le Brainrot
+    local platformRotation = platform.CFrame.Rotation
     
     -- Utiliser l'orientation du TopAttachment des Legs pour définir leur rotation
     local legsTopAtt = legsPart:FindFirstChild("TopAttachment")
     if legsTopAtt then
-        -- Positionner les Legs avec l'orientation de leur TopAttachment
-        -- L'Attachment définit comment les Legs doivent être orientées
+        -- Positionner les Legs avec l'orientation de la plateforme + leur TopAttachment
         local legsOrientation = legsTopAtt.CFrame.Rotation
-        legsPart.CFrame = CFrame.new(platform.Position.X, legsBottomY, platform.Position.Z) * legsOrientation
+        legsPart.CFrame = CFrame.new(platform.Position.X, legsBottomY, platform.Position.Z) * platformRotation * legsOrientation
     else
-        -- Fallback: position simple sans rotation
-        legsPart.CFrame = CFrame.new(platform.Position.X, legsBottomY, platform.Position.Z)
+        -- Fallback: utiliser seulement l'orientation de la plateforme
+        legsPart.CFrame = CFrame.new(platform.Position.X, legsBottomY, platform.Position.Z) * platformRotation
     end
     legsPart.Anchored = false
     
     print("[BrainrotModelSystem] Legs positioned at:", legsPart.Position)
-    print("[BrainrotModelSystem] Legs orientation from TopAttachment")
+    print("[BrainrotModelSystem] Legs orientation from Platform + TopAttachment")
     
     -- Connecter Body → Legs via Attachments
     local bodyBottomAtt = bodyPart:FindFirstChild("BottomAttachment")

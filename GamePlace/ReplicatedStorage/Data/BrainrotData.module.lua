@@ -59,6 +59,81 @@ local BrainrotData = {
                 SpawnWeight = 0,  -- Pas de legs pour l'instant
             },
         },
+        
+        ["CactoHipopoTamo"] = {
+            Rarity = "Common",
+            Head = {
+                Price = 70,
+                DisplayName = "Cacto",
+                ModelName = "CactoHipopoTamo_Head",
+                TemplateName = "Cacto",  -- Template dans HeadTemplate folder
+                SpawnWeight = 10,
+            },
+            Body = {
+                Price = 85,
+                DisplayName = "Hipopo",
+                ModelName = "CactoHipopoTamo_Body",
+                TemplateName = "Hipopo",  -- Template dans BodyTemplate folder
+                SpawnWeight = 10,
+            },
+            Legs = {
+                Price = 65,
+                DisplayName = "Tamo",
+                ModelName = "CactoHipopoTamo_Legs",
+                TemplateName = "Tamo",  -- Template dans LegsTemplate folder
+                SpawnWeight = 10,
+            },
+        },
+        
+        ["PiccioneMacchina"] = {
+            Rarity = "Common",
+            Head = {
+                Price = 75,
+                DisplayName = "Picci",
+                ModelName = "PiccioneMacchina_Head",
+                TemplateName = "Picci",  -- Template dans HeadTemplate folder
+                SpawnWeight = 10,
+            },
+            Body = {
+                Price = 90,
+                DisplayName = "Onemac",
+                ModelName = "PiccioneMacchina_Body",
+                TemplateName = "Onemac",  -- Template dans BodyTemplate folder
+                SpawnWeight = 10,
+            },
+            Legs = {
+                Price = 70,
+                DisplayName = "China",
+                ModelName = "PiccioneMacchina_Legs",
+                TemplateName = "China",  -- Template dans LegsTemplate folder
+                SpawnWeight = 10,
+            },
+        },
+        
+		["Girafa_Celestre"] = {
+			Rarity = "Common",
+			Head = {
+				Price = 80,
+				DisplayName = "Gira",
+				ModelName = "Girafa_Celestre_Head",
+				TemplateName = "Gira",  -- Template dans HeadTemplate folder
+				SpawnWeight = 10,
+			},
+			Body = {
+				Price = 95,
+				DisplayName = "fafa",
+				ModelName = "Girafa_Celestre_Body",
+				TemplateName = "fafa",  -- Template dans BodyTemplate folder
+				SpawnWeight = 10,
+			},
+			Legs = {
+				Price = 75,
+				DisplayName = "Celestre",
+				ModelName = "Girafa_Celestre_Legs",
+				TemplateName = "Celestre",  -- Template dans LegsTemplate folder
+				SpawnWeight = 10,
+			},
+		},
     },
     
     -- ═══════════════════════════════════════
