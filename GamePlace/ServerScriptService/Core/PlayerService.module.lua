@@ -205,10 +205,6 @@ function PlayerService:OnCharacterAdded(player, character)
             task.wait(0.5) -- Délai plus long pour que la base soit complètement prête
             local playerData = DataService:GetPlayerData(player)
             
-            print("[PlayerService] === RESTAURATION BRAINROTS ===")
-            print("[PlayerService] PlacedBrainrots:", playerData.PlacedBrainrots)
-            print("[PlayerService] Brainrots:", playerData.Brainrots)
-            
             if playerData and playerData.PlacedBrainrots then
                 local brainrotCount = 0
                 for _ in pairs(playerData.PlacedBrainrots) do
@@ -216,28 +212,17 @@ function PlayerService:OnCharacterAdded(player, character)
                 end
                 
                 if brainrotCount > 0 then
-                    print("[PlayerService] Recréation de " .. brainrotCount .. " Brainrot(s) pour " .. player.Name)
-                    
                     for slotIndex, brainrotData in pairs(playerData.PlacedBrainrots) do
-                        print("[PlayerService] Slot " .. slotIndex .. " data:", brainrotData)
                         if brainrotData.HeadSet and brainrotData.BodySet and brainrotData.LegsSet then
-                            print("[PlayerService] Recréation Brainrot slot " .. slotIndex .. ": " .. brainrotData.HeadSet .. " + " .. brainrotData.BodySet .. " + " .. brainrotData.LegsSet)
-                            
                             local success = self.BrainrotModelSystem:CreateBrainrotModel(player, tonumber(slotIndex), brainrotData)
-                            if success then
-                                print("[PlayerService] ✓ Brainrot slot " .. slotIndex .. " recréé avec succès")
-                            else
-                                warn("[PlayerService] ✗ Échec recréation Brainrot slot " .. slotIndex)
+                            if not success then
+                                warn("[PlayerService] Échec recréation Brainrot slot " .. slotIndex)
                             end
                         else
                             warn("[PlayerService] Brainrot incomplet slot " .. slotIndex)
                         end
                     end
-                else
-                    print("[PlayerService] Pas de Brainrots à recréer pour " .. player.Name)
                 end
-            else
-                print("[PlayerService] Pas de PlacedBrainrots pour " .. player.Name)
             end
         else
             warn("[PlayerService] BrainrotModelSystem non disponible pour recréation")

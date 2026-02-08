@@ -145,8 +145,6 @@ function CraftingSystem:TryCraft(player)
         return false, Constants.ActionResult.InvalidPiece, nil
     end
     
-    print("[CraftingSystem] " .. player.Name .. " tente de crafter")
-    
     -- 1. Récupérer les pièces en main
     local pieces = InventorySystem:GetPiecesInHand(player)
     
@@ -167,8 +165,6 @@ function CraftingSystem:TryCraft(player)
     -- 4. Déterminer le set crafté
     local setName = self:GetCraftableSet(pieces)
     local isCompleteSet = self:IsCompleteSet(pieces)
-    
-    print("[CraftingSystem] Set crafté: " .. setName .. " (complet: " .. tostring(isCompleteSet) .. ")")
     
     -- 5. Créer les données du Brainrot avec les noms des templates
     local headPiece, bodyPiece, legsPiece
@@ -203,13 +199,10 @@ function CraftingSystem:TryCraft(player)
     if isCompleteSet then
         bonus = GameConfig.Economy.SetCompletionBonus
         DataService:IncrementValue(player, "Cash", bonus)
-        print("[CraftingSystem] Set complet! Bonus: $" .. bonus)
     end
     
     -- 9. Vider l'inventaire
     InventorySystem:ClearInventory(player)
-    
-    print("[CraftingSystem] " .. player.Name .. " a crafté: " .. setName .. " dans slot " .. slotIndex)
     
     return true, Constants.ActionResult.Success, {
         SetName = setName,

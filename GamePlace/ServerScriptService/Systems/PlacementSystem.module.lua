@@ -65,23 +65,14 @@ function PlacementSystem:FindAvailableSlot(player)
     local ownedSlots = playerData.OwnedSlots or GameConfig.Base.StartingSlots
     local brainrots = playerData.Brainrots or {}
     
-    print("[PlacementSystem] Recherche slot libre pour " .. player.Name)
-    print("[PlacementSystem] Slots possédés:", ownedSlots)
-    print("[PlacementSystem] Brainrots actuels:")
-    for idx, data in pairs(brainrots) do
-        print("  Slot " .. idx .. " occupé:", data.SetName or "unknown")
-    end
-    
     -- Parcourir tous les slots possédés
     for i = 1, ownedSlots do
         -- Vérifier si le slot est libre
         if not brainrots[i] then
-            print("[PlacementSystem] Slot libre trouvé: " .. i)
             return i
         end
     end
     
-    print("[PlacementSystem] Aucun slot libre pour " .. player.Name)
     return nil -- Aucun slot libre
 end
 
@@ -108,7 +99,12 @@ function PlacementSystem:PlaceBrainrot(player, slotIndex, brainrotData)
     end
     
     -- Vérifier que le slot est libre
-    local placedBrainrots = playerData.PlacedBrainrots or {}
+    local placedBrainrots = playerData.PlacedBrainrots
+    if not placedBrainrots then
+        placedBrainrots = {}
+        playerData.PlacedBrainrots = placedBrainrots
+    end
+    
     if placedBrainrots[tostring(slotIndex)] then
         warn("[PlacementSystem] Slot " .. slotIndex .. " déjà occupé")
         return false
@@ -119,9 +115,19 @@ function PlacementSystem:PlaceBrainrot(player, slotIndex, brainrotData)
     DataService:UpdateValue(player, "PlacedBrainrots", placedBrainrots)
     
     -- AUSSI placer dans Brainrots pour l'EconomySystem (compatibilité)
-    local brainrots = playerData.Brainrots or {}
+    local brainrots = playerData.Brainrots
+    if not brainrots then
+        brainrots = {}
+        playerData.Brainrots = brainrots
+    end
     brainrots[slotIndex] = brainrotData
     DataService:UpdateValue(player, "Brainrots", brainrots)
+    
+    -- print("[PlacementSystem] Brainrot placé: " .. player.Name .. " slot " .. slotIndex)
+    -- print("[PlacementSystem] SetName:", brainrotData.SetName)
+    -- print("[PlacementSystem] HeadSet:", brainrotData.HeadSet)
+    -- print("[PlacementSystem] BodySet:", brainrotData.BodySet)
+    -- print("[PlacementSystem] LegsSet:", brainrotData.LegsSet)
     
     -- Créer le modèle visuel (Phase 5.5)
     if BrainrotModelSystem then
