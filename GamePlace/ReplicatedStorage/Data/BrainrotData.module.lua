@@ -209,6 +209,50 @@ local BrainrotData = {
 				SpawnWeight = 10,
 			},
 		},
+		
+		["GraipusMedussi"] = {
+			Rarity = "Common",
+			Head = {
+				Price = 85,
+				DisplayName = "grai",
+				ModelName = "GraipusMedussi_Head",
+				TemplateName = "grai",  -- Template dans HeadTemplate folder
+				SpawnWeight = 10,
+			},
+			Body = {
+				Price = 95,
+				DisplayName = "pus",
+				ModelName = "GraipusMedussi_Body",
+				TemplateName = "pus",  -- Template dans BodyTemplate folder
+				SpawnWeight = 10,
+			},
+			Legs = {
+				Price = 80,
+				DisplayName = "medussi",
+				ModelName = "GraipusMedussi_Legs",
+				TemplateName = "medussi",  -- Template dans LegsTemplate folder
+				SpawnWeight = 10,
+			},
+		},
+		
+		["BombardiroCrocodilo"] = {
+			Rarity = "Common",
+			Head = {
+				Price = 90,
+				DisplayName = "Crocodilo",
+				ModelName = "BombardiroCrocodilo_Head",
+				TemplateName = "Crocodilo",  -- Template dans HeadTemplate folder
+				SpawnWeight = 10,
+			},
+			Body = {
+				Price = 100,
+				DisplayName = "Bombardiro",
+				ModelName = "BombardiroCrocodilo_Body",
+				TemplateName = "Bombardiro",  -- Template dans BodyTemplate folder
+				SpawnWeight = 10,
+			},
+		
+		},
     },
     
     -- ═══════════════════════════════════════

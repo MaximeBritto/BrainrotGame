@@ -21,7 +21,7 @@ local _connectedPrompts = {} -- Pour éviter les connexions multiples
     Initialise le contrôleur
 ]]
 function ArenaController:Init()
-    print("[ArenaController] Initialisation...")
+    -- print("[ArenaController] Initialisation...")
     
     -- Récupérer les remotes
     local remotesFolder = ReplicatedStorage:WaitForChild("Remotes", 10)
@@ -49,7 +49,7 @@ function ArenaController:Init()
     -- Connecter les pièces existantes et futures
     self:_ConnectActivePieces()
     
-    print("[ArenaController] Initialisé!")
+    -- print("[ArenaController] Initialisé!")
 end
 
 --[[
@@ -63,7 +63,7 @@ function ArenaController:_ConnectActivePieces()
         return
     end
     
-    print("[ArenaController] ActivePieces trouvé, connexion des prompts...")
+    -- print("[ArenaController] ActivePieces trouvé, connexion des prompts...")
     
     -- Fonction pour connecter un prompt
     local function connectPiecePrompt(piece)
@@ -102,7 +102,7 @@ function ArenaController:_ConnectActivePieces()
                 return
             end
             
-            print("[ArenaController] Pickup demandé pour:", pieceId)
+            -- print("[ArenaController] Pickup demandé pour:", pieceId)
             
             -- Envoyer au serveur
             _remotes.PickupPiece:FireServer(pieceId)
@@ -111,7 +111,7 @@ function ArenaController:_ConnectActivePieces()
         -- Stocker la connexion
         _connectedPrompts[piece] = connection
         
-        print("[ArenaController] Prompt connecté pour:", piece.Name)
+        -- -- print("[ArenaController] Prompt connecté pour:", piece.Name)
     end
     
     -- Connecter les pièces déjà présentes
@@ -140,14 +140,14 @@ end
 ]]
 function ArenaController:_OnInventorySync(pieces)
     _inventory = pieces or {}
-    print("[ArenaController] Inventaire synchronisé:", #_inventory, "pièce(s)")
+    -- print("[ArenaController] Inventaire synchronisé:", #_inventory, "pièce(s)")
     
     -- TODO: Mettre à jour l'UI (Phase 4 DEV B)
     -- Pour l'instant, juste afficher dans la console
     if #_inventory > 0 then
-        print("[ArenaController] Pièces en main:")
+        -- print("[ArenaController] Pièces en main:")
         for i, piece in ipairs(_inventory) do
-            print("  " .. i .. ". " .. piece.DisplayName .. " " .. piece.PieceType .. " ($" .. piece.Price .. ")")
+            -- print("  " .. i .. ". " .. piece.DisplayName .. " " .. piece.PieceType .. " ($" .. piece.Price .. ")")
         end
     end
 end
@@ -166,7 +166,7 @@ end
 function ArenaController:DropPieces()
     if _remotes.DropPieces then
         _remotes.DropPieces:FireServer()
-        print("[ArenaController] DropPieces envoyé au serveur")
+        -- print("[ArenaController] DropPieces envoyé au serveur")
     end
 end
 

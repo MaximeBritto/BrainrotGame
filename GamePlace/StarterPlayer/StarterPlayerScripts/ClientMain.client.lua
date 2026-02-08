@@ -5,9 +5,9 @@
     Ce script initialise tous les contrôleurs et connecte les RemoteEvents
 ]]
 
-print("═══════════════════════════════════════════════")
-print("   BRAINROT GAME - Client starting")
-print("═══════════════════════════════════════════════")
+-- print("═══════════════════════════════════════════════")
+-- print("   BRAINROT GAME - Client starting")
+-- print("═══════════════════════════════════════════════")
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -47,7 +47,7 @@ CodexController:Init()
 -- SyncPlayerData: Reçoit les mises à jour des données joueur
 local syncPlayerData = Remotes:WaitForChild("SyncPlayerData")
 syncPlayerData.OnClientEvent:Connect(function(data)
-    print("[ClientMain] SyncPlayerData received")
+    -- -- print("[ClientMain] SyncPlayerData received")
     UIController:UpdateAll(data)
     
     -- Mettre à jour EconomyController avec les données pertinentes
@@ -67,14 +67,14 @@ end)
 -- SyncInventory: Reçoit les mises à jour de l'inventaire (pièces en main)
 local syncInventory = Remotes:WaitForChild("SyncInventory")
 syncInventory.OnClientEvent:Connect(function(pieces)
-    print("[ClientMain] SyncInventory received (" .. #pieces .. " pieces)")
+    -- print("[ClientMain] SyncInventory received (" .. #pieces .. " pieces)")
     UIController:UpdateInventory(pieces)
 end)
 
 -- Notification: Reçoit les notifications à afficher
 local notification = Remotes:WaitForChild("Notification")
 notification.OnClientEvent:Connect(function(data)
-    print("[ClientMain] Notification received: " .. data.Type .. " - " .. data.Message)
+    -- print("[ClientMain] Notification received: " .. data.Type .. " - " .. data.Message)
     UIController:ShowNotification(data.Type, data.Message, data.Duration)
     -- Sons économiques (Phase 3)
     if SoundHelper then
@@ -94,14 +94,14 @@ end)
 -- SyncCodex: Reçoit les mises à jour du Codex (Phase 6)
 local syncCodex = Remotes:WaitForChild("SyncCodex")
 syncCodex.OnClientEvent:Connect(function(data)
-    print("[ClientMain] SyncCodex received")
+    -- print("[ClientMain] SyncCodex received")
     CodexController:UpdateCodex(data)
 end)
 
 -- SyncDoorState: Reçoit les mises à jour de l'état de la porte (Phase 2)
 local syncDoorState = Remotes:WaitForChild("SyncDoorState")
 syncDoorState.OnClientEvent:Connect(function(data)
-    print("[ClientMain] SyncDoorState received: " .. data.State)
+    -- print("[ClientMain] SyncDoorState received: " .. data.State)
     DoorController:UpdateDoorState(data.State, data.ReopenTime)
 end)
 
@@ -123,7 +123,7 @@ local collectSlotCash = Remotes:WaitForChild("CollectSlotCash")
 local craftButton = UIController:GetCraftButton()
 if craftButton then
     craftButton.MouseButton1Click:Connect(function()
-        print("[ClientMain] Craft button clicked")
+        -- print("[ClientMain] Craft button clicked")
         craft:FireServer()
     end)
 end
@@ -140,7 +140,7 @@ if mainHUD then
         codexButton.MouseButton1Click:Connect(function()
             CodexController:Open()
         end)
-        print("[ClientMain] Codex button connected")
+        -- print("[ClientMain] Codex button connected")
     end
 end
 
@@ -155,7 +155,7 @@ local ClientMain = {}
     @param pieceId: string - Nom unique de la pièce
 ]]
 function ClientMain:RequestPickupPiece(pieceId)
-    print("[ClientMain] Request pickup: " .. pieceId)
+    -- print("[ClientMain] Request pickup: " .. pieceId)
     pickupPiece:FireServer(pieceId)
 end
 
@@ -163,7 +163,7 @@ end
     Envoie une requête de craft au serveur
 ]]
 function ClientMain:RequestCraft()
-    print("[ClientMain] Request craft")
+    -- print("[ClientMain] Request craft")
     craft:FireServer()
 end
 
@@ -171,7 +171,7 @@ end
     Envoie une requête d'achat de slot au serveur
 ]]
 function ClientMain:RequestBuySlot()
-    print("[ClientMain] Request buy slot")
+    -- print("[ClientMain] Request buy slot")
     buySlot:FireServer()
 end
 
@@ -179,7 +179,7 @@ end
     Envoie une requête d'activation de porte au serveur
 ]]
 function ClientMain:RequestActivateDoor()
-    print("[ClientMain] Request activate door")
+    -- print("[ClientMain] Request activate door")
     activateDoor:FireServer()
 end
 
@@ -187,7 +187,7 @@ end
     Envoie une requête pour lâcher les pièces
 ]]
 function ClientMain:RequestDropPieces()
-    print("[ClientMain] Request drop pieces")
+    -- print("[ClientMain] Request drop pieces")
     dropPieces:FireServer()
 end
 
@@ -196,7 +196,7 @@ end
     @param slotIndex: number
 ]]
 function ClientMain:RequestCollectSlotCash(slotIndex)
-    print("[ClientMain] Request collect slot " .. slotIndex)
+    -- print("[ClientMain] Request collect slot " .. slotIndex)
     collectSlotCash:FireServer(slotIndex)
 end
 
@@ -218,11 +218,11 @@ task.spawn(function()
     -- Attendre un peu que le serveur soit prêt
     task.wait(1)
     
-    print("[ClientMain] Requesting initial data...")
+    -- print("[ClientMain] Requesting initial data...")
     local fullData = ClientMain:GetFullPlayerData()
     
     if fullData then
-        print("[ClientMain] Data received, updating UI")
+        -- print("[ClientMain] Data received, updating UI")
         UIController:UpdateAll(fullData)
     else
         warn("[ClientMain] No data received from server")
@@ -258,7 +258,7 @@ ProximityPromptService.PromptTriggered:Connect(function(prompt, playerWhoTrigger
     if parent and parent.Name == "Sign" then
         local grandParent = parent.Parent
         if grandParent and grandParent.Name == "SlotShop" then
-            print("[ClientMain] SlotShop ProximityPrompt déclenché")
+            -- print("[ClientMain] SlotShop ProximityPrompt déclenché")
             EconomyController:OpenShop()
         end
     end
@@ -272,16 +272,16 @@ ProximityPromptService.PromptTriggered:Connect(function(prompt, playerWhoTrigger
                 slotIndex = tonumber(slot.Name:match("^Slot_(%d+)$"))
             end
             if slotIndex then
-                print("[ClientMain] CollectPad ProximityPrompt déclenché pour slot " .. slotIndex)
+                -- print("[ClientMain] CollectPad ProximityPrompt déclenché pour slot " .. slotIndex)
                 EconomyController:RequestCollectSlot(slotIndex)
             end
         end
     end
 end)
 
-print("═══════════════════════════════════════════════")
-print("   BRAINROT GAME - Client ready!")
-print("═══════════════════════════════════════════════")
+-- print("═══════════════════════════════════════════════")
+-- print("   BRAINROT GAME - Client ready!")
+-- print("═══════════════════════════════════════════════")
 
 -- Exporter le module (optionnel, pour les autres scripts qui auraient besoin)
 return ClientMain

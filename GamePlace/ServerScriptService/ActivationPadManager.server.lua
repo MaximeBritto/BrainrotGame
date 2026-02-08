@@ -16,9 +16,9 @@ local Players = game:GetService("Players")
 -- Attendre que tout soit chargé
 task.wait(3)
 
-print("═══════════════════════════════════════════════")
-print("   ACTIVATION PAD MANAGER - Initialisation")
-print("═══════════════════════════════════════════════")
+-- print("═══════════════════════════════════════════════")
+-- print("   ACTIVATION PAD MANAGER - Initialisation")
+-- print("═══════════════════════════════════════════════")
 
 -- Récupérer les modules
 local Systems = ServerScriptService:WaitForChild("Systems")
@@ -39,7 +39,7 @@ local COOLDOWN_TIME = 1 -- 1 seconde entre chaque activation
     @param pad: Part - L'ActivationPad
 ]]
 local function ConnectActivationPad(pad)
-    print("[ActivationPadManager] Connexion de: " .. pad:GetFullName())
+    -- print("[ActivationPadManager] Connexion de: " .. pad:GetFullName())
     
     -- Détecter quand un joueur touche le pad
     pad.Touched:Connect(function(hit)
@@ -68,7 +68,7 @@ local function ConnectActivationPad(pad)
         
         cooldowns[player.UserId] = currentTime
         
-        print("[ActivationPadManager] " .. player.Name .. " a touché " .. pad.Name)
+        -- print("[ActivationPadManager] " .. player.Name .. " a touché " .. pad.Name)
         
         -- Activer la porte via DoorSystem
         local result = DoorSystem:ActivateDoor(player)
@@ -84,7 +84,7 @@ local function ConnectActivationPad(pad)
                     Duration = 3
                 })
             end
-            print("[ActivationPadManager] Porte activée pour " .. player.Name)
+            -- print("[ActivationPadManager] Porte activée pour " .. player.Name)
             
         elseif result == Constants.ActionResult.OnCooldown then
             local doorState = DoorSystem:GetDoorState(player)
@@ -144,12 +144,12 @@ local function InitializeAllPads()
         end
     end
     
-    print("[ActivationPadManager] " .. padCount .. " ActivationPad(s) connecté(s)")
+    -- print("[ActivationPadManager] " .. padCount .. " ActivationPad(s) connecté(s)")
 end
 
 -- Initialiser tous les pads
 InitializeAllPads()
 
-print("═══════════════════════════════════════════════")
-print("   ACTIVATION PAD MANAGER - Prêt!")
-print("═══════════════════════════════════════════════")
+-- print("═══════════════════════════════════════════════")
+-- print("   ACTIVATION PAD MANAGER - Prêt!")
+-- print("═══════════════════════════════════════════════")

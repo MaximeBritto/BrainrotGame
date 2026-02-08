@@ -37,7 +37,7 @@ function ArenaSystem:Init(services)
         return
     end
     
-    print("[ArenaSystem] Initialisation...")
+    -- print("[ArenaSystem] Initialisation...")
     
     -- Charger les modules de config
     local Config = ReplicatedStorage:WaitForChild("Config")
@@ -67,7 +67,7 @@ function ArenaSystem:Init(services)
         self._piecesFolder = Instance.new("Folder")
         self._piecesFolder.Name = Constants.WorkspaceNames.PiecesFolder
         self._piecesFolder.Parent = Workspace
-        print("[ArenaSystem] Folder ActivePieces créé")
+        -- print("[ArenaSystem] Folder ActivePieces créé")
     end
     
     -- Récupérer les templates
@@ -97,7 +97,7 @@ function ArenaSystem:Init(services)
     self:_StartCleanupLoop()
     
     self._initialized = true
-    print("[ArenaSystem] Initialisé - Spawn actif")
+    -- print("[ArenaSystem] Initialisé - Spawn actif")
 end
 
 --[[
@@ -274,7 +274,7 @@ function ArenaSystem:SpawnRandomPiece()
     prompt.Enabled = true
     prompt.Parent = pickupZone
     
-    print("[ArenaSystem] PickupZone et ProximityPrompt créés pour:", pieceId)
+    -- print("[ArenaSystem] PickupZone et ProximityPrompt créés pour:", pieceId)
     
     -- Parent et stockage
     piece.Parent = self._piecesFolder
@@ -283,7 +283,7 @@ function ArenaSystem:SpawnRandomPiece()
         SpawnedAt = tick(),
     }
     
-    print("[ArenaSystem] Pièce spawnée: " .. pieceId .. " (" .. templateName .. " " .. pieceType .. " - Set: " .. setName .. ")")
+    -- print("[ArenaSystem] Pièce spawnée: " .. pieceId .. " (" .. templateName .. " " .. pieceType .. " - Set: " .. setName .. ")")
     
     return piece
 end
@@ -375,7 +375,7 @@ function ArenaSystem:_SpawnSpecificPiece(setName, pieceType, pieceInfo, template
     prompt.Enabled = true
     prompt.Parent = pickupZone
     
-    print("[ArenaSystem] PickupZone et ProximityPrompt créés pour:", pieceId)
+    -- print("[ArenaSystem] PickupZone et ProximityPrompt créés pour:", pieceId)
     
     -- Parent et stockage
     piece.Parent = self._piecesFolder
@@ -384,7 +384,7 @@ function ArenaSystem:_SpawnSpecificPiece(setName, pieceType, pieceInfo, template
         SpawnedAt = tick(),
     }
     
-    print("[ArenaSystem] Pièce cheat spawnée: " .. pieceId .. " (" .. templateName .. " " .. pieceType .. " - Set: " .. setName .. ")")
+    -- print("[ArenaSystem] Pièce cheat spawnée: " .. pieceId .. " (" .. templateName .. " " .. pieceType .. " - Set: " .. setName .. ")")
     
     return piece
 end
@@ -397,7 +397,7 @@ function ArenaSystem:_StartSpawnLoop()
     self._spawnLoopRunning = true
     
     task.spawn(function()
-        print("[ArenaSystem] Boucle de spawn démarrée")
+        -- print("[ArenaSystem] Boucle de spawn démarrée")
         
         while self._spawnLoopRunning do
             task.wait(GameConfig.Arena.SpawnInterval)
@@ -412,7 +412,7 @@ function ArenaSystem:_StartSpawnLoop()
             if count < GameConfig.Arena.MaxPiecesInArena then
                 local piece = self:SpawnRandomPiece()
                 if piece then
-                    print("[ArenaSystem] Pièce spawnée: " .. piece.Name)
+                    -- print("[ArenaSystem] Pièce spawnée: " .. piece.Name)
                 end
             end
         end
@@ -427,7 +427,7 @@ function ArenaSystem:_StartCleanupLoop()
     self._cleanupLoopRunning = true
     
     task.spawn(function()
-        print("[ArenaSystem] Boucle de nettoyage démarrée")
+        -- print("[ArenaSystem] Boucle de nettoyage démarrée")
         
         while self._cleanupLoopRunning do
             task.wait(10) -- Vérifier toutes les 10 secondes
@@ -447,7 +447,7 @@ function ArenaSystem:_StartCleanupLoop()
                 local data = self._pieces[pieceId]
                 if data and data.Model then
                     data.Model:Destroy()
-                    print("[ArenaSystem] Pièce expirée supprimée: " .. pieceId)
+                    -- print("[ArenaSystem] Pièce expirée supprimée: " .. pieceId)
                 end
                 self._pieces[pieceId] = nil
             end
@@ -478,7 +478,7 @@ function ArenaSystem:RemovePiece(piece)
     end
     
     piece:Destroy()
-    print("[ArenaSystem] Pièce supprimée: " .. (pieceId or "unknown"))
+    -- print("[ArenaSystem] Pièce supprimée: " .. (pieceId or "unknown"))
 end
 
 return ArenaSystem

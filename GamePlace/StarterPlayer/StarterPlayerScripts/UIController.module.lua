@@ -170,7 +170,7 @@ function UIController:UpdateAll(data)
         currentPlayerData.OwnedSlots = data.OwnedSlots
     end
     
-    print("[UIController] UI updated")
+    -- print("[UIController] UI updated")
 end
 
 --[[

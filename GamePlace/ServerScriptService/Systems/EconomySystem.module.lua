@@ -334,7 +334,7 @@ function EconomySystem:_ProcessPlayerRevenue(player)
             if slotRevenue > 0 then
                 self:AddSlotCash(player, slotIndex, slotRevenue)
                 totalRevenue = totalRevenue + slotRevenue
-                print("[EconomySystem] Slot " .. slotIndex .. " génère $" .. slotRevenue .. "/s")
+                -- print("[EconomySystem] Slot " .. slotIndex .. " génère $" .. slotRevenue .. "/s")
             end
         end
     end
@@ -342,7 +342,7 @@ function EconomySystem:_ProcessPlayerRevenue(player)
     -- Si des revenus ont été générés, sync vers le client
     if totalRevenue > 0 then
         self:_SyncSlotCash(player, data.SlotCash)
-        print("[EconomySystem] " .. player.Name .. " revenus totaux: +$" .. totalRevenue)
+        -- print("[EconomySystem] " .. player.Name .. " revenus totaux: +$" .. totalRevenue)
     end
 end
 

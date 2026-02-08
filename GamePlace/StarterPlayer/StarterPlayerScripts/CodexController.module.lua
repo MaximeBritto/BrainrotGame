@@ -34,7 +34,7 @@ function CodexController:Init()
     end
 
     self._initialized = true
-    print("[CodexController] Initialized")
+    -- print("[CodexController] Initialized")
 end
 
 function CodexController:UpdateCodex(codexUnlocked)

@@ -57,7 +57,7 @@ function PlayerService:Init(services)
         return
     end
     
-    print("[PlayerService] Initialisation...")
+    -- print("[PlayerService] Initialisation...")
     
     -- Récupérer les services injectés
     DataService = services.DataService
@@ -86,7 +86,7 @@ function PlayerService:Init(services)
     end
     
     self._initialized = true
-    print("[PlayerService] Initialisé!")
+    -- print("[PlayerService] Initialisé!")
 end
 
 --[[
@@ -94,7 +94,7 @@ end
     @param player: Player
 ]]
 function PlayerService:OnPlayerJoin(player)
-    print("[PlayerService] Joueur rejoint: " .. player.Name)
+    -- print("[PlayerService] Joueur rejoint: " .. player.Name)
     
     -- 1. Charger les données sauvegardées
     local playerData = DataService:LoadPlayerData(player)
@@ -124,7 +124,7 @@ function PlayerService:OnPlayerJoin(player)
     local remotes = NetworkSetup:GetAllRemotes()
     if remotes.SyncPlayerData then
         remotes.SyncPlayerData:FireClient(player, playerData)
-        print("[PlayerService] Données envoyées au client: " .. player.Name)
+        -- print("[PlayerService] Données envoyées au client: " .. player.Name)
     end
     -- Phase 6: envoyer le Codex au client (via CodexService si disponible)
     if CodexService then
@@ -133,7 +133,7 @@ function PlayerService:OnPlayerJoin(player)
         remotes.SyncCodex:FireClient(player, playerData.CodexUnlocked or {})
     end
     
-    print("[PlayerService] Joueur initialisé: " .. player.Name)
+    -- print("[PlayerService] Joueur initialisé: " .. player.Name)
 end
 
 --[[
@@ -141,7 +141,7 @@ end
     @param player: Player
 ]]
 function PlayerService:OnPlayerLeave(player)
-    print("[PlayerService] Joueur quitte: " .. player.Name)
+    -- print("[PlayerService] Joueur quitte: " .. player.Name)
     
     -- 1. Libérer la base (Phase 2)
     if self.BaseSystem then
@@ -157,7 +157,7 @@ function PlayerService:OnPlayerLeave(player)
     -- 4. Nettoyer les données runtime
     self._runtimeData[player.UserId] = nil
     
-    print("[PlayerService] Joueur nettoyé: " .. player.Name)
+    -- print("[PlayerService] Joueur nettoyé: " .. player.Name)
 end
 
 --[[
@@ -166,7 +166,7 @@ end
     @param character: Model
 ]]
 function PlayerService:OnCharacterAdded(player, character)
-    print("[PlayerService] Personnage spawné: " .. player.Name)
+    -- print("[PlayerService] Personnage spawné: " .. player.Name)
     
     -- Attendre que le Humanoid soit prêt
     local humanoid = character:WaitForChild("Humanoid")
@@ -179,12 +179,12 @@ function PlayerService:OnCharacterAdded(player, character)
     -- Assigner une base si pas encore fait (Phase 2)
     -- Utiliser self.BaseSystem car il est injecté après Init()
     if self.BaseSystem then
-        print("[PlayerService] BaseSystem trouvé, assignation de base...")
+        -- print("[PlayerService] BaseSystem trouvé, assignation de base...")
         local runtimeData = self._runtimeData[player.UserId]
         
         -- Si pas de base assignée, en assigner une
         if not runtimeData or not runtimeData.AssignedBase then
-            print("[PlayerService] Assignation de base pour " .. player.Name)
+            -- print("[PlayerService] Assignation de base pour " .. player.Name)
             local base = self.BaseSystem:AssignBase(player)
             
             if not base then
@@ -204,20 +204,26 @@ function PlayerService:OnCharacterAdded(player, character)
         if self.BrainrotModelSystem then
             task.wait(0.5) -- Délai plus long pour que la base soit complètement prête
             local playerData = DataService:GetPlayerData(player)
-            if playerData and playerData.Brainrots then
+            
+            print("[PlayerService] === RESTAURATION BRAINROTS ===")
+            print("[PlayerService] PlacedBrainrots:", playerData.PlacedBrainrots)
+            print("[PlayerService] Brainrots:", playerData.Brainrots)
+            
+            if playerData and playerData.PlacedBrainrots then
                 local brainrotCount = 0
-                for _ in pairs(playerData.Brainrots) do
+                for _ in pairs(playerData.PlacedBrainrots) do
                     brainrotCount = brainrotCount + 1
                 end
                 
                 if brainrotCount > 0 then
                     print("[PlayerService] Recréation de " .. brainrotCount .. " Brainrot(s) pour " .. player.Name)
                     
-                    for slotIndex, brainrotData in pairs(playerData.Brainrots) do
+                    for slotIndex, brainrotData in pairs(playerData.PlacedBrainrots) do
+                        print("[PlayerService] Slot " .. slotIndex .. " data:", brainrotData)
                         if brainrotData.HeadSet and brainrotData.BodySet and brainrotData.LegsSet then
                             print("[PlayerService] Recréation Brainrot slot " .. slotIndex .. ": " .. brainrotData.HeadSet .. " + " .. brainrotData.BodySet .. " + " .. brainrotData.LegsSet)
                             
-                            local success = self.BrainrotModelSystem:CreateBrainrotModel(player, slotIndex, brainrotData)
+                            local success = self.BrainrotModelSystem:CreateBrainrotModel(player, tonumber(slotIndex), brainrotData)
                             if success then
                                 print("[PlayerService] ✓ Brainrot slot " .. slotIndex .. " recréé avec succès")
                             else
@@ -231,13 +237,13 @@ function PlayerService:OnCharacterAdded(player, character)
                     print("[PlayerService] Pas de Brainrots à recréer pour " .. player.Name)
                 end
             else
-                print("[PlayerService] Pas de Brainrots à recréer pour " .. player.Name)
+                print("[PlayerService] Pas de PlacedBrainrots pour " .. player.Name)
             end
         else
             warn("[PlayerService] BrainrotModelSystem non disponible pour recréation")
         end
     else
-        print("[PlayerService] BaseSystem non disponible, pas de téléportation")
+        -- print("[PlayerService] BaseSystem non disponible, pas de téléportation")
     end
 end
 
@@ -246,7 +252,7 @@ end
     @param player: Player
 ]]
 function PlayerService:OnPlayerDied(player)
-    print("[PlayerService] Joueur mort: " .. player.Name)
+    -- print("[PlayerService] Joueur mort: " .. player.Name)
     
     -- Vider les pièces en main (elles sont perdues)
     local runtimeData = self._runtimeData[player.UserId]
@@ -255,7 +261,7 @@ function PlayerService:OnPlayerDied(player)
         runtimeData.PiecesInHand = {}
         
         if lostPieces > 0 then
-            print("[PlayerService] " .. player.Name .. " a perdu " .. lostPieces .. " pièces")
+            -- print("[PlayerService] " .. player.Name .. " a perdu " .. lostPieces .. " pièces")
             
             -- Envoyer notification au client
             local remotes = NetworkSetup:GetAllRemotes()

@@ -6,9 +6,9 @@
     C'est LE SEUL Script (pas ModuleScript) côté serveur
 ]]
 
-print("═══════════════════════════════════════════════")
-print("   BRAINROT GAME - Démarrage du serveur")
-print("═══════════════════════════════════════════════")
+-- print("═══════════════════════════════════════════════")
+-- print("   BRAINROT GAME - Démarrage du serveur")
+-- print("═══════════════════════════════════════════════")
 
 -- Attendre que tout soit chargé (évite les "Infinite yield")
 task.wait(0.5)
@@ -133,21 +133,21 @@ end
 -- INITIALISATION
 -- ═══════════════════════════════════════════════════════
 
-print("[GameServer] Initialisation des services...")
+-- print("[GameServer] Initialisation des services...")
 
 -- 1. NetworkSetup (crée les RemoteEvents/Functions)
 local remotesFolder = NetworkSetup:Init()
-print("[GameServer] NetworkSetup: OK")
+-- print("[GameServer] NetworkSetup: OK")
 
 -- 2. DataService (gestion DataStore)
 DataService:Init({ NetworkSetup = NetworkSetup })
-print("[GameServer] DataService: OK")
+-- print("[GameServer] DataService: OK")
 
 -- 2.1. CodexService (Phase 6) - centralise l'envoi SyncCodex
 if CodexService then
     CodexService:Init({ DataService = DataService, NetworkSetup = NetworkSetup })
     DataService:SetCodexService(CodexService)
-    print("[GameServer] CodexService: OK")
+    -- print("[GameServer] CodexService: OK")
 else
     warn("[GameServer] CodexService non chargé (Phase 6):", codexLoadErr or "inconnu")
 end
@@ -159,7 +159,7 @@ PlayerService:Init({
     BaseSystem = nil, -- Sera initialisé après
     CodexService = CodexService,
 })
-print("[GameServer] PlayerService: OK (sans BaseSystem)")
+-- print("[GameServer] PlayerService: OK (sans BaseSystem)")
 
 -- 4. NetworkHandler
 NetworkHandler:Init({
@@ -170,7 +170,7 @@ NetworkHandler:Init({
     DoorSystem = nil, -- Sera ajouté après
     EconomySystem = nil, -- Sera ajouté après
 })
-print("[GameServer] NetworkHandler: OK (sans systèmes)")
+-- print("[GameServer] NetworkHandler: OK (sans systèmes)")
 
 -- 5. BaseSystem (Phase 2)
 BaseSystem:Init({
@@ -178,7 +178,7 @@ BaseSystem:Init({
     PlayerService = PlayerService,
     NetworkSetup = NetworkSetup,
 })
-print("[GameServer] BaseSystem: OK")
+-- print("[GameServer] BaseSystem: OK")
 
 -- 5.1. Injecter BaseSystem dans PlayerService et NetworkHandler
 PlayerService.BaseSystem = BaseSystem
@@ -190,7 +190,7 @@ DoorSystem:Init({
     PlayerService = PlayerService,
     NetworkSetup = NetworkSetup,
 })
-print("[GameServer] DoorSystem: OK")
+-- print("[GameServer] DoorSystem: OK")
 
 -- 6.1. Injecter DoorSystem dans NetworkHandler
 NetworkHandler:UpdateSystems({DoorSystem = DoorSystem})
@@ -203,7 +203,7 @@ if EconomySystem then
         NetworkSetup = NetworkSetup,
         BaseSystem = BaseSystem,
     })
-    print("[GameServer] EconomySystem: OK")
+    -- print("[GameServer] EconomySystem: OK")
     NetworkHandler:UpdateSystems({EconomySystem = EconomySystem})
 else
     warn("[GameServer] EconomySystem non chargé (Phase 3 désactivée):", economyLoadErr or "inconnu")
@@ -285,20 +285,20 @@ if EconomySystem and BaseSystem then
                 end
             end
         end
-        print("[GameServer] CollectPads: collecte au toucher activée (marcher dessus)")
+        -- print("[GameServer] CollectPads: collecte au toucher activée (marcher dessus)")
     end
 end
 
 -- 9. ArenaSystem & InventorySystem (Phase 4)
 if ArenaSystem and InventorySystem then
     ArenaSystem:Init()
-    print("[GameServer] ArenaSystem: OK")
+    -- print("[GameServer] ArenaSystem: OK")
     
     InventorySystem:Init({
         PlayerService = PlayerService,
         ArenaSystem = ArenaSystem,
     })
-    print("[GameServer] InventorySystem: OK")
+    -- print("[GameServer] InventorySystem: OK")
     
     NetworkHandler:UpdateSystems({
         ArenaSystem = ArenaSystem,
@@ -343,7 +343,7 @@ if ArenaSystem then
                     
                     -- Tuer le joueur
                     humanoid.Health = 0
-                    print("[GameServer] " .. player.Name .. " tué par le Spinner")
+                    -- print("[GameServer] " .. player.Name .. " tué par le Spinner")
                     
                     -- Réinitialiser le debounce après 3 secondes
                     task.delay(3, function()
@@ -351,7 +351,7 @@ if ArenaSystem then
                     end)
                 end)
                 
-                print("[GameServer] Spinner Kill: activé (Bar.Deadly = true)")
+                -- print("[GameServer] Spinner Kill: activé (Bar.Deadly = true)")
             else
                 warn("[GameServer] Spinner Bar manquante ou attribut Deadly non défini")
             end
@@ -370,7 +370,7 @@ if CraftingSystem and PlacementSystem then
         BrainrotModelSystem:Init({
             BaseSystem = BaseSystem,
         })
-        print("[GameServer] BrainrotModelSystem: OK")
+        -- print("[GameServer] BrainrotModelSystem: OK")
         
         -- Injecter dans PlayerService pour la recréation au spawn
         PlayerService.BrainrotModelSystem = BrainrotModelSystem
@@ -384,7 +384,7 @@ if CraftingSystem and PlacementSystem then
         BaseSystem = BaseSystem,
         BrainrotModelSystem = BrainrotModelSystem,
     })
-    print("[GameServer] PlacementSystem: OK")
+    -- print("[GameServer] PlacementSystem: OK")
     
     CraftingSystem:Init({
         DataService = DataService,
@@ -392,7 +392,7 @@ if CraftingSystem and PlacementSystem then
         InventorySystem = InventorySystem,
         PlacementSystem = PlacementSystem,
     })
-    print("[GameServer] CraftingSystem: OK")
+    -- print("[GameServer] CraftingSystem: OK")
     
     NetworkHandler:UpdateSystems({
         CraftingSystem = CraftingSystem,
@@ -414,6 +414,6 @@ end
 -- TERMINÉ
 -- ═══════════════════════════════════════════════════════
 
-print("═══════════════════════════════════════════════")
-print("   BRAINROT GAME - Serveur prêt!")
-print("═══════════════════════════════════════════════")
+-- print("═══════════════════════════════════════════════")
+-- print("   BRAINROT GAME - Serveur prêt!")
+-- print("═══════════════════════════════════════════════")

@@ -37,7 +37,7 @@ function DoorController:Init()
         return
     end
     
-    print("[DoorController] Initialisation...")
+    -- print("[DoorController] Initialisation...")
     
     -- Récupérer l'UI (optionnel)
     doorTimerUI = playerGui:FindFirstChild("DoorTimerUI")
@@ -49,7 +49,7 @@ function DoorController:Init()
             timerLabel = container:FindFirstChild("TimerLabel")
             
             if statusLabel and timerLabel then
-                print("[DoorController] UI trouvée et connectée")
+                -- print("[DoorController] UI trouvée et connectée")
             else
                 warn("[DoorController] StatusLabel ou TimerLabel introuvable")
             end
@@ -64,7 +64,7 @@ function DoorController:Init()
     self:_StartUpdateLoop()
     
     self._initialized = true
-    print("[DoorController] Initialisé!")
+    -- print("[DoorController] Initialisé!")
 end
 
 --[[
@@ -76,7 +76,7 @@ function DoorController:UpdateDoorState(state, reopenTime)
     self._doorState = state
     self._reopenTime = reopenTime or 0
     
-    print("[DoorController] État mis à jour: " .. state)
+    -- print("[DoorController] État mis à jour: " .. state)
     
     -- Mettre à jour immédiatement
     self:_UpdateUI()
@@ -130,7 +130,7 @@ function DoorController:_StartUpdateLoop()
         end
     end)
     
-    print("[DoorController] Loop de mise à jour démarrée")
+    -- print("[DoorController] Loop de mise à jour démarrée")
 end
 
 return DoorController

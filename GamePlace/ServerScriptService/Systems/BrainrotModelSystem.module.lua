@@ -28,7 +28,7 @@ function BrainrotModelSystem:Init(services)
         return
     end
     
-    print("[BrainrotModelSystem] Initialisation...")
+    -- print("[BrainrotModelSystem] Initialisation...")
     
     BaseSystem = services.BaseSystem
     
@@ -41,7 +41,7 @@ function BrainrotModelSystem:Init(services)
     BrainrotData = require(Data:WaitForChild("BrainrotData.module"))
     
     self._initialized = true
-    print("[BrainrotModelSystem] Initialisé")
+    -- print("[BrainrotModelSystem] Initialisé")
 end
 
 --[[
@@ -220,8 +220,8 @@ function BrainrotModelSystem:CreateBrainrotModel(player, slotIndex, brainrotData
     end
     legsPart.Anchored = false
     
-    print("[BrainrotModelSystem] Legs positioned at:", legsPart.Position)
-    print("[BrainrotModelSystem] Legs orientation from Platform + TopAttachment")
+    -- -- print("[BrainrotModelSystem] Legs positioned at:", legsPart.Position)
+    -- -- print("[BrainrotModelSystem] Legs orientation from Platform + TopAttachment")
     
     -- Connecter Body → Legs via Attachments
     local bodyBottomAtt = bodyPart:FindFirstChild("BottomAttachment")
@@ -238,8 +238,8 @@ function BrainrotModelSystem:CreateBrainrotModel(player, slotIndex, brainrotData
         legsWeld.Part1 = legsPart
         legsWeld.Parent = legsPart
         
-        print("[BrainrotModelSystem] Legs connectées au Body via Attachments")
-        print("[BrainrotModelSystem] Body CFrame:", bodyPart.CFrame)
+        -- -- print("[BrainrotModelSystem] Legs connectées au Body via Attachments")
+        -- -- print("[BrainrotModelSystem] Body CFrame:", bodyPart.CFrame)
     else
         warn("[BrainrotModelSystem] Attachments manquants pour Body-Legs")
         -- Fallback: positionnement manuel
@@ -268,8 +268,8 @@ function BrainrotModelSystem:CreateBrainrotModel(player, slotIndex, brainrotData
         headWeld.Part1 = headPart
         headWeld.Parent = headPart
         
-        print("[BrainrotModelSystem] Head connecté au Body via Attachments")
-        print("[BrainrotModelSystem] Head CFrame:", headPart.CFrame)
+        -- -- print("[BrainrotModelSystem] Head connecté au Body via Attachments")
+        -- -- print("[BrainrotModelSystem] Head CFrame:", headPart.CFrame)
     else
         warn("[BrainrotModelSystem] Attachments manquants pour Head-Body")
         -- Fallback: positionnement manuel
@@ -335,7 +335,7 @@ function BrainrotModelSystem:CreateBrainrotModel(player, slotIndex, brainrotData
     
     billboard.Parent = headPart
     
-    print("[BrainrotModelSystem] BillboardGui créé: " .. brainrotName .. " - $" .. totalRevenue .. "/s")
+    -- print("[BrainrotModelSystem] BillboardGui créé: " .. brainrotName .. " - $" .. totalRevenue .. "/s")
     
     -- 5. Définir les attributs
     model:SetAttribute("SetName", brainrotData.SetName)
@@ -357,8 +357,8 @@ function BrainrotModelSystem:CreateBrainrotModel(player, slotIndex, brainrotData
     end
     self._models[player.UserId][slotIndex] = model
     
-    print("[BrainrotModelSystem] Brainrot assemblé: " .. player.Name .. " slot " .. slotIndex)
-    print("  Head: " .. brainrotData.HeadSet .. ", Body: " .. brainrotData.BodySet .. ", Legs: " .. brainrotData.LegsSet)
+    -- print("[BrainrotModelSystem] Brainrot assemblé: " .. player.Name .. " slot " .. slotIndex)
+    -- print("  Head: " .. brainrotData.HeadSet .. ", Body: " .. brainrotData.BodySet .. ", Legs: " .. brainrotData.LegsSet)
     
     return true
 end
@@ -382,7 +382,7 @@ function BrainrotModelSystem:DestroyBrainrotModel(player, slotIndex)
     model:Destroy()
     self._models[player.UserId][slotIndex] = nil
     
-    print("[BrainrotModelSystem] Modèle détruit: " .. player.Name .. " slot " .. slotIndex)
+    -- print("[BrainrotModelSystem] Modèle détruit: " .. player.Name .. " slot " .. slotIndex)
     
     return true
 end

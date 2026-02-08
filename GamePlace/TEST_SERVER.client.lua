@@ -20,10 +20,6 @@ local playerGui = player:WaitForChild("PlayerGui")
 task.wait(1)
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
 
-print("═══════════════════════════════════════════════")
-print("   TEST SERVER - Boutons de test serveur créés")
-print("═══════════════════════════════════════════════")
-
 -- Créer un ScreenGui pour les boutons de test
 local testGui = Instance.new("ScreenGui")
 testGui.Name = "TestServerUI"
@@ -102,55 +98,46 @@ local testRemote = remotes:WaitForChild("TestServerData")
 -- BOUTON 1: Ajouter $1000 (SERVEUR)
 CreateButton("AddCashServer", "+ $1000 Cash\n(SERVER)", Color3.fromRGB(50, 200, 50), function()
     testRemote:FireServer("AddCash", 1000)
-    print("[TEST SERVER] Demande +$1000 au serveur")
 end).LayoutOrder = 1
 
 -- BOUTON 2: Retirer $500 (SERVEUR)
 CreateButton("RemoveCashServer", "- $500 Cash\n(SERVER)", Color3.fromRGB(200, 50, 50), function()
     testRemote:FireServer("RemoveCash", 500)
-    print("[TEST SERVER] Demande -$500 au serveur")
 end).LayoutOrder = 2
 
 -- BOUTON 3: Ajouter 1 slot (SERVEUR)
 CreateButton("AddSlotServer", "+ 1 Slot\n(SERVER)", Color3.fromRGB(100, 150, 200), function()
     testRemote:FireServer("AddSlot", 1)
-    print("[TEST SERVER] Demande +1 slot au serveur")
 end).LayoutOrder = 3
 
 -- BOUTON 4: Reset Cash à 100 (SERVEUR)
 CreateButton("ResetCashServer", "Reset Cash = $100\n(SERVER)", Color3.fromRGB(150, 100, 50), function()
     testRemote:FireServer("SetCash", 100)
-    print("[TEST SERVER] Reset cash à $100")
 end).LayoutOrder = 4
 
 -- BOUTON 5: Forcer Save NOW
 CreateButton("ForceSave", "💾 FORCE SAVE NOW", Color3.fromRGB(200, 100, 200), function()
     testRemote:FireServer("ForceSave")
-    print("[TEST SERVER] Force save demandé")
 end).LayoutOrder = 5
 
 -- BOUTON 6: Afficher données actuelles
 CreateButton("ShowData", "📊 Show Current Data", Color3.fromRGB(100, 100, 200), function()
     testRemote:FireServer("ShowData")
-    print("[TEST SERVER] Affichage données demandé")
 end).LayoutOrder = 6
 
 -- BOUTON 7: Test complet
 CreateButton("FullTest", "🧪 FULL TEST\n(+$5000, +5 slots)", Color3.fromRGB(200, 150, 0), function()
     testRemote:FireServer("FullTest")
-    print("[TEST SERVER] Test complet lancé")
 end).LayoutOrder = 7
 
 -- BOUTON 8: Clear tous les Brainrots
 CreateButton("ClearBrainrots", "🗑️ CLEAR ALL BRAINROTS", Color3.fromRGB(200, 50, 50), function()
     testRemote:FireServer("ClearBrainrots")
-    print("[TEST SERVER] Clear Brainrots demandé")
 end).LayoutOrder = 8
 
 -- BOUTON 9: Clear SlotCash
 CreateButton("ClearSlotCash", "💰 CLEAR SLOT CASH", Color3.fromRGB(200, 100, 0), function()
     testRemote:FireServer("ClearSlotCash")
-    print("[TEST SERVER] Clear SlotCash demandé")
 end).LayoutOrder = 9
 
 -- BOUTON 11: Speed +10
@@ -160,7 +147,6 @@ CreateButton("SpeedBoost", "⚡ SPEED +10", Color3.fromRGB(100, 200, 255), funct
         local humanoid = character:FindFirstChildOfClass("Humanoid")
         if humanoid then
             humanoid.WalkSpeed = humanoid.WalkSpeed + 10
-            print("[TEST SERVER] Speed: " .. humanoid.WalkSpeed)
         end
     end
 end).LayoutOrder = 11
@@ -188,11 +174,6 @@ layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     scrollFrame.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 20)
 end)
 scrollFrame.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 20)
-
-print("═══════════════════════════════════════════════")
-print("   TEST SERVER - Ready! Use buttons on the right")
-print("   Quit and rejoin to verify save!")
-print("═══════════════════════════════════════════════")
 
 -- ═══════════════════════════════════════════════════════════════
 -- CHEAT MENU - BRAINROT SPAWNER
@@ -313,7 +294,6 @@ local function CreateScrollList(name, pieceType, color)
             
             -- Action au clic
             button.MouseButton1Click:Connect(function()
-                print("[SPAWNER] Demande spawn: " .. setName .. " " .. pieceType)
                 testRemote:FireServer("SpawnBrainrotPiece", {
                     SetName = setName,
                     PieceType = pieceType
@@ -341,10 +321,6 @@ CreateScrollList("Head", "Head", Color3.fromRGB(255, 100, 100))
 CreateScrollList("Body", "Body", Color3.fromRGB(100, 255, 100))
 CreateScrollList("Legs", "Legs", Color3.fromRGB(100, 100, 255))
 
-print("═══════════════════════════════════════════════")
-print("   BRAINROT SPAWNER - Ready! Use toggle button")
-print("═══════════════════════════════════════════════")
-
 -- BOUTON 10: Toggle Brainrot Spawner (créé APRÈS spawnContainer)
 local toggleButton
 toggleButton = CreateButton("ToggleSpawner", "🎮 SHOW SPAWNER", Color3.fromRGB(150, 50, 200), function()
@@ -352,11 +328,9 @@ toggleButton = CreateButton("ToggleSpawner", "🎮 SHOW SPAWNER", Color3.fromRGB
     if spawnContainer.Visible then
         toggleButton.Text = "🎮 HIDE SPAWNER"
         toggleButton.BackgroundColor3 = Color3.fromRGB(200, 50, 150)
-        print("[TEST SERVER] Spawner menu opened")
     else
         toggleButton.Text = "🎮 SHOW SPAWNER"
         toggleButton.BackgroundColor3 = Color3.fromRGB(150, 50, 200)
-        print("[TEST SERVER] Spawner menu closed")
     end
 end)
 toggleButton.LayoutOrder = 10

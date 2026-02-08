@@ -40,7 +40,7 @@ function BaseSystem:Init(services)
         return
     end
     
-    print("[BaseSystem] Initialisation...")
+    -- print("[BaseSystem] Initialisation...")
     
     -- Récupérer les services
     DataService = services.DataService
@@ -51,7 +51,7 @@ function BaseSystem:Init(services)
     self:_InitializeBases()
     
     self._initialized = true
-    print("[BaseSystem] Initialisé! Bases disponibles: " .. #self._availableBases)
+    -- print("[BaseSystem] Initialisé! Bases disponibles: " .. #self._availableBases)
 end
 
 --[[
@@ -77,7 +77,7 @@ function BaseSystem:_InitializeBases()
     end
     
     table.sort(self._availableBases)
-    print("[BaseSystem] " .. #self._availableBases .. " base(s) trouvée(s)")
+    -- print("[BaseSystem] " .. #self._availableBases .. " base(s) trouvée(s)")
 end
 
 --[[
@@ -86,7 +86,7 @@ end
     @return Model | nil - La base assignée, ou nil si aucune disponible
 ]]
 function BaseSystem:AssignBase(player)
-    print("[BaseSystem] AssignBase appelé pour " .. player.Name)
+    -- print("[BaseSystem] AssignBase appelé pour " .. player.Name)
     
     -- Vérifier si le joueur a déjà une base
     if self._assignedBases[player.UserId] then
@@ -102,7 +102,7 @@ function BaseSystem:AssignBase(player)
     
     -- Prendre la première base disponible
     local baseIndex = table.remove(self._availableBases, 1)
-    print("[BaseSystem] Base index sélectionné: " .. baseIndex)
+    -- print("[BaseSystem] Base index sélectionné: " .. baseIndex)
     
     -- Trouver le Model de la base
     local workspace = game:GetService("Workspace")
@@ -114,7 +114,7 @@ function BaseSystem:AssignBase(player)
         return nil
     end
     
-    print("[BaseSystem] Base Model trouvé: " .. baseModel.Name)
+    -- print("[BaseSystem] Base Model trouvé: " .. baseModel.Name)
     
     -- Assigner la base
     self._assignedBases[player.UserId] = {
@@ -130,10 +130,10 @@ function BaseSystem:AssignBase(player)
     if runtimeData then
         runtimeData.AssignedBase = baseModel
         runtimeData.BaseIndex = baseIndex
-        print("[BaseSystem] Runtime data mis à jour")
+        -- print("[BaseSystem] Runtime data mis à jour")
     end
     
-    print("[BaseSystem] Base_" .. baseIndex .. " assignée à " .. player.Name)
+    -- print("[BaseSystem] Base_" .. baseIndex .. " assignée à " .. player.Name)
     
     return baseModel
 end
@@ -162,7 +162,7 @@ function BaseSystem:ReleaseBase(player)
     -- Retirer de la table des assignations
     self._assignedBases[player.UserId] = nil
     
-    print("[BaseSystem] Base_" .. assignment.BaseIndex .. " libérée par " .. player.Name)
+    -- print("[BaseSystem] Base_" .. assignment.BaseIndex .. " libérée par " .. player.Name)
 end
 
 --[[
@@ -181,7 +181,7 @@ end
     @return boolean - true si succès
 ]]
 function BaseSystem:SpawnPlayerAtBase(player)
-    print("[BaseSystem] SpawnPlayerAtBase appelé pour " .. player.Name)
+    -- print("[BaseSystem] SpawnPlayerAtBase appelé pour " .. player.Name)
     
     local base = self:GetPlayerBase(player)
     
@@ -190,7 +190,7 @@ function BaseSystem:SpawnPlayerAtBase(player)
         return false
     end
     
-    print("[BaseSystem] Base trouvée: " .. base.Name)
+    -- print("[BaseSystem] Base trouvée: " .. base.Name)
     
     local spawnPoint = base:FindFirstChild(Constants.WorkspaceNames.SpawnPoint)
     
@@ -199,7 +199,7 @@ function BaseSystem:SpawnPlayerAtBase(player)
         return false
     end
     
-    print("[BaseSystem] SpawnPoint trouvé: " .. spawnPoint.Name)
+    -- print("[BaseSystem] SpawnPoint trouvé: " .. spawnPoint.Name)
     
     -- Attendre que le personnage soit prêt
     local character = player.Character or player.CharacterAdded:Wait()
@@ -210,12 +210,12 @@ function BaseSystem:SpawnPlayerAtBase(player)
         return false
     end
     
-    print("[BaseSystem] HumanoidRootPart trouvé, téléportation...")
+    -- print("[BaseSystem] HumanoidRootPart trouvé, téléportation...")
     
     -- Téléporter
     humanoidRootPart.CFrame = spawnPoint.CFrame + Vector3.new(0, 3, 0)
     
-    print("[BaseSystem] " .. player.Name .. " téléporté à sa base")
+    -- print("[BaseSystem] " .. player.Name .. " téléporté à sa base")
     return true
 end
 
@@ -294,7 +294,7 @@ function BaseSystem:PlaceBrainrotOnSlot(player, slotIndex, brainrotData)
     playerData.PlacedBrainrots[slotIndex] = brainrotData
     DataService:UpdateValue(player, "PlacedBrainrots", playerData.PlacedBrainrots)
     
-    print("[BaseSystem] Brainrot placé sur Slot_" .. slotIndex .. " pour " .. player.Name)
+    -- print("[BaseSystem] Brainrot placé sur Slot_" .. slotIndex .. " pour " .. player.Name)
     
     -- Vérifier déblocage d'étage
     self:CheckFloorUnlock(player)
@@ -336,7 +336,7 @@ function BaseSystem:CheckFloorUnlock(player)
                         Duration = 3,
                     })
                 end
-                print("[BaseSystem] Floor_" .. floorNum .. " débloqué pour " .. player.Name)
+                -- print("[BaseSystem] Floor_" .. floorNum .. " débloqué pour " .. player.Name)
                 return floorNum
             end
         end
@@ -420,7 +420,7 @@ function BaseSystem:UnlockFloor(player, floorNum)
     end
     
     self:_SetFloorVisible(floor, true)
-    print("[BaseSystem] Floor_" .. floorNum .. " unlocked (visible) for " .. player.Name)
+    -- print("[BaseSystem] Floor_" .. floorNum .. " unlocked (visible) for " .. player.Name)
     return true
 end
 

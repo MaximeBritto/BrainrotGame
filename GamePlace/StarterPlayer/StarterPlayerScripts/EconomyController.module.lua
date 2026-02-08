@@ -94,7 +94,7 @@ function EconomyController:Init(uiController)
     -- Trouver la base du joueur
     self:_FindPlayerBase()
     
-    print("[EconomyController] Initialisé!")
+    -- print("[EconomyController] Initialisé!")
 end
 
 --[[
@@ -110,7 +110,7 @@ function EconomyController:_FindPlayerBase()
             for _, base in ipairs(basesFolder:GetChildren()) do
                 if base:GetAttribute("OwnerUserId") == player.UserId then
                     playerBase = base
-                    print("[EconomyController] Base trouvée: " .. base.Name)
+                    -- print("[EconomyController] Base trouvée: " .. base.Name)
                     break
                 end
             end
@@ -152,7 +152,7 @@ function EconomyController:OpenShop()
     })
     tweenOpen:Play()
     
-    print("[EconomyController] Shop ouvert")
+    -- print("[EconomyController] Shop ouvert")
 end
 
 --[[
@@ -173,7 +173,7 @@ function EconomyController:CloseShop()
         isShopOpen = false
     end)
     
-    print("[EconomyController] Shop fermé")
+    -- print("[EconomyController] Shop fermé")
 end
 
 --[[
@@ -203,7 +203,7 @@ end
     Appelé quand le bouton Acheter est cliqué
 ]]
 function EconomyController:OnBuyButtonClicked()
-    print("[EconomyController] Bouton Acheter cliqué")
+    -- print("[EconomyController] Bouton Acheter cliqué")
     
     -- Vérifier si on peut acheter (localement)
     local nextSlot = currentOwnedSlots + 1
@@ -322,7 +322,7 @@ function EconomyController:UpdateCollectPads(slotCash)
         end
     end
     
-    print("[EconomyController] CollectPads mis à jour")
+    -- -- print("[EconomyController] CollectPads mis à jour")
 end
 
 --[[
@@ -330,7 +330,7 @@ end
     @param slotIndex: number
 ]]
 function EconomyController:RequestCollectSlot(slotIndex)
-    print("[EconomyController] Demande collecte slot " .. slotIndex)
+    -- print("[EconomyController] Demande collecte slot " .. slotIndex)
     collectSlotCash:FireServer(slotIndex)
 end
 
@@ -338,7 +338,7 @@ end
     Demande la collecte de tous les slots
 ]]
 function EconomyController:RequestCollectAll()
-    print("[EconomyController] Demande collecte tous les slots")
+    -- print("[EconomyController] Demande collecte tous les slots")
     collectSlotCash:FireServer(nil) -- nil = tous
 end
 
@@ -382,7 +382,7 @@ end
     @param floorNumber: number
 ]]
 function EconomyController:OnFloorUnlocked(floorNumber)
-    print("[EconomyController] Étage " .. floorNumber .. " débloqué!")
+    -- print("[EconomyController] Étage " .. floorNumber .. " débloqué!")
     
     if self._uiController then
         self._uiController:ShowNotification("Success", "Floor " .. floorNumber .. " unlocked! 🎉", 5)

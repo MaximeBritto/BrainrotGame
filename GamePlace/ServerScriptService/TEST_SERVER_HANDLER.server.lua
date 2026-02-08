@@ -24,13 +24,8 @@ local testRemote = Instance.new("RemoteEvent")
 testRemote.Name = "TestServerData"
 testRemote.Parent = remotes
 
-print("═══════════════════════════════════════════════")
-print("   TEST SERVER HANDLER - Prêt à recevoir les tests")
-print("═══════════════════════════════════════════════")
-
 -- Handler pour les tests
 testRemote.OnServerEvent:Connect(function(player, action, value)
-    print("[TEST HANDLER] Reçu: " .. action .. " de " .. player.Name)
     
     local playerData = DataService:GetPlayerData(player)
     
@@ -44,7 +39,6 @@ testRemote.OnServerEvent:Connect(function(player, action, value)
         -- Ajouter du cash
         local newCash = playerData.Cash + value
         DataService:UpdateValue(player, "Cash", newCash)
-        print("[TEST HANDLER] Cash: " .. playerData.Cash .. " → " .. newCash)
         
         -- Notifier le client
         local notifRemote = remotes:FindFirstChild("Notification")
@@ -66,7 +60,6 @@ testRemote.OnServerEvent:Connect(function(player, action, value)
         -- Retirer du cash
         local newCash = math.max(0, playerData.Cash - value)
         DataService:UpdateValue(player, "Cash", newCash)
-        print("[TEST HANDLER] Cash: " .. playerData.Cash .. " → " .. newCash)
         
         local notifRemote = remotes:FindFirstChild("Notification")
         if notifRemote then
@@ -85,7 +78,6 @@ testRemote.OnServerEvent:Connect(function(player, action, value)
     elseif action == "SetCash" then
         -- Définir le cash
         DataService:UpdateValue(player, "Cash", value)
-        print("[TEST HANDLER] Cash défini à: " .. value)
         
         local notifRemote = remotes:FindFirstChild("Notification")
         if notifRemote then
@@ -105,7 +97,6 @@ testRemote.OnServerEvent:Connect(function(player, action, value)
         -- Ajouter des slots
         local newSlots = playerData.OwnedSlots + value
         DataService:UpdateValue(player, "OwnedSlots", newSlots)
-        print("[TEST HANDLER] Slots: " .. playerData.OwnedSlots .. " → " .. newSlots)
         
         local notifRemote = remotes:FindFirstChild("Notification")
         if notifRemote then
@@ -124,7 +115,6 @@ testRemote.OnServerEvent:Connect(function(player, action, value)
     elseif action == "ForceSave" then
         -- Forcer la sauvegarde
         local success = DataService:SavePlayerData(player)
-        print("[TEST HANDLER] Force save: " .. tostring(success))
         
         local notifRemote = remotes:FindFirstChild("Notification")
         if notifRemote then
@@ -145,15 +135,6 @@ testRemote.OnServerEvent:Connect(function(player, action, value)
         
     elseif action == "ShowData" then
         -- Afficher les données actuelles
-        print("═══════════════════════════════════════════════")
-        print("   DONNÉES ACTUELLES - " .. player.Name)
-        print("═══════════════════════════════════════════════")
-        print("Cash: $" .. playerData.Cash)
-        print("OwnedSlots: " .. playerData.OwnedSlots)
-        print("PlacedBrainrots: " .. #(playerData.PlacedBrainrots or {}))
-        print("CodexUnlocked: " .. #(playerData.CodexUnlocked or {}))
-        print("CompletedSets: " .. #(playerData.CompletedSets or {}))
-        print("═══════════════════════════════════════════════")
         
         local notifRemote = remotes:FindFirstChild("Notification")
         if notifRemote then
@@ -166,8 +147,6 @@ testRemote.OnServerEvent:Connect(function(player, action, value)
         
     elseif action == "FullTest" then
         -- Test complet
-        print("[TEST HANDLER] Test complet lancé pour " .. player.Name)
-        
         -- Ajouter $5000
         local newCash = playerData.Cash + 5000
         DataService:UpdateValue(player, "Cash", newCash)
@@ -179,11 +158,6 @@ testRemote.OnServerEvent:Connect(function(player, action, value)
         -- Forcer save
         task.wait(0.5)
         local success = DataService:SavePlayerData(player)
-        
-        print("[TEST HANDLER] Test complet terminé:")
-        print("  - Cash: " .. newCash)
-        print("  - Slots: " .. newSlots)
-        print("  - Saved: " .. tostring(success))
         
         local notifRemote = remotes:FindFirstChild("Notification")
         if notifRemote then
@@ -205,15 +179,12 @@ testRemote.OnServerEvent:Connect(function(player, action, value)
         
     elseif action == "ClearBrainrots" then
         -- Clear tous les Brainrots
-        print("[TEST HANDLER] Clear Brainrots pour " .. player.Name)
-        
         -- 1. Détruire tous les modèles 3D
         local BrainrotModelSystem = require(game.ServerScriptService.Systems["BrainrotModelSystem.module"])
         if BrainrotModelSystem and BrainrotModelSystem._models and BrainrotModelSystem._models[player.UserId] then
             for slotIndex, model in pairs(BrainrotModelSystem._models[player.UserId]) do
                 if model then
                     model:Destroy()
-                    print("[TEST HANDLER] Modèle détruit: slot " .. slotIndex)
                 end
             end
             BrainrotModelSystem._models[player.UserId] = {}
@@ -227,14 +198,11 @@ testRemote.OnServerEvent:Connect(function(player, action, value)
         local EconomySystem = require(game.ServerScriptService.Systems["EconomySystem.module"])
         if EconomySystem and EconomySystem._slotRevenue and EconomySystem._slotRevenue[player.UserId] then
             EconomySystem._slotRevenue[player.UserId] = {}
-            print("[TEST HANDLER] Revenue slots cleared")
         end
         
         -- 4. Forcer save
         task.wait(0.5)
         local success = DataService:SavePlayerData(player)
-        
-        print("[TEST HANDLER] Brainrots cleared, saved: " .. tostring(success))
         
         local notifRemote = remotes:FindFirstChild("Notification")
         if notifRemote then
@@ -253,15 +221,11 @@ testRemote.OnServerEvent:Connect(function(player, action, value)
         
     elseif action == "ClearSlotCash" then
         -- Clear l'argent des slots
-        print("[TEST HANDLER] Clear SlotCash pour " .. player.Name)
-        
         DataService:UpdateValue(player, "SlotCash", {})
         
         -- Forcer save
         task.wait(0.5)
         local success = DataService:SavePlayerData(player)
-        
-        print("[TEST HANDLER] SlotCash cleared, saved: " .. tostring(success))
         
         local notifRemote = remotes:FindFirstChild("Notification")
         if notifRemote then
@@ -282,8 +246,6 @@ testRemote.OnServerEvent:Connect(function(player, action, value)
         -- Spawn une pièce comme ArenaSystem le fait
         local setName = value.SetName
         local pieceType = value.PieceType
-        
-        print("[TEST HANDLER] Spawn " .. setName .. " " .. pieceType .. " pour " .. player.Name)
         
         -- Récupérer ArenaSystem
         local Systems = ServerScriptService:WaitForChild("Systems")
@@ -335,8 +297,6 @@ testRemote.OnServerEvent:Connect(function(player, action, value)
         local piece = ArenaSystem:_SpawnSpecificPiece(setName, pieceType, pieceData, templateName, template, player.Character.HumanoidRootPart.Position + Vector3.new(0, 5, 0))
         
         if piece then
-            print("[TEST HANDLER] Pièce spawnée: " .. piece.Name)
-            
             local notifRemote = remotes:FindFirstChild("Notification")
             if notifRemote then
                 notifRemote:FireClient(player, {
@@ -345,13 +305,7 @@ testRemote.OnServerEvent:Connect(function(player, action, value)
                     Duration = 2
                 })
             end
-        else
-            warn("[TEST HANDLER] Échec du spawn")
         end
     end
 end)
-
-print("═══════════════════════════════════════════════")
-print("   TEST SERVER HANDLER - Listening for commands")
-print("═══════════════════════════════════════════════")
 

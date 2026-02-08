@@ -14,7 +14,7 @@ local Constants = require(Shared["Constants.module"])
 local NetworkSetup = {}
 
 function NetworkSetup:Init()
-    print("[NetworkSetup] Création des Remotes...")
+    -- print("[NetworkSetup] Création des Remotes...")
     
     -- Créer le dossier Remotes s'il n'existe pas
     local remotesFolder = ReplicatedStorage:FindFirstChild("Remotes")
@@ -35,17 +35,17 @@ function NetworkSetup:Init()
                 local remote = Instance.new("RemoteFunction")
                 remote.Name = name
                 remote.Parent = remotesFolder
-                print("[NetworkSetup] RemoteFunction créée: " .. name)
+                -- print("[NetworkSetup] RemoteFunction créée: " .. name)
             else
                 local remote = Instance.new("RemoteEvent")
                 remote.Name = name
                 remote.Parent = remotesFolder
-                print("[NetworkSetup] RemoteEvent créé: " .. name)
+                -- print("[NetworkSetup] RemoteEvent créé: " .. name)
             end
         end
     end
     
-    print("[NetworkSetup] Tous les Remotes sont prêts!")
+    -- print("[NetworkSetup] Tous les Remotes sont prêts!")
     return remotesFolder
 end
 

@@ -108,22 +108,20 @@ function PlacementSystem:PlaceBrainrot(player, slotIndex, brainrotData)
     end
     
     -- Vérifier que le slot est libre
-    local brainrots = playerData.Brainrots or {}
-    if brainrots[slotIndex] then
+    local placedBrainrots = playerData.PlacedBrainrots or {}
+    if placedBrainrots[tostring(slotIndex)] then
         warn("[PlacementSystem] Slot " .. slotIndex .. " déjà occupé")
         return false
     end
     
-    -- Placer le Brainrot dans Brainrots (pour l'EconomySystem)
+    -- Placer le Brainrot dans PlacedBrainrots (pour la sauvegarde et restauration)
+    placedBrainrots[tostring(slotIndex)] = brainrotData
+    DataService:UpdateValue(player, "PlacedBrainrots", placedBrainrots)
+    
+    -- AUSSI placer dans Brainrots pour l'EconomySystem (compatibilité)
+    local brainrots = playerData.Brainrots or {}
     brainrots[slotIndex] = brainrotData
     DataService:UpdateValue(player, "Brainrots", brainrots)
-    
-    print("[PlacementSystem] Brainrot placé: " .. player.Name .. " slot " .. slotIndex .. " (" .. brainrotData.SetName .. ")")
-    print("[PlacementSystem] Brainrot data:", brainrotData)
-    print("[PlacementSystem] Tous les Brainrots après placement:")
-    for idx, data in pairs(brainrots) do
-        print("  Slot " .. idx .. ":", data.SetName or data)
-    end
     
     -- Créer le modèle visuel (Phase 5.5)
     if BrainrotModelSystem then
