@@ -153,6 +153,18 @@ CreateButton("ClearSlotCash", "💰 CLEAR SLOT CASH", Color3.fromRGB(200, 100, 0
     print("[TEST SERVER] Clear SlotCash demandé")
 end).LayoutOrder = 9
 
+-- BOUTON 11: Speed +10
+CreateButton("SpeedBoost", "⚡ SPEED +10", Color3.fromRGB(100, 200, 255), function()
+    local character = player.Character
+    if character then
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.WalkSpeed = humanoid.WalkSpeed + 10
+            print("[TEST SERVER] Speed: " .. humanoid.WalkSpeed)
+        end
+    end
+end).LayoutOrder = 11
+
 -- Info label
 local infoLabel = Instance.new("TextLabel")
 infoLabel.Name = "Info"
@@ -164,7 +176,7 @@ infoLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
 infoLabel.TextScaled = true
 infoLabel.Font = Enum.Font.Gotham
 infoLabel.TextWrapped = true
-infoLabel.LayoutOrder = 11
+infoLabel.LayoutOrder = 12
 infoLabel.Parent = scrollFrame
 
 local infoCorner = Instance.new("UICorner")
