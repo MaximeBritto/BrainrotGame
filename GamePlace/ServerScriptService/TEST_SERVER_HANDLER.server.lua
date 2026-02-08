@@ -277,6 +277,77 @@ testRemote.OnServerEvent:Connect(function(player, action, value)
         if syncRemote then
             syncRemote:FireClient(player, DataService:GetPlayerData(player))
         end
+        
+    elseif action == "SpawnBrainrotPiece" then
+        -- Spawn une pièce comme ArenaSystem le fait
+        local setName = value.SetName
+        local pieceType = value.PieceType
+        
+        print("[TEST HANDLER] Spawn " .. setName .. " " .. pieceType .. " pour " .. player.Name)
+        
+        -- Récupérer ArenaSystem
+        local Systems = ServerScriptService:WaitForChild("Systems")
+        local ArenaSystem = require(Systems["ArenaSystem.module"])
+        
+        -- Récupérer le BrainrotData
+        local BrainrotData = require(ReplicatedStorage.Data["BrainrotData.module"])
+        local setData = BrainrotData.Sets[setName]
+        
+        if not setData or not setData[pieceType] then
+            warn("[TEST HANDLER] Set ou pièce invalide: " .. setName .. " " .. pieceType)
+            return
+        end
+        
+        local pieceData = setData[pieceType]
+        local templateName = pieceData.TemplateName
+        
+        if templateName == "" then
+            warn("[TEST HANDLER] Pas de template pour cette pièce")
+            return
+        end
+        
+        -- Trouver le template dans Assets/BodyPartTemplates
+        local assets = ReplicatedStorage:FindFirstChild("Assets")
+        if not assets then
+            warn("[TEST HANDLER] Dossier Assets introuvable")
+            return
+        end
+        
+        local bodyPartTemplates = assets:FindFirstChild("BodyPartTemplates")
+        if not bodyPartTemplates then
+            warn("[TEST HANDLER] Dossier BodyPartTemplates introuvable")
+            return
+        end
+        
+        local templateFolder = bodyPartTemplates:FindFirstChild(pieceType .. "Template")
+        if not templateFolder then
+            warn("[TEST HANDLER] Dossier template introuvable: " .. pieceType .. "Template")
+            return
+        end
+        
+        local template = templateFolder:FindFirstChild(templateName)
+        if not template then
+            warn("[TEST HANDLER] Template introuvable: " .. templateName)
+            return
+        end
+        
+        -- Appeler la fonction interne d'ArenaSystem pour spawner correctement
+        local piece = ArenaSystem:_SpawnSpecificPiece(setName, pieceType, pieceData, templateName, template, player.Character.HumanoidRootPart.Position + Vector3.new(0, 5, 0))
+        
+        if piece then
+            print("[TEST HANDLER] Pièce spawnée: " .. piece.Name)
+            
+            local notifRemote = remotes:FindFirstChild("Notification")
+            if notifRemote then
+                notifRemote:FireClient(player, {
+                    Type = "Success",
+                    Message = "✨ Spawned " .. pieceData.DisplayName .. "!",
+                    Duration = 2
+                })
+            end
+        else
+            warn("[TEST HANDLER] Échec du spawn")
+        end
     end
 end)
 

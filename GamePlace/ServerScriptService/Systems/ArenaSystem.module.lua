@@ -289,6 +289,107 @@ function ArenaSystem:SpawnRandomPiece()
 end
 
 --[[
+    Spawn une pièce spécifique à une position donnée (pour le cheat menu)
+    @param setName string
+    @param pieceType string
+    @param pieceInfo table
+    @param templateName string
+    @param template Model
+    @param position Vector3
+    @return Model | nil
+]]
+function ArenaSystem:_SpawnSpecificPiece(setName, pieceType, pieceInfo, templateName, template, position)
+    if not self._initialized then return nil end
+    
+    -- Cloner le template
+    local piece = template:Clone()
+    
+    -- Générer un ID unique
+    local pieceId = "Piece_" .. self._nextPieceId
+    self._nextPieceId = self._nextPieceId + 1
+    
+    -- Définir les attributs
+    piece:SetAttribute("PieceId", pieceId)
+    piece:SetAttribute("SetName", setName)
+    piece:SetAttribute("PieceType", pieceType)
+    piece:SetAttribute("Price", pieceInfo.Price)
+    piece:SetAttribute("DisplayName", pieceInfo.DisplayName)
+    piece:SetAttribute("SpawnedAt", tick())
+    
+    -- Nom du modèle
+    piece.Name = pieceId
+    
+    -- Mettre à jour le BillboardGui dans PrimaryPart
+    local primaryPart = piece.PrimaryPart
+    if primaryPart then
+        local billboard = primaryPart:FindFirstChildOfClass("BillboardGui")
+        if billboard then
+            -- Chercher NameLabel pour afficher le nom du template
+            local nameLabel = billboard:FindFirstChild("NameLabel")
+            if nameLabel and nameLabel:IsA("TextLabel") then
+                nameLabel.Text = templateName
+            end
+            
+            -- Chercher PriceLabel pour afficher le prix
+            local priceLabel = billboard:FindFirstChild("PriceLabel")
+            if priceLabel and priceLabel:IsA("TextLabel") then
+                priceLabel.Text = "$" .. pieceInfo.Price
+            end
+        end
+    end
+    
+    -- Position personnalisée
+    piece:SetPrimaryPartCFrame(CFrame.new(position))
+    
+    -- Supprimer l'ancien PickupZone s'il existe
+    local oldPickupZone = primaryPart:FindFirstChild("PickupZone")
+    if oldPickupZone then
+        oldPickupZone:Destroy()
+    end
+    
+    -- Créer un nouveau PickupZone
+    local pickupZone = Instance.new("Part")
+    pickupZone.Name = "PickupZone"
+    pickupZone.Size = primaryPart.Size * 1.5
+    pickupZone.CFrame = primaryPart.CFrame
+    pickupZone.Transparency = 1
+    pickupZone.CanCollide = false
+    pickupZone.Anchored = false
+    pickupZone.Massless = true
+    
+    -- Souder au PrimaryPart
+    local weld = Instance.new("WeldConstraint")
+    weld.Part0 = primaryPart
+    weld.Part1 = pickupZone
+    weld.Parent = pickupZone
+    
+    pickupZone.Parent = primaryPart
+    
+    -- Créer le ProximityPrompt
+    local prompt = Instance.new("ProximityPrompt")
+    prompt.ActionText = "Pickup"
+    prompt.ObjectText = templateName
+    prompt.MaxActivationDistance = 15
+    prompt.RequiresLineOfSight = false
+    prompt.HoldDuration = 0
+    prompt.Enabled = true
+    prompt.Parent = pickupZone
+    
+    print("[ArenaSystem] PickupZone et ProximityPrompt créés pour:", pieceId)
+    
+    -- Parent et stockage
+    piece.Parent = self._piecesFolder
+    self._pieces[pieceId] = {
+        Model = piece,
+        SpawnedAt = tick(),
+    }
+    
+    print("[ArenaSystem] Pièce cheat spawnée: " .. pieceId .. " (" .. templateName .. " " .. pieceType .. " - Set: " .. setName .. ")")
+    
+    return piece
+end
+
+--[[
     Boucle de spawn des pièces
 ]]
 function ArenaSystem:_StartSpawnLoop()

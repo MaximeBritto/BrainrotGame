@@ -110,7 +110,7 @@ local BrainrotData = {
             },
         },
         
-		["Girafa_Celestre"] = {
+		["GirafaCelestre"] = {
 			Rarity = "Common",
 			Head = {
 				Price = 80,
@@ -131,6 +131,81 @@ local BrainrotData = {
 				DisplayName = "Celestre",
 				ModelName = "Girafa_Celestre_Legs",
 				TemplateName = "Celestre",  -- Template dans LegsTemplate folder
+				SpawnWeight = 10,
+			},
+		},
+		
+		["LiriliLarila"] = {
+			Rarity = "Common",
+			Head = {
+				Price = 85,
+				DisplayName = "Liri",
+				ModelName = "LiriliLarila_Head",
+				TemplateName = "Liri",  -- Template dans HeadTemplate folder
+				SpawnWeight = 10,
+			},
+			Body = {
+				Price = 100,
+				DisplayName = "li La",
+				ModelName = "LiriliLarila_Body",
+				TemplateName = "liLa",  -- Template dans BodyTemplate folder
+				SpawnWeight = 10,
+			},
+			Legs = {
+				Price = 80,
+				DisplayName = "rilà",
+				ModelName = "LiriliLarila_Legs",
+				TemplateName = "rila",  -- Template dans LegsTemplate folder
+				SpawnWeight = 10,
+			},
+		},
+		
+		["TripiTropiTropaTripa"] = {
+			Rarity = "Common",
+			Head = {
+				Price = 90,
+				DisplayName = "tripi",
+				ModelName = "TripiTropiTropaTripa_Head",
+				TemplateName = "tripi",  -- Template dans HeadTemplate folder
+				SpawnWeight = 10,
+			},
+			Body = {
+				Price = 105,
+				DisplayName = "tropitropa",
+				ModelName = "TripiTropiTropaTripa_Body",
+				TemplateName = "tropitropa",  -- Template dans BodyTemplate folder
+				SpawnWeight = 10,
+			},
+			Legs = {
+				Price = 85,
+				DisplayName = "tripa",
+				ModelName = "TripiTropiTropaTripa_Legs",
+				TemplateName = "tripa",  -- Template dans LegsTemplate folder
+				SpawnWeight = 10,
+			},
+		},
+		
+		["Talpadifero"] = {
+			Rarity = "Common",
+			Head = {
+				Price = 75,
+				DisplayName = "talpa",
+				ModelName = "Talpadifero_Head",
+				TemplateName = "talpa",  -- Template dans HeadTemplate folder
+				SpawnWeight = 10,
+			},
+			Body = {
+				Price = 90,
+				DisplayName = "di",
+				ModelName = "Talpadifero_Body",
+				TemplateName = "di",  -- Template dans BodyTemplate folder
+				SpawnWeight = 10,
+			},
+			Legs = {
+				Price = 70,
+				DisplayName = "fero",
+				ModelName = "Talpadifero_Legs",
+				TemplateName = "fero",  -- Template dans LegsTemplate folder
 				SpawnWeight = 10,
 			},
 		},
