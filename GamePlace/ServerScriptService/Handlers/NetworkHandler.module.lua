@@ -38,6 +38,10 @@ local InventorySystem = nil
 local CraftingSystem = nil
 local PlacementSystem = nil
 
+-- Systèmes (Phase 8)
+local StealSystem = nil
+local BatSystem = nil
+
 local NetworkHandler = {}
 NetworkHandler._initialized = false
 
@@ -70,7 +74,11 @@ function NetworkHandler:Init(services)
     -- Récupérer les systèmes (Phase 5)
     CraftingSystem = services.CraftingSystem
     PlacementSystem = services.PlacementSystem
-    
+
+    -- Récupérer les systèmes (Phase 8)
+    StealSystem = services.StealSystem
+    BatSystem = services.BatSystem
+
     -- Connecter les handlers
     self:_ConnectHandlers()
     
@@ -129,7 +137,46 @@ function NetworkHandler:_ConnectHandlers()
             self:_HandleDropPieces(player)
         end)
     end
-    
+
+    -- Vol de Brainrot (Phase 8 - Version simplifiée)
+    if remotes.StealBrainrot then
+        remotes.StealBrainrot.OnServerEvent:Connect(function(player, ownerId, slotId)
+            print(string.format("[NetworkHandler] StealBrainrot reçu - player: %s, ownerId: %s (type: %s), slotId: %s (type: %s)",
+                player.Name, tostring(ownerId), type(ownerId), tostring(slotId), type(slotId)))
+
+            -- Convertir les paramètres en nombres si nécessaire
+            if type(ownerId) == "string" then
+                ownerId = tonumber(ownerId)
+            end
+            if type(slotId) == "string" then
+                slotId = tonumber(slotId)
+            end
+
+            local success, err = pcall(function()
+                if StealSystem then
+                    StealSystem:ExecuteSteal(player, ownerId, slotId)
+                else
+                    warn("[NetworkHandler] StealSystem non initialisé!")
+                end
+            end)
+
+            if not success then
+                warn("[NetworkHandler] Erreur StealBrainrot: " .. tostring(err))
+            end
+        end)
+    end
+
+    -- Combat batte (Phase 8)
+    if remotes.BatHit then
+        remotes.BatHit.OnServerEvent:Connect(function(player, victimId)
+            pcall(function()
+                if BatSystem then
+                    BatSystem:HandleBatHit(player, victimId)
+                end
+            end)
+        end)
+    end
+
     -- ═══════════════════════════════════════
     -- REMOTE FUNCTIONS
     -- ═══════════════════════════════════════
@@ -261,19 +308,30 @@ end
 ]]
 function NetworkHandler:_HandleCollectSlotCash(player, slotIndex)
     print("[NetworkHandler] CollectSlotCash reçu de " .. player.Name .. " pour slot " .. tostring(slotIndex))
-    
+
     if not EconomySystem then
         self:_SendNotification(player, "Error", "Economy system not initialized")
         return
     end
-    
+
     -- Accepter slotIndex en number ou string (sérialisation Remote)
     if type(slotIndex) == "string" and slotIndex ~= "" then
         slotIndex = tonumber(slotIndex)
     end
-    
+
+    -- Valider que le slot appartient bien au joueur
+    if slotIndex and type(slotIndex) == "number" then
+        local playerData = DataService:GetPlayerData(player)
+        if not playerData then return end
+        local ownedSlots = playerData.OwnedSlots or 1
+        if slotIndex < 1 or slotIndex > ownedSlots then
+            self:_SendNotification(player, "Error", "Invalid slot!", 2)
+            return
+        end
+    end
+
     local amount
-    
+
     if slotIndex and type(slotIndex) == "number" then
         -- Collecter un slot spécifique
         amount = EconomySystem:CollectSlotCash(player, slotIndex)
@@ -281,7 +339,7 @@ function NetworkHandler:_HandleCollectSlotCash(player, slotIndex)
         -- Collecter tous les slots
         amount = EconomySystem:CollectAllSlotCash(player)
     end
-    
+
     if amount > 0 then
         self:_SendNotification(player, "Success", "+$" .. amount .. " collected!")
     end
@@ -427,7 +485,13 @@ function NetworkHandler:UpdateSystems(systems)
     if systems.PlacementSystem then
         PlacementSystem = systems.PlacementSystem
     end
-    
+    if systems.StealSystem then
+        StealSystem = systems.StealSystem
+    end
+    if systems.BatSystem then
+        BatSystem = systems.BatSystem
+    end
+
     print("[NetworkHandler] Systèmes mis à jour")
 end
 

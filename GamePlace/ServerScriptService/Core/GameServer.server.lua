@@ -15,6 +15,7 @@ task.wait(0.5)
 
 local ServerScriptService = game:GetService("ServerScriptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
 
 -- ═══════════════════════════════════════════════════════
 -- PHASE 1 : Charger les modules Core
@@ -126,6 +127,30 @@ do
         CodexService = mod
     else
         codexLoadErr = mod
+    end
+end
+
+-- Phase 8: Vol & Combat
+local StealSystem, stealLoadErr
+local BatSystem, batLoadErr
+do
+    local ok, mod = pcall(function()
+        return require(Systems["StealSystem.module"])
+    end)
+    if ok then
+        StealSystem = mod
+    else
+        stealLoadErr = mod
+    end
+end
+do
+    local ok, mod = pcall(function()
+        return require(Systems["BatSystem.module"])
+    end)
+    if ok then
+        BatSystem = mod
+    else
+        batLoadErr = mod
     end
 end
 
@@ -407,8 +432,48 @@ else
     end
 end
 
--- 12. Autres systèmes (Phase 6+)
+-- 12. StealSystem & BatSystem (Phase 8)
+if StealSystem and BatSystem then
+    StealSystem:Init({
+        BrainrotModelSystem = BrainrotModelSystem,
+    })
+    -- print("[GameServer] StealSystem: OK")
+
+    BatSystem:Init()
+    -- print("[GameServer] BatSystem: OK")
+
+    NetworkHandler:UpdateSystems({
+        StealSystem = StealSystem,
+        BatSystem = BatSystem,
+    })
+else
+    if not StealSystem then
+        warn("[GameServer] StealSystem non chargé:", stealLoadErr or "inconnu")
+    end
+    if not BatSystem then
+        warn("[GameServer] BatSystem non chargé:", batLoadErr or "inconnu")
+    end
+end
+
+-- 13. Autres systèmes (Phase 9+)
 -- ...
+
+-- ═══════════════════════════════════════════════════════
+-- SAUVEGARDE À LA FERMETURE DU SERVEUR
+-- ═══════════════════════════════════════════════════════
+
+game:BindToClose(function()
+    print("[GameServer] Fermeture du serveur détectée, sauvegarde en cours...")
+    for _, player in ipairs(Players:GetPlayers()) do
+        local success, err = pcall(function()
+            DataService:SavePlayerData(player)
+        end)
+        if not success then
+            warn("[GameServer] Erreur sauvegarde pour " .. player.Name .. ": " .. tostring(err))
+        end
+    end
+    print("[GameServer] Sauvegarde terminée")
+end)
 
 -- ═══════════════════════════════════════════════════════
 -- TERMINÉ

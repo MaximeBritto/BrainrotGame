@@ -347,7 +347,27 @@ function BrainrotModelSystem:CreateBrainrotModel(player, slotIndex, brainrotData
     
     -- 5. Appliquer la visibilité (seul le propriétaire voit)
     self:_ApplyOwnerVisibility(model, player.UserId)
-    
+
+    -- 5.5 PHASE 8: Ajouter ProximityPrompt pour vol de Brainrot
+    local primaryPart = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
+    if primaryPart then
+        local proximityPrompt = Instance.new("ProximityPrompt")
+        proximityPrompt.Name = "StealPrompt"
+        proximityPrompt.ActionText = "Voler"
+        proximityPrompt.ObjectText = "Brainrot"
+        proximityPrompt.HoldDuration = 3  -- 3 secondes
+        proximityPrompt.MaxActivationDistance = 15  -- 15 studs
+        proximityPrompt.RequiresLineOfSight = false
+        proximityPrompt.KeyboardKeyCode = Enum.KeyCode.E
+        proximityPrompt.Parent = primaryPart
+
+        -- Stocker les infos du propriétaire dans des Attributes
+        proximityPrompt:SetAttribute("OwnerId", player.UserId)
+        proximityPrompt:SetAttribute("SlotId", slotIndex)
+
+        print(string.format("[BrainrotModelSystem] ProximityPrompt ajouté au Brainrot de %d (slot %d)", player.UserId, slotIndex))
+    end
+
     -- 6. Parent le modèle au slot
     model.Parent = slot
     

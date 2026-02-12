@@ -204,4 +204,21 @@ function PlacementSystem:CountPlacedBrainrots(player)
     return count
 end
 
+--[[
+    Calcule le nombre de slots libres d'un joueur
+    @param userId number
+    @return number - Nombre de slots disponibles
+]]
+function PlacementSystem:GetAvailableSlots(userId)
+    local data = DataService:GetPlayerData(userId)
+    if not data then return 0 end
+
+    local usedSlots = 0
+    for _ in pairs(data.PlacedBrainrots) do
+        usedSlots = usedSlots + 1
+    end
+
+    return data.OwnedSlots - usedSlots
+end
+
 return PlacementSystem

@@ -248,12 +248,27 @@ ArenaController:Init()
 
 local ProximityPromptService = game:GetService("ProximityPromptService")
 
+-- Vérifie si un objet appartient à la base du joueur local
+local function isOnPlayerBase(instance)
+    local current = instance
+    while current do
+        if current:GetAttribute("OwnerUserId") == player.UserId then
+            return true
+        end
+        current = current.Parent
+    end
+    return false
+end
+
 -- Écouter tous les ProximityPrompts
 ProximityPromptService.PromptTriggered:Connect(function(prompt, playerWhoTriggered)
     if playerWhoTriggered ~= player then return end
-    
+
+    -- Ignorer si le prompt n'est pas sur la base du joueur
+    if not isOnPlayerBase(prompt) then return end
+
     local parent = prompt.Parent
-    
+
     -- Vérifier si c'est un SlotShop
     if parent and parent.Name == "Sign" then
         local grandParent = parent.Parent
@@ -262,7 +277,7 @@ ProximityPromptService.PromptTriggered:Connect(function(prompt, playerWhoTrigger
             EconomyController:OpenShop()
         end
     end
-    
+
     -- Vérifier si c'est un CollectPad (pour collecter l'argent d'un slot)
     if parent and parent.Name == "CollectPad" then
         local slot = parent.Parent

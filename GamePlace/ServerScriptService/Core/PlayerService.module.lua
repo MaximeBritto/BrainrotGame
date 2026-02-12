@@ -142,21 +142,26 @@ end
 ]]
 function PlayerService:OnPlayerLeave(player)
     -- print("[PlayerService] Joueur quitte: " .. player.Name)
-    
-    -- 1. Libérer la base (Phase 2)
+
+    -- 1. Libérer la base (Phase 2) - protégé par pcall pour ne pas bloquer la sauvegarde
     if self.BaseSystem then
-        self.BaseSystem:ReleaseBase(player)
+        local ok, err = pcall(function()
+            self.BaseSystem:ReleaseBase(player)
+        end)
+        if not ok then
+            warn("[PlayerService] Erreur ReleaseBase pour " .. player.Name .. ": " .. tostring(err))
+        end
     end
-    
+
     -- 2. Sauvegarder les données
     DataService:SavePlayerData(player)
-    
+
     -- 3. Nettoyer le cache DataService
     DataService:CleanupPlayer(player)
-    
+
     -- 4. Nettoyer les données runtime
     self._runtimeData[player.UserId] = nil
-    
+
     -- print("[PlayerService] Joueur nettoyé: " .. player.Name)
 end
 

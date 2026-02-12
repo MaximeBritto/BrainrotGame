@@ -60,14 +60,18 @@ local Constants = {
         BuySlot = "BuySlot",
         CollectSlotCash = "CollectSlotCash",  -- slotIndex en paramètre
         ActivateDoor = "ActivateDoor",
-        
+        StealBrainrot = "StealBrainrot",            -- Phase 8: Vol de Brainrot (simplifié)
+        BatHit = "BatHit",                          -- Phase 8: Coup de batte
+
         -- Serveur → Client
         SyncPlayerData = "SyncPlayerData",
         SyncInventory = "SyncInventory",
         SyncCodex = "SyncCodex",
         SyncDoorState = "SyncDoorState",
         Notification = "Notification",
-        
+        SyncPlacedBrainrots = "SyncPlacedBrainrots",  -- Phase 8: Sync Brainrots placés
+        SyncStunState = "SyncStunState",            -- Phase 8: État d'assommage
+
         -- RemoteFunctions
         GetFullPlayerData = "GetFullPlayerData",
     },

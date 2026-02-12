@@ -40,36 +40,55 @@ local COOLDOWN_TIME = 1 -- 1 seconde entre chaque activation
 ]]
 local function ConnectActivationPad(pad)
     -- print("[ActivationPadManager] Connexion de: " .. pad:GetFullName())
-    
+
+    -- Trouver la base parente de ce pad
+    local function getBaseModel(instance)
+        local current = instance.Parent
+        while current do
+            if current:IsA("Model") and string.match(current.Name, "^Base_%d+$") then
+                return current
+            end
+            current = current.Parent
+        end
+        return nil
+    end
+
+    local padBase = getBaseModel(pad)
+
     -- Détecter quand un joueur touche le pad
     pad.Touched:Connect(function(hit)
         -- Vérifier que c'est un personnage
         local character = hit.Parent
         local humanoid = character:FindFirstChild("Humanoid")
-        
+
         if not humanoid then
             return
         end
-        
+
         -- Trouver le joueur
         local player = Players:GetPlayerFromCharacter(character)
-        
+
         if not player then
             return
         end
-        
+
+        -- Vérifier que le pad appartient à la base du joueur
+        if padBase and padBase:GetAttribute("OwnerUserId") ~= player.UserId then
+            return -- Pas sa base, ignorer
+        end
+
         -- Vérifier le cooldown
         local lastActivation = cooldowns[player.UserId] or 0
         local currentTime = tick()
-        
+
         if currentTime - lastActivation < COOLDOWN_TIME then
             return -- Trop tôt
         end
-        
+
         cooldowns[player.UserId] = currentTime
-        
+
         -- print("[ActivationPadManager] " .. player.Name .. " a touché " .. pad.Name)
-        
+
         -- Activer la porte via DoorSystem
         local result = DoorSystem:ActivateDoor(player)
         

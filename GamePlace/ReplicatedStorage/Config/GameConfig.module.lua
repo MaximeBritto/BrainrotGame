@@ -65,6 +65,19 @@ local GameConfig = {
         RetryAttempts = 3,                  -- Tentatives en cas d'échec
         RetryDelay = 2,                     -- Secondes entre tentatives
     },
+
+    -- ═══════════════════════════════════════
+    -- VOL DE BRAINROT (Phase 8)
+    -- ═══════════════════════════════════════
+    StealDuration = 3,                      -- Secondes pour voler
+    StealMaxDistance = 15,                  -- Distance max (studs)
+
+    -- ═══════════════════════════════════════
+    -- COMBAT (Phase 8)
+    -- ═══════════════════════════════════════
+    StunDuration = 5,                       -- Secondes d'assommage
+    BatCooldown = 1,                        -- Cooldown entre 2 coups (secondes)
+    BatMaxDistance = 10,                    -- Distance max pour frapper (studs)
 }
 
 return GameConfig
