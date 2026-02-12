@@ -91,7 +91,12 @@ function InventorySystem:TryPickupPiece(player, pieceId)
     if not self._initialized then
         return false, Constants.ActionResult.InvalidPiece, nil
     end
-    
+
+    -- VALIDATION 0: Impossible de ramasser des pièces en portant un brainrot volé
+    if PlayerService.IsCarryingBrainrot and PlayerService:IsCarryingBrainrot(player) then
+        return false, Constants.ActionResult.InventoryFull, nil
+    end
+
     -- VALIDATION 1: La pièce existe dans l'arène
     local piece = ArenaSystem:GetPieceById(pieceId)
     if not piece then

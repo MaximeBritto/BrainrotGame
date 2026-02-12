@@ -31,7 +31,10 @@ local function CreateRuntimeData()
     return {
         -- Pièces en main (temporaire)
         PiecesInHand = {},
-        
+
+        -- Brainrot porté en main (volé, pas encore placé)
+        CarriedBrainrot = nil, -- {HeadSet, BodySet, LegsSet, SetName, StolenAt}
+
         -- Base assignée
         AssignedBase = nil,
         BaseIndex = nil,
@@ -232,6 +235,13 @@ function PlayerService:OnCharacterAdded(player, character)
         else
             warn("[PlayerService] BrainrotModelSystem non disponible pour recréation")
         end
+
+        -- Re-attacher le brainrot porté en main si le joueur en transportait un (respawn)
+        local runtimeData = self._runtimeData[player.UserId]
+        if runtimeData and runtimeData.CarriedBrainrot and self.StealSystem then
+            task.wait(0.3)
+            self.StealSystem:_AttachBrainrotToHand(player, runtimeData.CarriedBrainrot)
+        end
     else
         -- print("[PlayerService] BaseSystem non disponible, pas de téléportation")
     end
@@ -243,18 +253,16 @@ end
 ]]
 function PlayerService:OnPlayerDied(player)
     -- print("[PlayerService] Joueur mort: " .. player.Name)
-    
-    -- Vider les pièces en main (elles sont perdues)
+
     local runtimeData = self._runtimeData[player.UserId]
     if runtimeData then
+        local remotes = NetworkSetup:GetAllRemotes()
+
+        -- Vider les pièces en main (elles sont perdues)
         local lostPieces = #runtimeData.PiecesInHand
         runtimeData.PiecesInHand = {}
-        
+
         if lostPieces > 0 then
-            -- print("[PlayerService] " .. player.Name .. " a perdu " .. lostPieces .. " pièces")
-            
-            -- Envoyer notification au client
-            local remotes = NetworkSetup:GetAllRemotes()
             if remotes.SyncInventory then
                 remotes.SyncInventory:FireClient(player, {})
             end
@@ -266,8 +274,25 @@ function PlayerService:OnPlayerDied(player)
                 })
             end
         end
+
+        -- Vider le brainrot porté en main (perdu aussi)
+        local carriedBrainrot = runtimeData.CarriedBrainrot
+        runtimeData.CarriedBrainrot = nil
+
+        if carriedBrainrot then
+            if remotes.SyncCarriedBrainrot then
+                remotes.SyncCarriedBrainrot:FireClient(player, nil)
+            end
+            if remotes.Notification then
+                remotes.Notification:FireClient(player, {
+                    Type = "Warning",
+                    Message = "You died! Stolen Brainrot lost.",
+                    Duration = 3,
+                })
+            end
+        end
     end
-    
+
     -- Incrémenter les stats de mort
     DataService:IncrementValue(player, "Stats.TotalDeaths", 1)
 end
@@ -317,8 +342,56 @@ end
 function PlayerService:GetPiecesInHand(player)
     local runtimeData = self._runtimeData[player.UserId]
     if not runtimeData then return {} end
-    
+
     return runtimeData.PiecesInHand
+end
+
+--[[
+    Définit le brainrot porté en main
+    @param player: Player
+    @param brainrotData: table - {HeadSet, BodySet, LegsSet, SetName, StolenAt}
+    @return boolean
+]]
+function PlayerService:SetCarriedBrainrot(player, brainrotData)
+    local runtimeData = self._runtimeData[player.UserId]
+    if not runtimeData then return false end
+    runtimeData.CarriedBrainrot = brainrotData
+    return true
+end
+
+--[[
+    Récupère le brainrot porté en main
+    @param player: Player
+    @return table | nil
+]]
+function PlayerService:GetCarriedBrainrot(player)
+    local runtimeData = self._runtimeData[player.UserId]
+    if not runtimeData then return nil end
+    return runtimeData.CarriedBrainrot
+end
+
+--[[
+    Vide le brainrot porté en main
+    @param player: Player
+    @return table | nil - Les données du brainrot retiré
+]]
+function PlayerService:ClearCarriedBrainrot(player)
+    local runtimeData = self._runtimeData[player.UserId]
+    if not runtimeData then return nil end
+    local old = runtimeData.CarriedBrainrot
+    runtimeData.CarriedBrainrot = nil
+    return old
+end
+
+--[[
+    Vérifie si le joueur porte un brainrot
+    @param player: Player
+    @return boolean
+]]
+function PlayerService:IsCarryingBrainrot(player)
+    local runtimeData = self._runtimeData[player.UserId]
+    if not runtimeData then return false end
+    return runtimeData.CarriedBrainrot ~= nil
 end
 
 return PlayerService

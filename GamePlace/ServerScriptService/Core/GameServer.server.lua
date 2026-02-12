@@ -436,10 +436,19 @@ end
 if StealSystem and BatSystem then
     StealSystem:Init({
         BrainrotModelSystem = BrainrotModelSystem,
+        PlayerService = PlayerService,
+        PlacementSystem = PlacementSystem,
     })
     -- print("[GameServer] StealSystem: OK")
 
-    BatSystem:Init()
+    -- Injecter StealSystem dans PlayerService (pour re-attacher brainrot au respawn)
+    PlayerService.StealSystem = StealSystem
+
+    BatSystem:Init({
+        PlayerService = PlayerService,
+        DataService = DataService,
+        BrainrotModelSystem = BrainrotModelSystem,
+    })
     -- print("[GameServer] BatSystem: OK")
 
     NetworkHandler:UpdateSystems({

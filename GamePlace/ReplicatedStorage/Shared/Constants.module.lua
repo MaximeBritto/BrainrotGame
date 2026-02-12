@@ -37,6 +37,8 @@ local Constants = {
         MaxSlotsReached = "MaxSlotsReached",
         OnCooldown = "OnCooldown",
         NotOwner = "NotOwner",
+        AlreadyCarrying = "AlreadyCarrying",
+        NotCarrying = "NotCarrying",
     },
     
     -- ═══════════════════════════════════════
@@ -61,6 +63,7 @@ local Constants = {
         CollectSlotCash = "CollectSlotCash",  -- slotIndex en paramètre
         ActivateDoor = "ActivateDoor",
         StealBrainrot = "StealBrainrot",            -- Phase 8: Vol de Brainrot (simplifié)
+        PlaceStolenBrainrot = "PlaceStolenBrainrot", -- Phase 8: Placer brainrot volé sur un slot
         BatHit = "BatHit",                          -- Phase 8: Coup de batte
 
         -- Serveur → Client
@@ -70,6 +73,7 @@ local Constants = {
         SyncDoorState = "SyncDoorState",
         Notification = "Notification",
         SyncPlacedBrainrots = "SyncPlacedBrainrots",  -- Phase 8: Sync Brainrots placés
+        SyncCarriedBrainrot = "SyncCarriedBrainrot", -- Phase 8: Sync état brainrot porté
         SyncStunState = "SyncStunState",            -- Phase 8: État d'assommage
 
         -- RemoteFunctions
@@ -117,6 +121,8 @@ local Constants = {
         MaxSlotsReached = "You already have all slots!",
         OnCooldown = "Please wait...",
         NotOwner = "This is not your base!",
+        AlreadyCarrying = "You are already carrying a Brainrot!",
+        NotCarrying = "You are not carrying a stolen Brainrot.",
     },
     
     -- ═══════════════════════════════════════

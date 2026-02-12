@@ -144,7 +144,12 @@ function CraftingSystem:TryCraft(player)
     if not self._initialized then
         return false, Constants.ActionResult.InvalidPiece, nil
     end
-    
+
+    -- 0. Impossible de crafter en portant un brainrot volé
+    if PlayerService and PlayerService.IsCarryingBrainrot and PlayerService:IsCarryingBrainrot(player) then
+        return false, Constants.ActionResult.MissingPieces, nil
+    end
+
     -- 1. Récupérer les pièces en main
     local pieces = InventorySystem:GetPiecesInHand(player)
     

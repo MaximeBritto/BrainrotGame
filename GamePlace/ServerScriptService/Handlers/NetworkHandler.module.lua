@@ -166,6 +166,28 @@ function NetworkHandler:_ConnectHandlers()
         end)
     end
 
+    -- Placer brainrot volé sur un slot (Phase 8 v2)
+    if remotes.PlaceStolenBrainrot then
+        remotes.PlaceStolenBrainrot.OnServerEvent:Connect(function(player, slotIndex)
+            if type(slotIndex) == "string" then
+                slotIndex = tonumber(slotIndex)
+            end
+            if not slotIndex or type(slotIndex) ~= "number" then return end
+
+            local success, err = pcall(function()
+                if StealSystem then
+                    StealSystem:PlaceStolenBrainrot(player, slotIndex)
+                else
+                    warn("[NetworkHandler] StealSystem non initialisé!")
+                end
+            end)
+
+            if not success then
+                warn("[NetworkHandler] Erreur PlaceStolenBrainrot: " .. tostring(err))
+            end
+        end)
+    end
+
     -- Combat batte (Phase 8)
     if remotes.BatHit then
         remotes.BatHit.OnServerEvent:Connect(function(player, victimId)
@@ -404,6 +426,7 @@ function NetworkHandler:_HandleGetFullPlayerData(player)
         
         -- Données runtime
         PiecesInHand = runtimeData and runtimeData.PiecesInHand or {},
+        CarriedBrainrot = runtimeData and runtimeData.CarriedBrainrot or nil,
         DoorState = runtimeData and runtimeData.DoorState or Constants.DoorState.Open,
     }
     

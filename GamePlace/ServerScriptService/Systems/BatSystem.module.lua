@@ -10,6 +10,11 @@ local ServerStorage = game:GetService("ServerStorage")
 local DataService = require(script.Parent.Parent.Core["DataService.module"])
 local GameConfig = require(ReplicatedStorage.Config["GameConfig.module"])
 
+-- Systèmes injectés
+local PlayerService = nil
+local DataService_ref = nil
+local BrainrotModelSystem_ref = nil
+
 -- RemoteEvents (initialisé dans Init, après que NetworkSetup ait créé le dossier)
 local remotes = nil
 
@@ -24,8 +29,14 @@ local BAT_MAX_DISTANCE = GameConfig.BatMaxDistance or 10 -- studs
 ---
 -- Initialisation
 ---
-function BatSystem:Init()
+function BatSystem:Init(services)
     print("[BatSystem] Initialisation...")
+
+    if services then
+        PlayerService = services.PlayerService
+        DataService_ref = services.DataService
+        BrainrotModelSystem_ref = services.BrainrotModelSystem
+    end
 
     remotes = ReplicatedStorage:WaitForChild("Remotes", 5)
     if not remotes then
@@ -257,38 +268,73 @@ function BatSystem:_RemoveStun(victim)
 end
 
 ---
--- Retourne le Brainrot volé (si la victime en transportait un)
+-- Retire le Brainrot volé porté en main et le retourne au slot d'origine
 ---
 function BatSystem:_ReturnStolenBrainrot(victim)
-    local victimId = victim.UserId
-    local victimData = DataService:GetPlayerData(victimId)
-    if not victimData then return end
+    if not PlayerService then return end
 
-    -- Vérifier si l'inventaire contient des pièces "volées"
-    -- (identifiables par le préfixe "stolen_")
-    local stolenPieces = {}
-    for pieceId, pieceData in pairs(victimData.Inventory) do
-        if string.find(pieceId, "stolen_") then
-            table.insert(stolenPieces, pieceId)
+    local carriedData = PlayerService:GetCarriedBrainrot(victim)
+    if not carriedData then return end
+
+    -- Vider le CarriedBrainrot
+    PlayerService:ClearCarriedBrainrot(victim)
+
+    -- Détruire le modèle visuel
+    local character = victim.Character
+    if character then
+        local carriedModel = character:FindFirstChild("CarriedBrainrot")
+        if carriedModel then carriedModel:Destroy() end
+        character:SetAttribute("CarryingBrainrot", nil)
+    end
+
+    -- Sync client (vider le carried côté client)
+    local syncCarried = remotes:FindFirstChild("SyncCarriedBrainrot")
+    if syncCarried then
+        syncCarried:FireClient(victim, nil)
+    end
+
+    -- Retourner le brainrot au slot d'origine
+    local originalOwnerId = carriedData.StolenFromUserId
+    local originalSlotId = carriedData.StolenFromSlotId
+    if originalOwnerId and originalSlotId and DataService_ref then
+        local owner = Players:GetPlayerByUserId(originalOwnerId)
+        if owner then
+            local ownerData = DataService_ref:GetPlayerData(owner)
+            if ownerData then
+                local slotKey = tostring(originalSlotId)
+                local brainrotData = {
+                    HeadSet = carriedData.HeadSet,
+                    BodySet = carriedData.BodySet,
+                    LegsSet = carriedData.LegsSet,
+                    SetName = carriedData.SetName,
+                    PlacedAt = os.time(),
+                }
+                ownerData.PlacedBrainrots[slotKey] = brainrotData
+                DataService_ref:UpdateValue(owner, "PlacedBrainrots", ownerData.PlacedBrainrots)
+
+                -- Recréer le modèle 3D sur le slot
+                if BrainrotModelSystem_ref then
+                    BrainrotModelSystem_ref:CreateBrainrotModel(owner, originalSlotId, brainrotData)
+                end
+
+                -- Sync le propriétaire
+                remotes.SyncPlayerData:FireClient(owner, {
+                    PlacedBrainrots = ownerData.PlacedBrainrots,
+                    Cash = ownerData.Cash,
+                })
+                remotes.Notification:FireClient(owner, {
+                    Type = "Success",
+                    Message = "Votre Brainrot volé a été récupéré!"
+                })
+
+                print(string.format("[BatSystem] Brainrot retourné au slot %d de %s", originalSlotId, owner.Name))
+            end
         end
     end
 
-    if #stolenPieces == 0 then
-        return -- Pas de Brainrot volé
-    end
-
-    -- Retirer les pièces de l'inventaire
-    for _, pieceId in ipairs(stolenPieces) do
-        victimData.Inventory[pieceId] = nil
-    end
-
-    DataService:SetPlayerData(victimId, victimData)
-
-    -- Sync au client
-    remotes.SyncInventory:FireClient(victim, victimData.Inventory)
     remotes.Notification:FireClient(victim, {
         Type = "Error",
-        Message = "Votre Brainrot volé a été perdu!"
+        Message = "Vous avez perdu le Brainrot volé!"
     })
 
     print(string.format("[BatSystem] Brainrot volé retiré de %s", victim.Name))

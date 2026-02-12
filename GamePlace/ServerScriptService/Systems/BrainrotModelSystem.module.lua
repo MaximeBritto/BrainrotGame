@@ -1,8 +1,9 @@
 --[[
     BrainrotModelSystem.module.lua
     Gestion des modèles 3D de Brainrots dans les slots
-    
+
     Responsabilités:
+    - Assembler un modèle 3D de Brainrot (Head+Body+Legs via Attachments)
     - Créer un modèle 3D de Brainrot dans un slot
     - Détruire un modèle 3D de Brainrot
     - Gérer la visibilité (seul le propriétaire voit ses Brainrots)
@@ -27,28 +28,207 @@ function BrainrotModelSystem:Init(services)
         warn("[BrainrotModelSystem] Déjà initialisé!")
         return
     end
-    
-    -- print("[BrainrotModelSystem] Initialisation...")
-    
+
     BaseSystem = services.BaseSystem
-    
+
     if not BaseSystem then
         error("[BrainrotModelSystem] BaseSystem manquant!")
     end
-    
+
     -- Charger BrainrotData
     local Data = ReplicatedStorage:WaitForChild("Data")
     BrainrotData = require(Data:WaitForChild("BrainrotData.module"))
-    
+
     self._initialized = true
-    -- print("[BrainrotModelSystem] Initialisé")
+end
+
+--[[
+    Assemble un modèle 3D de Brainrot à partir des templates (sans positionnement sur slot)
+    Méthode réutilisable par CreateBrainrotModel et par StealSystem (porter en main)
+    @param brainrotData: table - {HeadSet, BodySet, LegsSet}
+    @return Model | nil, string | nil - Le modèle assemblé ou nil + nom du brainrot
+]]
+function BrainrotModelSystem:AssembleBrainrot(brainrotData)
+    -- 1. Trouver les dossiers de templates
+    local assetsFolder = ReplicatedStorage:FindFirstChild("Assets")
+    if not assetsFolder then
+        warn("[BrainrotModelSystem] Assets folder introuvable")
+        return nil, nil
+    end
+
+    local templatesFolder = assetsFolder:FindFirstChild("BodyPartTemplates")
+    if not templatesFolder then
+        warn("[BrainrotModelSystem] BodyPartTemplates folder introuvable")
+        return nil, nil
+    end
+
+    local headTemplateFolder = templatesFolder:FindFirstChild("HeadTemplate")
+    local bodyTemplateFolder = templatesFolder:FindFirstChild("BodyTemplate")
+    local legsTemplateFolder = templatesFolder:FindFirstChild("LegsTemplate")
+
+    if not headTemplateFolder or not bodyTemplateFolder or not legsTemplateFolder then
+        warn("[BrainrotModelSystem] Template folders manquants")
+        return nil, nil
+    end
+
+    -- 2. Récupérer les noms de templates via BrainrotData
+    local headSetData = BrainrotData.Sets[brainrotData.HeadSet]
+    local bodySetData = BrainrotData.Sets[brainrotData.BodySet]
+    local legsSetData = BrainrotData.Sets[brainrotData.LegsSet]
+
+    if not headSetData or not bodySetData or not legsSetData then
+        warn("[BrainrotModelSystem] SetData manquant pour un des sets")
+        return nil, nil
+    end
+
+    local headTemplateName = headSetData.Head.TemplateName
+    local bodyTemplateName = bodySetData.Body.TemplateName
+    local legsTemplateName = legsSetData.Legs.TemplateName
+
+    if not headTemplateName or headTemplateName == "" then
+        warn("[BrainrotModelSystem] TemplateName manquant pour Head: " .. brainrotData.HeadSet)
+        return nil, nil
+    end
+    if not bodyTemplateName or bodyTemplateName == "" then
+        warn("[BrainrotModelSystem] TemplateName manquant pour Body: " .. brainrotData.BodySet)
+        return nil, nil
+    end
+    if not legsTemplateName or legsTemplateName == "" then
+        warn("[BrainrotModelSystem] TemplateName manquant pour Legs: " .. brainrotData.LegsSet)
+        return nil, nil
+    end
+
+    -- 3. Cloner les templates
+    local headTemplate = headTemplateFolder:FindFirstChild(headTemplateName)
+    local bodyTemplate = bodyTemplateFolder:FindFirstChild(bodyTemplateName)
+    local legsTemplate = legsTemplateFolder:FindFirstChild(legsTemplateName)
+
+    if not headTemplate then
+        warn("[BrainrotModelSystem] Head template introuvable: " .. headTemplateName)
+        return nil, nil
+    end
+    if not bodyTemplate then
+        warn("[BrainrotModelSystem] Body template introuvable: " .. bodyTemplateName)
+        return nil, nil
+    end
+    if not legsTemplate then
+        warn("[BrainrotModelSystem] Legs template introuvable: " .. legsTemplateName)
+        return nil, nil
+    end
+
+    local headModel = headTemplate:Clone()
+    local bodyModel = bodyTemplate:Clone()
+    local legsModel = legsTemplate:Clone()
+
+    -- 4. Extraire les PrimaryParts
+    local headPart = headModel.PrimaryPart
+    local bodyPart = bodyModel.PrimaryPart
+    local legsPart = legsModel.PrimaryPart
+
+    if not headPart or not bodyPart or not legsPart then
+        warn("[BrainrotModelSystem] PrimaryParts manquants dans les templates")
+        headModel:Destroy()
+        bodyModel:Destroy()
+        legsModel:Destroy()
+        return nil, nil
+    end
+
+    -- 5. Créer le Model conteneur
+    local brainrotName = headTemplateName .. " " .. bodyTemplateName .. " " .. legsTemplateName
+    local model = Instance.new("Model")
+    model.Name = "Brainrot_" .. brainrotName
+
+    -- Parent toutes les parts au conteneur et supprimer les BillboardGui individuels
+    for _, child in ipairs(headModel:GetChildren()) do
+        child.Parent = model
+        if child:IsA("BasePart") then
+            local billboard = child:FindFirstChildOfClass("BillboardGui")
+            if billboard then billboard:Destroy() end
+        end
+    end
+    for _, child in ipairs(bodyModel:GetChildren()) do
+        child.Parent = model
+        if child:IsA("BasePart") then
+            local billboard = child:FindFirstChildOfClass("BillboardGui")
+            if billboard then billboard:Destroy() end
+        end
+    end
+    for _, child in ipairs(legsModel:GetChildren()) do
+        child.Parent = model
+        if child:IsA("BasePart") then
+            local billboard = child:FindFirstChildOfClass("BillboardGui")
+            if billboard then billboard:Destroy() end
+        end
+    end
+
+    -- Détruire les models vides
+    headModel:Destroy()
+    bodyModel:Destroy()
+    legsModel:Destroy()
+
+    -- 6. Positionner les Legs à l'origine
+    legsPart.CFrame = CFrame.new(0, legsPart.Size.Y / 2, 0)
+    legsPart.Anchored = false
+
+    -- 7. Connecter Body → Legs via Attachments
+    local bodyBottomAtt = bodyPart:FindFirstChild("BottomAttachment")
+    local legsTopAtt = legsPart:FindFirstChild("TopAttachment")
+
+    if bodyBottomAtt and legsTopAtt then
+        bodyPart.CFrame = legsPart.CFrame * legsTopAtt.CFrame * bodyBottomAtt.CFrame:Inverse()
+        bodyPart.Anchored = true
+
+        local legsWeld = Instance.new("WeldConstraint")
+        legsWeld.Part0 = bodyPart
+        legsWeld.Part1 = legsPart
+        legsWeld.Parent = legsPart
+    else
+        warn("[BrainrotModelSystem] Attachments manquants pour Body-Legs")
+        local bodyBottomY = legsPart.Size.Y + bodyPart.Size.Y / 2
+        bodyPart.CFrame = CFrame.new(0, bodyBottomY, 0)
+        bodyPart.Anchored = true
+
+        local legsWeld = Instance.new("WeldConstraint")
+        legsWeld.Part0 = bodyPart
+        legsWeld.Part1 = legsPart
+        legsWeld.Parent = legsPart
+    end
+
+    -- 8. Connecter Head → Body via Attachments
+    local headBottomAtt = headPart:FindFirstChild("BottomAttachment")
+    local bodyTopAtt = bodyPart:FindFirstChild("TopAttachment")
+
+    if headBottomAtt and bodyTopAtt then
+        headPart.CFrame = bodyPart.CFrame * bodyTopAtt.CFrame * headBottomAtt.CFrame:Inverse()
+        headPart.Anchored = false
+
+        local headWeld = Instance.new("WeldConstraint")
+        headWeld.Part0 = bodyPart
+        headWeld.Part1 = headPart
+        headWeld.Parent = headPart
+    else
+        warn("[BrainrotModelSystem] Attachments manquants pour Head-Body")
+        local headOffset = bodyPart.Size.Y / 2 + headPart.Size.Y / 2
+        headPart.CFrame = bodyPart.CFrame * CFrame.new(0, headOffset, 0)
+        headPart.Anchored = false
+
+        local headWeld = Instance.new("WeldConstraint")
+        headWeld.Part0 = bodyPart
+        headWeld.Part1 = headPart
+        headWeld.Parent = headPart
+    end
+
+    -- 9. Définir le PrimaryPart
+    model.PrimaryPart = bodyPart
+
+    return model, brainrotName
 end
 
 --[[
     Crée un modèle 3D de Brainrot dans un slot
     @param player: Player
     @param slotIndex: number
-    @param brainrotData: table - {SetName, SlotIndex, PlacedAt}
+    @param brainrotData: table - {SetName, SlotIndex, PlacedAt, HeadSet, BodySet, LegsSet}
     @return boolean - true si succès
 ]]
 function BrainrotModelSystem:CreateBrainrotModel(player, slotIndex, brainrotData)
@@ -58,243 +238,98 @@ function BrainrotModelSystem:CreateBrainrotModel(player, slotIndex, brainrotData
         warn("[BrainrotModelSystem] Base introuvable pour " .. player.Name)
         return false
     end
-    
-    -- 2. Trouver le slot
+
+    -- 2. Trouver le slot et la platform
     local slotsFolder = base:FindFirstChild("Slots")
     if not slotsFolder then
         warn("[BrainrotModelSystem] Slots folder introuvable")
         return false
     end
-    
+
     local slot = slotsFolder:FindFirstChild("Slot_" .. slotIndex)
     if not slot then
         warn("[BrainrotModelSystem] Slot_" .. slotIndex .. " introuvable")
         return false
     end
-    
+
     local platform = slot:FindFirstChild("Platform")
     if not platform then
         warn("[BrainrotModelSystem] Platform introuvable dans Slot_" .. slotIndex)
         return false
     end
-    
-    -- 3. Assembler le Brainrot à partir des templates avec Attachments
-    local assetsFolder = ReplicatedStorage:FindFirstChild("Assets")
-    if not assetsFolder then
-        warn("[BrainrotModelSystem] Assets folder introuvable")
+
+    -- 3. Assembler le modèle
+    local model, brainrotName = self:AssembleBrainrot(brainrotData)
+    if not model then
         return false
     end
-    
-    local templatesFolder = assetsFolder:FindFirstChild("BodyPartTemplates")
-    if not templatesFolder then
-        warn("[BrainrotModelSystem] BodyPartTemplates folder introuvable")
-        return false
-    end
-    
-    -- Récupérer les 3 templates
-    local headTemplateFolder = templatesFolder:FindFirstChild("HeadTemplate")
-    local bodyTemplateFolder = templatesFolder:FindFirstChild("BodyTemplate")
-    local legsTemplateFolder = templatesFolder:FindFirstChild("LegsTemplate")
-    
-    if not headTemplateFolder or not bodyTemplateFolder or not legsTemplateFolder then
-        warn("[BrainrotModelSystem] Template folders manquants")
-        return false
-    end
-    
-    -- Récupérer les modèles spécifiques via TemplateName de chaque pièce
-    local headSetData = BrainrotData.Sets[brainrotData.HeadSet]
-    local bodySetData = BrainrotData.Sets[brainrotData.BodySet]
-    local legsSetData = BrainrotData.Sets[brainrotData.LegsSet]
-    
-    if not headSetData or not bodySetData or not legsSetData then
-        warn("[BrainrotModelSystem] SetData manquant pour un des sets")
-        return false
-    end
-    
-    local headTemplateName = headSetData.Head.TemplateName
-    local bodyTemplateName = bodySetData.Body.TemplateName
-    local legsTemplateName = legsSetData.Legs.TemplateName
-    
-    if not headTemplateName or headTemplateName == "" then
-        warn("[BrainrotModelSystem] TemplateName manquant pour Head: " .. brainrotData.HeadSet)
-        return false
-    end
-    if not bodyTemplateName or bodyTemplateName == "" then
-        warn("[BrainrotModelSystem] TemplateName manquant pour Body: " .. brainrotData.BodySet)
-        return false
-    end
-    if not legsTemplateName or legsTemplateName == "" then
-        warn("[BrainrotModelSystem] TemplateName manquant pour Legs: " .. brainrotData.LegsSet)
-        return false
-    end
-    
-    local headTemplate = headTemplateFolder:FindFirstChild(headTemplateName)
-    local bodyTemplate = bodyTemplateFolder:FindFirstChild(bodyTemplateName)
-    local legsTemplate = legsTemplateFolder:FindFirstChild(legsTemplateName)
-    
-    if not headTemplate then
-        warn("[BrainrotModelSystem] Head template introuvable: " .. headTemplateName)
-        return false
-    end
-    if not bodyTemplate then
-        warn("[BrainrotModelSystem] Body template introuvable: " .. bodyTemplateName)
-        return false
-    end
-    if not legsTemplate then
-        warn("[BrainrotModelSystem] Legs template introuvable: " .. legsTemplateName)
-        return false
-    end
-    
-    -- Cloner les 3 templates
-    local headModel = headTemplate:Clone()
-    local bodyModel = bodyTemplate:Clone()
-    local legsModel = legsTemplate:Clone()
-    
-    -- Extraire les PrimaryParts
-    local headPart = headModel.PrimaryPart
-    local bodyPart = bodyModel.PrimaryPart
-    local legsPart = legsModel.PrimaryPart
-    
-    if not headPart or not bodyPart or not legsPart then
-        warn("[BrainrotModelSystem] PrimaryParts manquants dans les templates")
-        return false
-    end
-    
-    -- Créer le Model conteneur avec nom concaténé des templates
-    local model = Instance.new("Model")
-    local brainrotName = headTemplateName .. " " .. bodyTemplateName .. " " .. legsTemplateName
-    model.Name = "Brainrot_" .. brainrotName
-    
-    -- Parent toutes les parts au conteneur et supprimer les BillboardGui individuels
-    for _, child in ipairs(headModel:GetChildren()) do
-        child.Parent = model
-        -- Supprimer BillboardGui des pièces individuelles
-        if child:IsA("BasePart") then
-            local billboard = child:FindFirstChildOfClass("BillboardGui")
-            if billboard then
-                billboard:Destroy()
+
+    -- 4. Repositionner sur la plateforme du slot
+    local bodyPart = model.PrimaryPart
+    local legsPart = nil
+    local headPart = nil
+
+    -- Retrouver les parts (legs = celle avec TopAttachment sans BottomAttachment, ou la plus basse)
+    for _, part in ipairs(model:GetChildren()) do
+        if part:IsA("BasePart") then
+            if part:FindFirstChild("TopAttachment") and not part:FindFirstChild("BottomAttachment") then
+                legsPart = part
+            end
+            if part:FindFirstChild("BottomAttachment") and not part:FindFirstChild("TopAttachment") then
+                headPart = part
             end
         end
     end
-    for _, child in ipairs(bodyModel:GetChildren()) do
-        child.Parent = model
-        if child:IsA("BasePart") then
-            local billboard = child:FindFirstChildOfClass("BillboardGui")
-            if billboard then
-                billboard:Destroy()
+
+    -- Positionner les Legs sur la plateforme
+    if legsPart then
+        local platformTop = platform.Position.Y + platform.Size.Y / 2
+        local legsBottomY = platformTop + legsPart.Size.Y / 2
+        local platformRotation = platform.CFrame.Rotation
+
+        local legsTopAtt = legsPart:FindFirstChild("TopAttachment")
+        if legsTopAtt then
+            local legsOrientation = legsTopAtt.CFrame.Rotation
+            legsPart.CFrame = CFrame.new(platform.Position.X, legsBottomY, platform.Position.Z) * platformRotation * legsOrientation
+        else
+            legsPart.CFrame = CFrame.new(platform.Position.X, legsBottomY, platform.Position.Z) * platformRotation
+        end
+
+        -- Recalculer Body et Head via Attachments
+        local bodyBottomAtt = bodyPart:FindFirstChild("BottomAttachment")
+        local legsTopAtt2 = legsPart:FindFirstChild("TopAttachment")
+        if bodyBottomAtt and legsTopAtt2 then
+            bodyPart.CFrame = legsPart.CFrame * legsTopAtt2.CFrame * bodyBottomAtt.CFrame:Inverse()
+        end
+
+        if headPart then
+            local headBottomAtt = headPart:FindFirstChild("BottomAttachment")
+            local bodyTopAtt = bodyPart:FindFirstChild("TopAttachment")
+            if headBottomAtt and bodyTopAtt then
+                headPart.CFrame = bodyPart.CFrame * bodyTopAtt.CFrame * headBottomAtt.CFrame:Inverse()
             end
         end
     end
-    for _, child in ipairs(legsModel:GetChildren()) do
-        child.Parent = model
-        if child:IsA("BasePart") then
-            local billboard = child:FindFirstChildOfClass("BillboardGui")
-            if billboard then
-                billboard:Destroy()
+
+    -- 5. BillboardGui
+    if not headPart then
+        -- Trouver la head part par défaut (la plus haute)
+        for _, part in ipairs(model:GetChildren()) do
+            if part:IsA("BasePart") and part ~= bodyPart and part ~= legsPart then
+                headPart = part
+                break
             end
         end
     end
-    
-    -- Détruire les models vides
-    headModel:Destroy()
-    bodyModel:Destroy()
-    legsModel:Destroy()
-    
-    -- Positionner les Legs d'abord (base du Brainrot)
-    -- Les Legs doivent être posées SUR la plateforme avec la même orientation
-    local platformTop = platform.Position.Y + platform.Size.Y / 2
-    local legsBottomY = platformTop + legsPart.Size.Y / 2
-    
-    -- Utiliser l'orientation de la plateforme pour orienter le Brainrot
-    local platformRotation = platform.CFrame.Rotation
-    
-    -- Utiliser l'orientation du TopAttachment des Legs pour définir leur rotation
-    local legsTopAtt = legsPart:FindFirstChild("TopAttachment")
-    if legsTopAtt then
-        -- Positionner les Legs avec l'orientation de la plateforme + leur TopAttachment
-        local legsOrientation = legsTopAtt.CFrame.Rotation
-        legsPart.CFrame = CFrame.new(platform.Position.X, legsBottomY, platform.Position.Z) * platformRotation * legsOrientation
-    else
-        -- Fallback: utiliser seulement l'orientation de la plateforme
-        legsPart.CFrame = CFrame.new(platform.Position.X, legsBottomY, platform.Position.Z) * platformRotation
-    end
-    legsPart.Anchored = false
-    
-    -- -- print("[BrainrotModelSystem] Legs positioned at:", legsPart.Position)
-    -- -- print("[BrainrotModelSystem] Legs orientation from Platform + TopAttachment")
-    
-    -- Connecter Body → Legs via Attachments
-    local bodyBottomAtt = bodyPart:FindFirstChild("BottomAttachment")
-    local legsTopAtt = legsPart:FindFirstChild("TopAttachment")
-    
-    if bodyBottomAtt and legsTopAtt then
-        -- Positionner le Body au-dessus des Legs via Attachments
-        bodyPart.CFrame = legsPart.CFrame * legsTopAtt.CFrame * bodyBottomAtt.CFrame:Inverse()
-        bodyPart.Anchored = true  -- Anchor le Body pour que tout reste en place
-        
-        -- Souder
-        local legsWeld = Instance.new("WeldConstraint")
-        legsWeld.Part0 = bodyPart
-        legsWeld.Part1 = legsPart
-        legsWeld.Parent = legsPart
-        
-        -- -- print("[BrainrotModelSystem] Legs connectées au Body via Attachments")
-        -- -- print("[BrainrotModelSystem] Body CFrame:", bodyPart.CFrame)
-    else
-        warn("[BrainrotModelSystem] Attachments manquants pour Body-Legs")
-        -- Fallback: positionnement manuel
-        local bodyBottomY = legsBottomY + legsPart.Size.Y / 2 + bodyPart.Size.Y / 2
-        bodyPart.CFrame = CFrame.new(platform.Position.X, bodyBottomY, platform.Position.Z)
-        bodyPart.Anchored = true
-        
-        local legsWeld = Instance.new("WeldConstraint")
-        legsWeld.Part0 = bodyPart
-        legsWeld.Part1 = legsPart
-        legsWeld.Parent = legsPart
-    end
-    
-    -- Connecter Head → Body via Attachments (le Body est déjà positionné)
-    local headBottomAtt = headPart:FindFirstChild("BottomAttachment")
-    local bodyTopAtt = bodyPart:FindFirstChild("TopAttachment")
-    
-    if headBottomAtt and bodyTopAtt then
-        -- Aligner les attachments
-        headPart.CFrame = bodyPart.CFrame * bodyTopAtt.CFrame * headBottomAtt.CFrame:Inverse()
-        headPart.Anchored = false  -- Ne pas anchor les autres parts
-        
-        -- Souder
-        local headWeld = Instance.new("WeldConstraint")
-        headWeld.Part0 = bodyPart
-        headWeld.Part1 = headPart
-        headWeld.Parent = headPart
-        
-        -- -- print("[BrainrotModelSystem] Head connecté au Body via Attachments")
-        -- -- print("[BrainrotModelSystem] Head CFrame:", headPart.CFrame)
-    else
-        warn("[BrainrotModelSystem] Attachments manquants pour Head-Body")
-        -- Fallback: positionnement manuel
-        local headOffset = bodyPart.Size.Y / 2 + headPart.Size.Y / 2
-        headPart.CFrame = bodyPart.CFrame * CFrame.new(0, headOffset, 0)
-        headPart.Anchored = false
-        
-        local headWeld = Instance.new("WeldConstraint")
-        headWeld.Part0 = bodyPart
-        headWeld.Part1 = headPart
-        headWeld.Parent = headPart
-    end
-    
-    -- Définir le PrimaryPart
-    model.PrimaryPart = bodyPart
-    
-    -- 4. Créer un BillboardGui unique pour le Brainrot complet
+
+    local adornPart = headPart or bodyPart
     local billboard = Instance.new("BillboardGui")
     billboard.Name = "BrainrotInfo"
     billboard.Size = UDim2.new(0, 200, 0, 100)
-    billboard.StudsOffset = Vector3.new(0, headPart.Size.Y + 2, 0)
+    billboard.StudsOffset = Vector3.new(0, adornPart.Size.Y + 2, 0)
     billboard.AlwaysOnTop = true
-    billboard.Adornee = headPart
-    
-    -- Nom du Brainrot (concaténation des templates)
+    billboard.Adornee = adornPart
+
     local nameLabel = Instance.new("TextLabel")
     nameLabel.Name = "NameLabel"
     nameLabel.Size = UDim2.new(1, 0, 0.5, 0)
@@ -305,12 +340,12 @@ function BrainrotModelSystem:CreateBrainrotModel(player, slotIndex, brainrotData
     nameLabel.TextScaled = true
     nameLabel.Font = Enum.Font.GothamBold
     nameLabel.Parent = billboard
-    
-    -- Revenu total (somme des 3 pièces)
+
+    -- Revenu total
     local headSetData = BrainrotData.Sets[brainrotData.HeadSet]
     local bodySetData = BrainrotData.Sets[brainrotData.BodySet]
     local legsSetData = BrainrotData.Sets[brainrotData.LegsSet]
-    
+
     local totalRevenue = 0
     if headSetData and headSetData.Head then
         totalRevenue = totalRevenue + (headSetData.Head.Price or 0)
@@ -321,7 +356,7 @@ function BrainrotModelSystem:CreateBrainrotModel(player, slotIndex, brainrotData
     if legsSetData and legsSetData.Legs then
         totalRevenue = totalRevenue + (legsSetData.Legs.Price or 0)
     end
-    
+
     local revenueLabel = Instance.new("TextLabel")
     revenueLabel.Name = "RevenueLabel"
     revenueLabel.Size = UDim2.new(1, 0, 0.5, 0)
@@ -332,54 +367,48 @@ function BrainrotModelSystem:CreateBrainrotModel(player, slotIndex, brainrotData
     revenueLabel.TextScaled = true
     revenueLabel.Font = Enum.Font.Gotham
     revenueLabel.Parent = billboard
-    
-    billboard.Parent = headPart
-    
-    -- print("[BrainrotModelSystem] BillboardGui créé: " .. brainrotName .. " - $" .. totalRevenue .. "/s")
-    
-    -- 5. Définir les attributs
+
+    billboard.Parent = adornPart
+
+    -- 6. Définir les attributs
     model:SetAttribute("SetName", brainrotData.SetName)
     model:SetAttribute("SlotIndex", slotIndex)
     model:SetAttribute("OwnerUserId", player.UserId)
     model:SetAttribute("HeadSet", brainrotData.HeadSet)
     model:SetAttribute("BodySet", brainrotData.BodySet)
     model:SetAttribute("LegsSet", brainrotData.LegsSet)
-    
-    -- 5. Appliquer la visibilité (seul le propriétaire voit)
+
+    -- 7. Appliquer la visibilité
     self:_ApplyOwnerVisibility(model, player.UserId)
 
-    -- 5.5 PHASE 8: Ajouter ProximityPrompt pour vol de Brainrot
+    -- 8. ProximityPrompt pour vol de Brainrot
     local primaryPart = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
     if primaryPart then
         local proximityPrompt = Instance.new("ProximityPrompt")
         proximityPrompt.Name = "StealPrompt"
         proximityPrompt.ActionText = "Voler"
         proximityPrompt.ObjectText = "Brainrot"
-        proximityPrompt.HoldDuration = 3  -- 3 secondes
-        proximityPrompt.MaxActivationDistance = 15  -- 15 studs
+        proximityPrompt.HoldDuration = 3
+        proximityPrompt.MaxActivationDistance = 15
         proximityPrompt.RequiresLineOfSight = false
         proximityPrompt.KeyboardKeyCode = Enum.KeyCode.E
         proximityPrompt.Parent = primaryPart
 
-        -- Stocker les infos du propriétaire dans des Attributes
         proximityPrompt:SetAttribute("OwnerId", player.UserId)
         proximityPrompt:SetAttribute("SlotId", slotIndex)
 
         print(string.format("[BrainrotModelSystem] ProximityPrompt ajouté au Brainrot de %d (slot %d)", player.UserId, slotIndex))
     end
 
-    -- 6. Parent le modèle au slot
+    -- 9. Parent le modèle au slot
     model.Parent = slot
-    
-    -- 7. Stocker la référence
+
+    -- 10. Stocker la référence
     if not self._models[player.UserId] then
         self._models[player.UserId] = {}
     end
     self._models[player.UserId][slotIndex] = model
-    
-    -- print("[BrainrotModelSystem] Brainrot assemblé: " .. player.Name .. " slot " .. slotIndex)
-    -- print("  Head: " .. brainrotData.HeadSet .. ", Body: " .. brainrotData.BodySet .. ", Legs: " .. brainrotData.LegsSet)
-    
+
     return true
 end
 
@@ -393,17 +422,15 @@ function BrainrotModelSystem:DestroyBrainrotModel(player, slotIndex)
     if not self._models[player.UserId] then
         return false
     end
-    
+
     local model = self._models[player.UserId][slotIndex]
     if not model then
         return false
     end
-    
+
     model:Destroy()
     self._models[player.UserId][slotIndex] = nil
-    
-    -- print("[BrainrotModelSystem] Modèle détruit: " .. player.Name .. " slot " .. slotIndex)
-    
+
     return true
 end
 
@@ -422,22 +449,13 @@ end
 
 --[[
     Applique la visibilité par propriétaire
-    Seul le propriétaire voit son Brainrot
     @param model: Model
     @param ownerUserId: number
 ]]
 function BrainrotModelSystem:_ApplyOwnerVisibility(model, ownerUserId)
-    -- Pour chaque BasePart du modèle, on utilise LocalTransparencyModifier
-    -- Cela rend le modèle invisible pour les autres joueurs
     for _, descendant in ipairs(model:GetDescendants()) do
         if descendant:IsA("BasePart") then
-            -- LocalTransparencyModifier = 1 rend invisible localement
-            -- Le propriétaire verra le modèle normalement
-            -- Les autres joueurs le verront transparent
-            descendant.LocalTransparencyModifier = 0 -- Visible par défaut
-            
-            -- Note: La vraie logique de visibilité sera gérée côté client
-            -- en filtrant les modèles par OwnerUserId
+            descendant.LocalTransparencyModifier = 0
         end
     end
 end
