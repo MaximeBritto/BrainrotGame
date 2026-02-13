@@ -24,6 +24,7 @@ local DoorController = require(script.Parent:WaitForChild("DoorController.module
 local EconomyController = require(script.Parent:WaitForChild("EconomyController.module"))
 local ArenaController = require(script.Parent:WaitForChild("ArenaController.module"))
 local CodexController = require(script.Parent:WaitForChild("CodexController.module"))
+local PreviewBrainrotController = require(script.Parent:WaitForChild("PreviewBrainrotController.module"))
 
 -- Son (optionnel : si Assets/Sounds n'existe pas, pas d'erreur)
 local SoundHelper = nil
@@ -39,6 +40,9 @@ local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 
 -- Phase 6 : CodexController (CodexUI, SyncCodex, bouton Fermer)
 CodexController:Init()
+
+-- Preview Brainrot 3D (modèle qui suit le joueur)
+PreviewBrainrotController:Init()
 
 -- ═══════════════════════════════════════════════════════
 -- CONNEXION AUX REMOTES (Serveur → Client)
@@ -69,6 +73,8 @@ local syncInventory = Remotes:WaitForChild("SyncInventory")
 syncInventory.OnClientEvent:Connect(function(pieces)
     -- print("[ClientMain] SyncInventory received (" .. #pieces .. " pieces)")
     UIController:UpdateInventory(pieces)
+    -- Mettre à jour le preview 3D du brainrot qui suit le joueur
+    PreviewBrainrotController:UpdatePreview(pieces)
 end)
 
 -- Notification: Reçoit les notifications à afficher
@@ -224,6 +230,10 @@ task.spawn(function()
     if fullData then
         -- print("[ClientMain] Data received, updating UI")
         UIController:UpdateAll(fullData)
+        -- Mettre à jour le preview avec les pièces initiales (si le joueur en avait)
+        if fullData.PiecesInHand then
+            PreviewBrainrotController:UpdatePreview(fullData.PiecesInHand)
+        end
     else
         warn("[ClientMain] No data received from server")
     end

@@ -400,10 +400,17 @@ function BrainrotModelSystem:CreateBrainrotModel(player, slotIndex, brainrotData
         print(string.format("[BrainrotModelSystem] ProximityPrompt ajouté au Brainrot de %d (slot %d)", player.UserId, slotIndex))
     end
 
-    -- 9. Parent le modèle au slot
+    -- 9. Désactiver les collisions pour permettre de passer à travers
+    for _, part in ipairs(model:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.CanCollide = false
+        end
+    end
+
+    -- 10. Parent le modèle au slot
     model.Parent = slot
 
-    -- 10. Stocker la référence
+    -- 11. Stocker la référence
     if not self._models[player.UserId] then
         self._models[player.UserId] = {}
     end
