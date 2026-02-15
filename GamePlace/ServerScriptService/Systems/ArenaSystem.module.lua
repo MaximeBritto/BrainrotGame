@@ -101,6 +101,90 @@ function ArenaSystem:Init(services)
 end
 
 --[[
+    Ajoute un Highlight coloré à une pièce selon son type
+    @param piece: Model
+    @param pieceType: string
+]]
+function ArenaSystem:_AddHighlightToPiece(piece, pieceType)
+    local primaryPart = piece.PrimaryPart
+    if not primaryPart then return end
+    
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "PieceHighlight"
+    
+    local textLabel = ""
+    local textColor = Color3.new(1, 1, 1)
+    
+    -- Couleurs selon le type de pièce
+    if pieceType == Constants.PieceType.Head then
+        -- Rouge pour Head
+        highlight.FillColor = Color3.fromRGB(255, 0, 0)
+        highlight.OutlineColor = Color3.fromRGB(255, 100, 100)
+        textLabel = "HEAD"
+        textColor = Color3.fromRGB(255, 0, 0)
+    elseif pieceType == Constants.PieceType.Body then
+        -- Vert pour Body
+        highlight.FillColor = Color3.fromRGB(0, 255, 0)
+        highlight.OutlineColor = Color3.fromRGB(100, 255, 100)
+        textLabel = "BODY"
+        textColor = Color3.fromRGB(0, 255, 0)
+    elseif pieceType == Constants.PieceType.Legs then
+        -- Bleu-Violet pour Legs
+        highlight.FillColor = Color3.fromRGB(138, 43, 226)
+        highlight.OutlineColor = Color3.fromRGB(180, 100, 255)
+        textLabel = "LEGS"
+        textColor = Color3.fromRGB(138, 43, 226)
+    end
+    
+    -- Seulement le contour, pas de remplissage
+    highlight.FillTransparency = 1
+    highlight.OutlineTransparency = 0
+    highlight.Enabled = false -- Désactivé par défaut, activé par le client selon la distance
+    highlight.Adornee = piece
+    highlight.Parent = piece
+    
+    -- Trouver le BillboardGui existant avec le nom/prix et ajouter le TypeLabel dedans
+    local existingBillboard = primaryPart:FindFirstChildOfClass("BillboardGui")
+    
+    if existingBillboard then
+        -- Augmenter la taille du BillboardGui pour faire de la place pour le TypeLabel
+        local originalSize = existingBillboard.Size
+        existingBillboard.Size = UDim2.new(originalSize.X.Scale, originalSize.X.Offset, 
+                                           originalSize.Y.Scale, originalSize.Y.Offset + 40)
+        
+        -- Décaler le StudsOffset pour compenser l'agrandissement
+        local originalOffset = existingBillboard.StudsOffset
+        existingBillboard.StudsOffset = Vector3.new(originalOffset.X, originalOffset.Y + 0.5, originalOffset.Z)
+        
+        -- Ajouter le TypeLabel en haut du BillboardGui
+        local typeLabel = Instance.new("TextLabel")
+        typeLabel.Name = "TypeLabel"
+        typeLabel.Size = UDim2.new(1, 0, 0, 35) -- 35 pixels de hauteur
+        typeLabel.Position = UDim2.new(0, 0, 0, 0) -- Tout en haut
+        typeLabel.BackgroundTransparency = 1
+        typeLabel.Text = textLabel
+        typeLabel.TextColor3 = textColor
+        typeLabel.TextScaled = true
+        typeLabel.Font = Enum.Font.Bangers
+        typeLabel.TextStrokeTransparency = 0.5
+        typeLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+        typeLabel.Visible = false -- Désactivé par défaut
+        typeLabel.Parent = existingBillboard
+        
+        -- Décaler les autres labels vers le bas
+        local nameLabel = existingBillboard:FindFirstChild("NameLabel")
+        if nameLabel and nameLabel:IsA("TextLabel") then
+            nameLabel.Position = UDim2.new(0, 0, 0, 35)
+        end
+        
+        local priceLabel = existingBillboard:FindFirstChild("PriceLabel")
+        if priceLabel and priceLabel:IsA("TextLabel") then
+            priceLabel.Position = UDim2.new(0, 0, 0.5, 35)
+        end
+    end
+end
+
+--[[
     Choisit un set et un type de pièce selon les SpawnWeight
     @return setName: string, pieceType: string, pieceInfo: table
 ]]
@@ -276,6 +360,9 @@ function ArenaSystem:SpawnRandomPiece()
     
     -- print("[ArenaSystem] PickupZone et ProximityPrompt créés pour:", pieceId)
     
+    -- Ajouter le Highlight coloré selon le type de pièce
+    self:_AddHighlightToPiece(piece, pieceType)
+    
     -- Parent et stockage
     piece.Parent = self._piecesFolder
     self._pieces[pieceId] = {
@@ -376,6 +463,9 @@ function ArenaSystem:_SpawnSpecificPiece(setName, pieceType, pieceInfo, template
     prompt.Parent = pickupZone
     
     -- print("[ArenaSystem] PickupZone et ProximityPrompt créés pour:", pieceId)
+    
+    -- Ajouter le Highlight coloré selon le type de pièce
+    self:_AddHighlightToPiece(piece, pieceType)
     
     -- Parent et stockage
     piece.Parent = self._piecesFolder

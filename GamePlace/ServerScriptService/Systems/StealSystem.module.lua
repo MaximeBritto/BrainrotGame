@@ -276,6 +276,22 @@ function StealSystem:_AttachBrainrotToHand(player, carriedData)
 
 	model.Name = "CarriedBrainrot"
 
+	-- Identifier les parties (head, body, legs)
+	local headPart = nil
+	local bodyPart = model.PrimaryPart
+	local legsPart = nil
+
+	for _, part in ipairs(model:GetChildren()) do
+		if part:IsA("BasePart") then
+			if part:FindFirstChild("TopAttachment") and not part:FindFirstChild("BottomAttachment") then
+				legsPart = part
+			end
+			if part:FindFirstChild("BottomAttachment") and not part:FindFirstChild("TopAttachment") then
+				headPart = part
+			end
+		end
+	end
+
 	-- Réduire la taille (40% de la taille originale)
 	for _, part in ipairs(model:GetDescendants()) do
 		if part:IsA("BasePart") then
@@ -283,6 +299,109 @@ function StealSystem:_AttachBrainrotToHand(player, carriedData)
 			part.CanCollide = false
 			part.Anchored = false
 		end
+	end
+
+	-- Ajouter des Highlights colorés par partie (Head=Rouge, Body=Vert, Legs=Bleu-Violet)
+	if headPart then
+		local headHighlight = Instance.new("Highlight")
+		headHighlight.Name = "HeadHighlight"
+		headHighlight.FillColor = Color3.fromRGB(255, 0, 0) -- Rouge
+		headHighlight.OutlineColor = Color3.fromRGB(255, 100, 100)
+		headHighlight.FillTransparency = 1 -- Seulement le contour
+		headHighlight.OutlineTransparency = 0
+		headHighlight.Enabled = false -- Désactivé par défaut, activé par le client selon la distance
+		headHighlight.Adornee = headPart
+		headHighlight.Parent = headPart
+		
+		-- Label "HEAD"
+		local billboard = Instance.new("BillboardGui")
+		billboard.Name = "TypeLabel"
+		billboard.Size = UDim2.new(0, 60, 0, 20)
+		billboard.StudsOffset = Vector3.new(0, headPart.Size.Y * 0.4 + 2, 0) -- Encore plus haut
+		billboard.AlwaysOnTop = true
+		billboard.Enabled = false -- Désactivé par défaut, activé par le client selon la distance
+		billboard.Adornee = headPart
+		
+		local label = Instance.new("TextLabel")
+		label.Size = UDim2.new(1, 0, 1, 0)
+		label.BackgroundTransparency = 1
+		label.Text = "HEAD"
+		label.TextColor3 = Color3.fromRGB(255, 0, 0)
+		label.TextScaled = true
+		label.Font = Enum.Font.Bangers
+		label.TextStrokeTransparency = 0.5
+		label.TextStrokeColor3 = Color3.new(0, 0, 0)
+		label.Parent = billboard
+		
+		billboard.Parent = headPart
+	end
+
+	if bodyPart then
+		local bodyHighlight = Instance.new("Highlight")
+		bodyHighlight.Name = "BodyHighlight"
+		bodyHighlight.FillColor = Color3.fromRGB(0, 255, 0) -- Vert
+		bodyHighlight.OutlineColor = Color3.fromRGB(100, 255, 100)
+		bodyHighlight.FillTransparency = 1 -- Seulement le contour
+		bodyHighlight.OutlineTransparency = 0
+		bodyHighlight.Enabled = false -- Désactivé par défaut, activé par le client selon la distance
+		bodyHighlight.Adornee = bodyPart
+		bodyHighlight.Parent = bodyPart
+		
+		-- Label "BODY"
+		local billboard = Instance.new("BillboardGui")
+		billboard.Name = "TypeLabel"
+		billboard.Size = UDim2.new(0, 60, 0, 20)
+		billboard.StudsOffset = Vector3.new(0, bodyPart.Size.Y * 0.4 + 2, 0) -- Encore plus haut
+		billboard.AlwaysOnTop = true
+		billboard.Enabled = false -- Désactivé par défaut, activé par le client selon la distance
+		billboard.Adornee = bodyPart
+		
+		local label = Instance.new("TextLabel")
+		label.Size = UDim2.new(1, 0, 1, 0)
+		label.BackgroundTransparency = 1
+		label.Text = "BODY"
+		label.TextColor3 = Color3.fromRGB(0, 255, 0)
+		label.TextScaled = true
+		label.Font = Enum.Font.Bangers
+		label.TextStrokeTransparency = 0.5
+		label.TextStrokeColor3 = Color3.new(0, 0, 0)
+		label.Parent = billboard
+		
+		billboard.Parent = bodyPart
+	end
+
+	if legsPart then
+		local legsHighlight = Instance.new("Highlight")
+		legsHighlight.Name = "LegsHighlight"
+		legsHighlight.FillColor = Color3.fromRGB(138, 43, 226) -- Bleu-Violet
+		legsHighlight.OutlineColor = Color3.fromRGB(180, 100, 255)
+		legsHighlight.FillTransparency = 1 -- Seulement le contour
+		legsHighlight.OutlineTransparency = 0
+		legsHighlight.Enabled = false -- Désactivé par défaut, activé par le client selon la distance
+		legsHighlight.Adornee = legsPart
+		legsHighlight.Parent = legsPart
+		
+		-- Label "LEGS"
+		local billboard = Instance.new("BillboardGui")
+		billboard.Name = "TypeLabel"
+		billboard.Size = UDim2.new(0, 60, 0, 20)
+		billboard.StudsOffset = Vector3.new(0, legsPart.Size.Y * 0.4 + 2, 0) -- Encore plus haut
+		billboard.AlwaysOnTop = true
+		billboard.Enabled = false -- Désactivé par défaut, activé par le client selon la distance
+		billboard.Adornee = legsPart
+		
+		local label = Instance.new("TextLabel")
+		label.Size = UDim2.new(1, 0, 1, 0)
+		label.BackgroundTransparency = 1
+		label.Text = "LEGS"
+		label.TextColor3 = Color3.fromRGB(138, 43, 226)
+		label.TextScaled = true
+		label.Font = Enum.Font.Bangers
+		label.TextStrokeTransparency = 0.5
+		label.TextStrokeColor3 = Color3.new(0, 0, 0)
+		label.Parent = billboard
+		
+		billboard.Parent = legsPart
 	end
 
 	-- PrimaryPart (bodyPart)
