@@ -25,6 +25,7 @@ local EconomyController = require(script.Parent:WaitForChild("EconomyController.
 local ArenaController = require(script.Parent:WaitForChild("ArenaController.module"))
 local CodexController = require(script.Parent:WaitForChild("CodexController.module"))
 local PreviewBrainrotController = require(script.Parent:WaitForChild("PreviewBrainrotController.module"))
+local ShopController = require(script.Parent:WaitForChild("ShopController.module"))
 
 -- Son (optionnel : si Assets/Sounds n'existe pas, pas d'erreur)
 local SoundHelper = nil
@@ -151,6 +152,44 @@ if mainHUD then
 end
 
 -- ═══════════════════════════════════════════════════════
+-- BOUTON SHOP (Phase 9) – Bouton pour ouvrir le Shop Robux
+-- ═══════════════════════════════════════════════════════
+
+if mainHUD then
+    -- Créer le bouton SHOP carré à gauche de l'écran
+    local shopButton = Instance.new("TextButton")
+    shopButton.Name = "ShopButton"
+    shopButton.Size = UDim2.new(0, 83, 0, 84)
+    shopButton.Position = UDim2.new(0.008, 0, 0.52, 0)
+    shopButton.AnchorPoint = Vector2.new(0, 0)
+    shopButton.BackgroundColor3 = Color3.fromRGB(30, 120, 30)
+    shopButton.BorderSizePixel = 0
+    shopButton.Text = "SHOP"
+    shopButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    shopButton.TextSize = 14
+    shopButton.Font = Enum.Font.GothamBold
+    shopButton.Parent = mainHUD
+
+    local shopBtnCorner = Instance.new("UICorner")
+    shopBtnCorner.CornerRadius = UDim.new(0, 8)
+    shopBtnCorner.Parent = shopButton
+
+    shopButton.MouseButton1Click:Connect(function()
+        ShopController:Toggle()
+    end)
+
+    -- Hover effect
+    shopButton.MouseEnter:Connect(function()
+        shopButton.BackgroundColor3 = Color3.fromRGB(40, 150, 40)
+    end)
+    shopButton.MouseLeave:Connect(function()
+        shopButton.BackgroundColor3 = Color3.fromRGB(30, 120, 30)
+    end)
+
+    -- print("[ClientMain] Shop button créé")
+end
+
+-- ═══════════════════════════════════════════════════════
 -- FONCTIONS PUBLIQUES (pour les autres contrôleurs)
 -- ═══════════════════════════════════════════════════════
 
@@ -251,6 +290,9 @@ EconomyController:Init(UIController)
 
 -- Initialiser ArenaController (Phase 4)
 ArenaController:Init()
+
+-- Initialiser ShopController (Phase 9)
+ShopController:Init()
 
 -- ═══════════════════════════════════════════════════════
 -- PROXIMITÉ SHOP ET COLLECTPADS (Phase 3)

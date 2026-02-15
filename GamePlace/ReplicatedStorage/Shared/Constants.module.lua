@@ -65,6 +65,7 @@ local Constants = {
         StealBrainrot = "StealBrainrot",            -- Phase 8: Vol de Brainrot (simplifié)
         PlaceStolenBrainrot = "PlaceStolenBrainrot", -- Phase 8: Placer brainrot volé sur un slot
         BatHit = "BatHit",                          -- Phase 8: Coup de batte
+        RequestShopPurchase = "RequestShopPurchase",   -- Phase 9: Achat shop Robux
 
         -- Serveur → Client
         SyncPlayerData = "SyncPlayerData",

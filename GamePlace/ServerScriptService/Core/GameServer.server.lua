@@ -154,6 +154,19 @@ do
     end
 end
 
+-- Phase 9: Shop Robux
+local ShopSystem, shopLoadErr
+do
+    local ok, mod = pcall(function()
+        return require(Systems["ShopSystem.module"])
+    end)
+    if ok then
+        ShopSystem = mod
+    else
+        shopLoadErr = mod
+    end
+end
+
 -- ═══════════════════════════════════════════════════════
 -- INITIALISATION
 -- ═══════════════════════════════════════════════════════
@@ -464,8 +477,24 @@ else
     end
 end
 
--- 13. Autres systèmes (Phase 9+)
--- ...
+-- 13. ShopSystem (Phase 9)
+if ShopSystem and EconomySystem then
+    ShopSystem:Init({
+        EconomySystem = EconomySystem,
+        NetworkSetup = NetworkSetup,
+        DataService = DataService,
+    })
+    -- print("[GameServer] ShopSystem: OK")
+
+    NetworkHandler:UpdateSystems({ShopSystem = ShopSystem})
+else
+    if not ShopSystem then
+        warn("[GameServer] ShopSystem non chargé:", shopLoadErr or "inconnu")
+    end
+    if not EconomySystem then
+        warn("[GameServer] ShopSystem nécessite EconomySystem!")
+    end
+end
 
 -- ═══════════════════════════════════════════════════════
 -- SAUVEGARDE À LA FERMETURE DU SERVEUR

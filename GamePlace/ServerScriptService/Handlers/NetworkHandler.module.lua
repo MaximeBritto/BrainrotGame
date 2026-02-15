@@ -42,6 +42,9 @@ local PlacementSystem = nil
 local StealSystem = nil
 local BatSystem = nil
 
+-- Systèmes (Phase 9)
+local ShopSystem = nil
+
 local NetworkHandler = {}
 NetworkHandler._initialized = false
 
@@ -78,6 +81,9 @@ function NetworkHandler:Init(services)
     -- Récupérer les systèmes (Phase 8)
     StealSystem = services.StealSystem
     BatSystem = services.BatSystem
+
+    -- Récupérer les systèmes (Phase 9)
+    ShopSystem = services.ShopSystem
 
     -- Connecter les handlers
     self:_ConnectHandlers()
@@ -196,6 +202,28 @@ function NetworkHandler:_ConnectHandlers()
                     BatSystem:HandleBatHit(player, victimId)
                 end
             end)
+        end)
+    end
+
+    -- Achat Shop Robux (Phase 9)
+    if remotes.RequestShopPurchase then
+        remotes.RequestShopPurchase.OnServerEvent:Connect(function(player, categoryId, productIndex)
+            -- Convertir productIndex en nombre si nécessaire
+            if type(productIndex) == "string" then
+                productIndex = tonumber(productIndex)
+            end
+
+            local success, err = pcall(function()
+                if ShopSystem then
+                    ShopSystem:RequestPurchase(player, categoryId, productIndex)
+                else
+                    warn("[NetworkHandler] ShopSystem non initialisé!")
+                end
+            end)
+
+            if not success then
+                warn("[NetworkHandler] Erreur RequestShopPurchase: " .. tostring(err))
+            end
         end)
     end
 
@@ -513,6 +541,9 @@ function NetworkHandler:UpdateSystems(systems)
     end
     if systems.BatSystem then
         BatSystem = systems.BatSystem
+    end
+    if systems.ShopSystem then
+        ShopSystem = systems.ShopSystem
     end
 
     print("[NetworkHandler] Systèmes mis à jour")
