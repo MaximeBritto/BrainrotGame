@@ -39,6 +39,11 @@ end
 center.Anchored = true
 bar.Anchored = false
 
+-- Désactiver les collisions pour éviter l'effet "batte de baseball"
+-- La détection de mort fonctionne toujours via Touched
+bar.CanCollide = false
+center.CanCollide = false
+
 -- Créer un WeldConstraint pour attacher la barre au centre
 local weld = Instance.new("WeldConstraint")
 weld.Part0 = center
