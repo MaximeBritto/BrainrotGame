@@ -338,6 +338,8 @@ if ArenaSystem and InventorySystem then
     })
     -- print("[GameServer] InventorySystem: OK")
     
+    PlayerService.ArenaSystem = ArenaSystem
+
     NetworkHandler:UpdateSystems({
         ArenaSystem = ArenaSystem,
         InventorySystem = InventorySystem,

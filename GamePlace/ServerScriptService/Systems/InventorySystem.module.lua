@@ -85,22 +85,22 @@ end
     Tente de ramasser une pièce (4 validations)
     @param player: Player
     @param pieceId: string
-    @return success: boolean, result: string (ActionResult), pieceData: table | nil
+    @return success: boolean, result: string (ActionResult), pieceData: table | nil, replacedPieceData: table | nil
 ]]
 function InventorySystem:TryPickupPiece(player, pieceId)
     if not self._initialized then
-        return false, Constants.ActionResult.InvalidPiece, nil
+        return false, Constants.ActionResult.InvalidPiece, nil, nil
     end
 
     -- VALIDATION 0: Impossible de ramasser des pièces en portant un brainrot volé
     if PlayerService.IsCarryingBrainrot and PlayerService:IsCarryingBrainrot(player) then
-        return false, Constants.ActionResult.InventoryFull, nil
+        return false, Constants.ActionResult.InventoryFull, nil, nil
     end
 
     -- VALIDATION 1: La pièce existe dans l'arène
     local piece = ArenaSystem:GetPieceById(pieceId)
     if not piece then
-        return false, Constants.ActionResult.InvalidPiece, nil
+        return false, Constants.ActionResult.InvalidPiece, nil, nil
     end
     
     -- VALIDATION 2: Vérifier l'inventaire
@@ -109,11 +109,18 @@ function InventorySystem:TryPickupPiece(player, pieceId)
     -- Si on a déjà une pièce du même type (Head/Body/Legs), la remplacer
     local pieceTypeToPickup = piece:GetAttribute("PieceType")
     local replacedExisting = false
+    local replacedPieceData = nil
     
     if pieceTypeToPickup then
         for i, existingPiece in ipairs(currentPieces) do
             if existingPiece.PieceType == pieceTypeToPickup then
-                -- Retirer l'ancienne pièce du même type
+                -- Sauvegarder les données de l'ancienne pièce avant de la retirer
+                replacedPieceData = {
+                    SetName = existingPiece.SetName,
+                    PieceType = existingPiece.PieceType,
+                    Price = existingPiece.Price,
+                    DisplayName = existingPiece.DisplayName,
+                }
                 table.remove(currentPieces, i)
                 replacedExisting = true
                 break
@@ -123,7 +130,7 @@ function InventorySystem:TryPickupPiece(player, pieceId)
     
     -- Si pas de remplacement et inventaire plein, refuser
     if not replacedExisting and #currentPieces >= GameConfig.Inventory.MaxPiecesInHand then
-        return false, Constants.ActionResult.InventoryFull, nil
+        return false, Constants.ActionResult.InventoryFull, nil, nil
     end
     
     -- VALIDATION 3: La pièce a tous les attributs requis
@@ -134,13 +141,13 @@ function InventorySystem:TryPickupPiece(player, pieceId)
     
     if not setName or not pieceType or not price or not displayName then
         warn("[InventorySystem] Pièce avec attributs manquants: " .. pieceId)
-        return false, Constants.ActionResult.InvalidPiece, nil
+        return false, Constants.ActionResult.InvalidPiece, nil, nil
     end
     
     -- VALIDATION 4: La pièce est bien dans ActivePieces (vérification parent)
     local piecesFolder = piece.Parent
     if not piecesFolder or piecesFolder.Name ~= Constants.WorkspaceNames.PiecesFolder then
-        return false, Constants.ActionResult.InvalidPiece, nil
+        return false, Constants.ActionResult.InvalidPiece, nil, nil
     end
     
     -- Toutes les validations passées - Construire les données de la pièce
@@ -155,15 +162,19 @@ function InventorySystem:TryPickupPiece(player, pieceId)
     local added = self:AddPiece(player, pieceData)
     if not added then
         warn("[InventorySystem] Échec ajout pièce à l'inventaire: " .. player.Name)
-        return false, Constants.ActionResult.InvalidPiece, nil
+        return false, Constants.ActionResult.InvalidPiece, nil, nil
     end
     
     -- Retirer la pièce de l'arène
     ArenaSystem:RemovePiece(piece)
     
-    print("[InventorySystem] " .. player.Name .. " a ramassé: " .. displayName .. " " .. pieceType)
+    if replacedPieceData then
+        print("[InventorySystem] " .. player.Name .. " a remplacé " .. replacedPieceData.DisplayName .. " par " .. displayName .. " " .. pieceType)
+    else
+        print("[InventorySystem] " .. player.Name .. " a ramassé: " .. displayName .. " " .. pieceType)
+    end
     
-    return true, Constants.ActionResult.Success, pieceData
+    return true, Constants.ActionResult.Success, pieceData, replacedPieceData
 end
 
 return InventorySystem

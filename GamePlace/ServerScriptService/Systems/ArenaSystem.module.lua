@@ -1072,4 +1072,60 @@ function ArenaSystem:RemovePiece(piece)
     -- print("[ArenaSystem] Pièce supprimée: " .. (pieceId or "unknown"))
 end
 
+--[[
+    Spawn une pièce dans l'arène à partir de pieceData (utilisé quand un joueur remplace une pièce).
+    La pièce apparaît légèrement au-dessus de la position donnée et tombe naturellement.
+    @param pieceData: table - {SetName, PieceType, Price, DisplayName}
+    @param position: Vector3 - Position où faire tomber la pièce
+    @return Model | nil
+]]
+function ArenaSystem:SpawnPieceFromData(pieceData, position)
+    if not self._initialized then return nil end
+
+    local setName = pieceData.SetName
+    local pieceType = pieceData.PieceType
+
+    -- Récupérer les infos du set depuis BrainrotData
+    local setData = BrainrotData.Sets[setName]
+    if not setData or not setData[pieceType] then
+        warn("[ArenaSystem] Set ou PieceType introuvable: " .. tostring(setName) .. " " .. tostring(pieceType))
+        return nil
+    end
+
+    local pieceInfo = setData[pieceType]
+    local templateName = pieceInfo.TemplateName
+    if not templateName or templateName == "" then
+        warn("[ArenaSystem] TemplateName vide pour: " .. setName .. " " .. pieceType)
+        return nil
+    end
+
+    -- Choisir le bon template folder
+    local templateFolder
+    if pieceType == Constants.PieceType.Head then
+        templateFolder = self._headTemplates
+    elseif pieceType == Constants.PieceType.Body then
+        templateFolder = self._bodyTemplates
+    elseif pieceType == Constants.PieceType.Legs then
+        templateFolder = self._legsTemplates
+    end
+
+    if not templateFolder then return nil end
+
+    local template = templateFolder:FindFirstChild(templateName)
+    if not template then
+        warn("[ArenaSystem] Template introuvable pour drop: " .. templateName)
+        return nil
+    end
+
+    -- Spawn légèrement au-dessus pour que la pièce tombe
+    local dropPosition = position + Vector3.new(0, 5, 0)
+
+    local piece = self:_SpawnSpecificPiece(setName, pieceType, pieceInfo, templateName, template, dropPosition)
+    if piece then
+        print("[ArenaSystem] Pièce droppée: " .. setName .. " " .. pieceType .. " à " .. tostring(position))
+    end
+
+    return piece
+end
+
 return ArenaSystem

@@ -258,18 +258,39 @@ function PlayerService:OnPlayerDied(player)
     if runtimeData then
         local remotes = NetworkSetup:GetAllRemotes()
 
-        -- Vider les pièces en main (elles sont perdues)
-        local lostPieces = #runtimeData.PiecesInHand
+        -- Récupérer la position du personnage au moment de la mort
+        local deathPosition = nil
+        local character = player.Character
+        if character then
+            local rootPart = character:FindFirstChild("HumanoidRootPart")
+            if rootPart then
+                deathPosition = rootPart.Position
+            end
+        end
+
+        -- Dropper les pièces en main sur le sol (au lieu de les perdre)
+        local droppedPieces = runtimeData.PiecesInHand
+        local droppedCount = #droppedPieces
         runtimeData.PiecesInHand = {}
 
-        if lostPieces > 0 then
+        if droppedCount > 0 then
+            -- Spawner chaque pièce près de l'endroit où le joueur est mort
+            if deathPosition and self.ArenaSystem then
+                for i, pieceData in ipairs(droppedPieces) do
+                    -- Décaler légèrement chaque pièce pour ne pas les empiler
+                    local angle = (i - 1) * (2 * math.pi / droppedCount)
+                    local offset = Vector3.new(math.cos(angle) * 3, 0, math.sin(angle) * 3)
+                    self.ArenaSystem:SpawnPieceFromData(pieceData, deathPosition + offset)
+                end
+            end
+
             if remotes.SyncInventory then
                 remotes.SyncInventory:FireClient(player, {})
             end
             if remotes.Notification then
                 remotes.Notification:FireClient(player, {
                     Type = "Warning",
-                    Message = "You died! " .. lostPieces .. " piece(s) lost.",
+                    Message = "You died! " .. droppedCount .. " piece(s) dropped.",
                     Duration = 3,
                 })
             end

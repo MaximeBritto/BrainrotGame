@@ -96,12 +96,15 @@ function PreviewBrainrotController:UpdatePreview(pieces)
         return
     end
 
-    -- Configurer le modèle (Anchored = false pour que PivotTo puisse déplacer tout le modèle)
+    -- Configurer le modèle (CanCollide = false, transparent pour montrer que c'est un preview)
+    -- Le PrimaryPart reste Anchored (stabilisé par _AssemblePreview), les autres parts suivent via welds
     model.Name = "BrainrotPreview"
     for _, part in ipairs(model:GetDescendants()) do
         if part:IsA("BasePart") then
             part.CanCollide = false
-            part.Anchored = false
+            if part ~= model.PrimaryPart then
+                part.Anchored = false
+            end
             -- Légèrement transparent pour bien montrer que c'est un preview
             part.Transparency = math.max(part.Transparency, 0.25)
         end
@@ -280,7 +283,7 @@ function PreviewBrainrotController:_AssemblePreview(pieces)
     -- Orientation strictement verticale pour éviter toute inclinaison (pitch/roll).
     local uprightCFrame = CFrame.new()
 
-    -- Aucune part ne doit être Anchored : PivotTo déplace tout le modèle
+    -- Le PrimaryPart sera ancré en section 8b ; les autres parts suivent via WeldConstraint + PivotTo
     if legsPart then
         legsPart.CFrame = CFrame.new(0, legsPart.Size.Y / 2, 0) * uprightCFrame
 
@@ -327,7 +330,15 @@ function PreviewBrainrotController:_AssemblePreview(pieces)
                 headWeld.Parent = headPart
             end
         elseif legsPart then
-            headPart.CFrame = legsPart.CFrame * CFrame.new(0, legsPart.Size.Y / 2 + 0.5 + headPart.Size.Y / 2, 0)
+            -- Même logique que Head-Body : utiliser les Attachments pour imbriquer correctement
+            -- Head.BottomAttachment → Legs.TopAttachment (où le body se serait connecté)
+            local headBottomAtt = headPart:FindFirstChild("BottomAttachment")
+            local legsTopAtt = legsPart:FindFirstChild("TopAttachment")
+            if headBottomAtt and legsTopAtt then
+                headPart.CFrame = legsPart.CFrame * legsTopAtt.CFrame * headBottomAtt.CFrame:Inverse()
+            else
+                headPart.CFrame = legsPart.CFrame * CFrame.new(0, legsPart.Size.Y / 2 + 0.5 + headPart.Size.Y / 2, 0)
+            end
             local headWeld = Instance.new("WeldConstraint")
             headWeld.Part0 = legsPart
             headWeld.Part1 = headPart
@@ -346,22 +357,27 @@ function PreviewBrainrotController:_AssemblePreview(pieces)
         return nil
     end
 
-    -- 9. Centrer le modèle sur son centre de masse pour rotation type "toupie" (axe vertical au centre)
+    -- 8b. Ancrer le PrimaryPart pour stabiliser l'assemblage (PivotTo fonctionne avec Anchored)
+    model.PrimaryPart.Anchored = true
+
+    -- 9. Centrer la rotation du modèle sur son centre de masse via WorldPivot
+    -- IMPORTANT: On NE déplace PAS les parts individuellement car CFrame * CFrame.new(offset)
+    -- applique le décalage en espace LOCAL de chaque part. Si les parts ont des rotations
+    -- différentes (via Attachments), elles seraient projetées dans des directions différentes,
+    -- faisant "disparaître" certaines pièces (ex: la tête part en Z au lieu de Y).
+    -- À la place, on définit le WorldPivot au centroïde : PivotTo tournera alors
+    -- le modèle autour de son centre visuel sans casser les positions relatives.
     local centroid = Vector3.new(0, 0, 0)
-    local partCount = 0
+    local centroidPartCount = 0
     for _, part in ipairs(model:GetDescendants()) do
         if part:IsA("BasePart") then
             centroid = centroid + part.Position
-            partCount = partCount + 1
+            centroidPartCount = centroidPartCount + 1
         end
     end
-    if partCount > 0 then
-        centroid = centroid / partCount
-        for _, part in ipairs(model:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CFrame = part.CFrame * CFrame.new(-centroid)
-            end
-        end
+    if centroidPartCount > 0 then
+        centroid = centroid / centroidPartCount
+        model.WorldPivot = CFrame.new(centroid)
     end
 
     if DEBUG_PREVIEW then

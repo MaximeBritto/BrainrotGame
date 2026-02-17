@@ -253,10 +253,22 @@ function NetworkHandler:_HandlePickupPiece(player, pieceId)
         return
     end
     
-    -- Tenter de ramasser la pièce (4 validations)
-    local success, result, pieceData = InventorySystem:TryPickupPiece(player, pieceId)
+    -- Tenter de ramasser la pièce (4 validations + info pièce remplacée)
+    local success, result, pieceData, replacedPieceData = InventorySystem:TryPickupPiece(player, pieceId)
     
     if success then
+        -- Si une pièce a été remplacée, la respawner près du joueur
+        if replacedPieceData and ArenaSystem then
+            local character = player.Character
+            if character then
+                local rootPart = character:FindFirstChild("HumanoidRootPart")
+                if rootPart then
+                    local dropPos = rootPart.Position + rootPart.CFrame.LookVector * -3
+                    ArenaSystem:SpawnPieceFromData(replacedPieceData, dropPos)
+                end
+            end
+        end
+
         -- Sync l'inventaire avec le client
         self:SyncInventory(player)
         
@@ -268,7 +280,11 @@ function NetworkHandler:_HandlePickupPiece(player, pieceId)
         -- Notification de succès
         local message = Constants.SuccessMessages.PiecePickedUp
         if pieceData then
-            message = pieceData.DisplayName .. " " .. pieceData.PieceType .. " picked up!"
+            if replacedPieceData then
+                message = pieceData.DisplayName .. " " .. pieceData.PieceType .. " picked up! (" .. replacedPieceData.DisplayName .. " dropped)"
+            else
+                message = pieceData.DisplayName .. " " .. pieceData.PieceType .. " picked up!"
+            end
         end
         self:_SendNotification(player, "Success", message, 2)
     else
