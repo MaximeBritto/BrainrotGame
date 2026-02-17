@@ -336,7 +336,8 @@ function BrainrotModelSystem:CreateBrainrotModel(player, slotIndex, brainrotData
     billboard.Name = "BrainrotInfo"
     billboard.Size = UDim2.new(0, 200, 0, 100)
     billboard.StudsOffset = Vector3.new(0, adornPart.Size.Y + 2, 0)
-    billboard.AlwaysOnTop = true
+    billboard.AlwaysOnTop = false  -- Ne traverse plus les murs
+    billboard.MaxDistance = 50      -- Visible seulement à 50 studs max
     billboard.Adornee = adornPart
 
     local nameLabel = Instance.new("TextLabel")
