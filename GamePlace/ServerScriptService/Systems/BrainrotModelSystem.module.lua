@@ -232,6 +232,15 @@ end
     @return boolean - true si succès
 ]]
 function BrainrotModelSystem:CreateBrainrotModel(player, slotIndex, brainrotData)
+    -- 0. Détruire l'ancien modèle s'il existe (évite les doublons au respawn)
+    if self._models[player.UserId] and self._models[player.UserId][slotIndex] then
+        local oldModel = self._models[player.UserId][slotIndex]
+        if oldModel and oldModel.Parent then
+            oldModel:Destroy()
+        end
+        self._models[player.UserId][slotIndex] = nil
+    end
+
     -- 1. Récupérer la base du joueur
     local base = BaseSystem:GetPlayerBase(player)
     if not base then

@@ -103,9 +103,26 @@ function InventorySystem:TryPickupPiece(player, pieceId)
         return false, Constants.ActionResult.InvalidPiece, nil
     end
     
-    -- VALIDATION 2: L'inventaire n'est pas plein
+    -- VALIDATION 2: Vérifier l'inventaire
     local currentPieces = self:GetPiecesInHand(player)
-    if #currentPieces >= GameConfig.Inventory.MaxPiecesInHand then
+    
+    -- Si on a déjà une pièce du même type (Head/Body/Legs), la remplacer
+    local pieceTypeToPickup = piece:GetAttribute("PieceType")
+    local replacedExisting = false
+    
+    if pieceTypeToPickup then
+        for i, existingPiece in ipairs(currentPieces) do
+            if existingPiece.PieceType == pieceTypeToPickup then
+                -- Retirer l'ancienne pièce du même type
+                table.remove(currentPieces, i)
+                replacedExisting = true
+                break
+            end
+        end
+    end
+    
+    -- Si pas de remplacement et inventaire plein, refuser
+    if not replacedExisting and #currentPieces >= GameConfig.Inventory.MaxPiecesInHand then
         return false, Constants.ActionResult.InventoryFull, nil
     end
     

@@ -50,6 +50,20 @@ local GameConfig = {
     },
     
     -- ═══════════════════════════════════════
+    -- CANONS (tir de pièces dans l'arène)
+    -- ═══════════════════════════════════════
+    Cannon = {
+        LaunchAngleMin = 55,                -- Angle de tir minimum (degrés)
+        LaunchAngleMax = 70,                -- Angle de tir maximum (degrés)
+        VelocityMin = 50,                   -- Vitesse minimale du projectile
+        VelocityMax = 200,                  -- Vitesse maximale du projectile
+        ProjectileSize = 3,                 -- Taille du projectile visuel
+        MaxFlightTime = 10,                 -- Temps max de vol avant cleanup (secondes)
+        MuzzleFlashDuration = 0.5,          -- Durée du flash au canon
+        SmokeDuration = 1.0,               -- Durée de la fumée
+    },
+    
+    -- ═══════════════════════════════════════
     -- INVENTAIRE JOUEUR (pièces en main)
     -- ═══════════════════════════════════════
     Inventory = {
