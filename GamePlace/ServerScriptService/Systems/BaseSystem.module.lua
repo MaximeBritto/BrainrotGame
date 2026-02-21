@@ -435,21 +435,38 @@ function BaseSystem:_SetFloorVisible(floor, visible)
         floor.CanCollide = visible
         return
     end
-    
+
     if floor:IsA("Model") or floor:IsA("Folder") then
         for _, desc in ipairs(floor:GetDescendants()) do
-            if desc:IsA("BasePart") then
+            -- Skip parts that belong to a Brainrot model (managed by BrainrotModelSystem)
+            if desc:IsA("BasePart") and not self:_IsInsideBrainrotModel(desc) then
                 desc.Transparency = visible and 0 or 1
                 desc.CanCollide = visible
             end
         end
         return
     end
-    
+
     -- Fallback: un seul enfant Part
     for _, child in ipairs(floor:GetChildren()) do
         self:_SetFloorVisible(child, visible)
     end
+end
+
+--[[
+    Checks if a part is inside a Brainrot model (should not be affected by slot visibility).
+    @param part: BasePart
+    @return boolean
+]]
+function BaseSystem:_IsInsideBrainrotModel(part)
+    local current = part.Parent
+    while current do
+        if current:IsA("Model") and current.Name:match("^Brainrot_") then
+            return true
+        end
+        current = current.Parent
+    end
+    return false
 end
 
 --[[
