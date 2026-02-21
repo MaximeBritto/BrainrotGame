@@ -276,14 +276,51 @@ end
     pour éviter qu'ils flottent dans le vide.
     @param slotCash: table - {[slotIndex] = amount}
 ]]
+function EconomyController:_GetOrCreateBillboard(collectPad)
+    local billboard = collectPad:FindFirstChild("CashBillboard")
+    if billboard then return billboard end
+
+    -- Créer un BillboardGui flottant au-dessus du pad
+    billboard = Instance.new("BillboardGui")
+    billboard.Name = "CashBillboard"
+    billboard.Adornee = collectPad
+    billboard.Size = UDim2.new(4, 0, 1.5, 0)
+    billboard.StudsOffset = Vector3.new(0, 3, 0)
+    billboard.AlwaysOnTop = true
+    billboard.LightInfluence = 0
+    billboard.MaxDistance = 50
+    billboard.Parent = collectPad
+
+    -- Désactiver l'ancien SurfaceGui s'il existe
+    local oldGui = collectPad:FindFirstChild("SurfaceGui")
+    if oldGui then
+        oldGui.Enabled = false
+    end
+
+    -- TextLabel pour le montant
+    local cashLabel = Instance.new("TextLabel")
+    cashLabel.Name = "CashLabel"
+    cashLabel.Size = UDim2.new(1, 0, 1, 0)
+    cashLabel.BackgroundTransparency = 1
+    cashLabel.Font = Enum.Font.GothamBold
+    cashLabel.TextScaled = true
+    cashLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
+    cashLabel.TextStrokeTransparency = 0.3
+    cashLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    cashLabel.Text = "$0"
+    cashLabel.Parent = billboard
+
+    return billboard
+end
+
 function EconomyController:UpdateCollectPads(slotCash)
     currentSlotCash = slotCash or {}
-    
+
     if not playerBase then return end
-    
+
     local slotsFolder = playerBase:FindFirstChild("Slots")
     if not slotsFolder then return end
-    
+
     for _, slot in ipairs(slotsFolder:GetChildren()) do
         if slot:IsA("Model") then
             -- SlotIndex : attribut ou déduit du nom (Slot_1 -> 1)
@@ -294,26 +331,22 @@ function EconomyController:UpdateCollectPads(slotCash)
             if slotIndex then
                 local collectPad = slot:FindFirstChild("CollectPad")
                 if collectPad then
-                    local surfaceGui = collectPad:FindFirstChild("SurfaceGui")
-                    if surfaceGui then
-                        -- Cacher l'affichage des slots des étages non débloqués
-                        local isUnlocked = (slotIndex <= currentOwnedSlots)
-                        surfaceGui.Enabled = isUnlocked
-                        
-                        if isUnlocked then
-                            -- CashLabel peut être direct ou dans CashDisplay (Frame)
-                            local cashLabel = surfaceGui:FindFirstChild("CashLabel")
-                                or (surfaceGui:FindFirstChild("CashDisplay") and surfaceGui.CashDisplay:FindFirstChild("CashLabel"))
-                            if cashLabel then
-                                -- Clés numériques ou string selon la sérialisation Remote
-                                local amount = currentSlotCash[slotIndex] or currentSlotCash[tostring(slotIndex)] or 0
-                                if amount > 0 then
-                                    cashLabel.Text = "$" .. self:FormatNumber(amount)
-                                    cashLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
-                                else
-                                    cashLabel.Text = "$0"
-                                    cashLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-                                end
+                    local isUnlocked = (slotIndex <= currentOwnedSlots)
+
+                    local billboard = self:_GetOrCreateBillboard(collectPad)
+                    billboard.Enabled = isUnlocked
+
+                    if isUnlocked then
+                        local cashLabel = billboard:FindFirstChild("CashLabel")
+                        if cashLabel then
+                            -- Clés numériques ou string selon la sérialisation Remote
+                            local amount = currentSlotCash[slotIndex] or currentSlotCash[tostring(slotIndex)] or 0
+                            if amount > 0 then
+                                cashLabel.Text = "$" .. self:FormatNumber(amount)
+                                cashLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
+                            else
+                                cashLabel.Text = "$0"
+                                cashLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
                             end
                         end
                     end
@@ -321,8 +354,6 @@ function EconomyController:UpdateCollectPads(slotCash)
             end
         end
     end
-    
-    -- -- print("[EconomyController] CollectPads mis à jour")
 end
 
 --[[

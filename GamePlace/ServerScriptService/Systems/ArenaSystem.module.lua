@@ -153,17 +153,17 @@ function ArenaSystem:_AddHighlightToPiece(piece, pieceType)
     if existingBillboard then
         -- Augmenter la taille du BillboardGui pour faire de la place pour le TypeLabel
         local originalSize = existingBillboard.Size
-        existingBillboard.Size = UDim2.new(originalSize.X.Scale, originalSize.X.Offset, 
-                                           originalSize.Y.Scale, originalSize.Y.Offset + 40)
-        
+        existingBillboard.Size = UDim2.new(originalSize.X.Scale, originalSize.X.Offset,
+                                           originalSize.Y.Scale, originalSize.Y.Offset + 30)
+
         -- Décaler le StudsOffset pour compenser l'agrandissement
         local originalOffset = existingBillboard.StudsOffset
-        existingBillboard.StudsOffset = Vector3.new(originalOffset.X, originalOffset.Y + 0.5, originalOffset.Z)
-        
+        existingBillboard.StudsOffset = Vector3.new(originalOffset.X, originalOffset.Y + 1, originalOffset.Z)
+
         -- Ajouter le TypeLabel en haut du BillboardGui
         local typeLabel = Instance.new("TextLabel")
         typeLabel.Name = "TypeLabel"
-        typeLabel.Size = UDim2.new(1, 0, 0, 35) -- 35 pixels de hauteur
+        typeLabel.Size = UDim2.new(1, 0, 0, 25) -- 25 pixels de hauteur
         typeLabel.Position = UDim2.new(0, 0, 0, 0) -- Tout en haut
         typeLabel.BackgroundTransparency = 1
         typeLabel.Text = textLabel
@@ -174,16 +174,18 @@ function ArenaSystem:_AddHighlightToPiece(piece, pieceType)
         typeLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
         typeLabel.Visible = false -- Désactivé par défaut
         typeLabel.Parent = existingBillboard
-        
+
         -- Décaler les autres labels vers le bas
         local nameLabel = existingBillboard:FindFirstChild("NameLabel")
         if nameLabel and nameLabel:IsA("TextLabel") then
-            nameLabel.Position = UDim2.new(0, 0, 0, 35)
+            nameLabel.Position = UDim2.new(0, 0, 0, 25)
+            nameLabel.Size = UDim2.new(1, 0, 0, 32)
         end
-        
+
         local priceLabel = existingBillboard:FindFirstChild("PriceLabel")
         if priceLabel and priceLabel:IsA("TextLabel") then
-            priceLabel.Position = UDim2.new(0, 0, 0.5, 35)
+            priceLabel.Position = UDim2.new(0, 0, 0, 57)
+            priceLabel.Size = UDim2.new(1, 0, 0, 40)
         end
     end
 end
@@ -794,12 +796,22 @@ function ArenaSystem:SpawnRandomPiece()
     if primaryPart then
         local billboard = primaryPart:FindFirstChildOfClass("BillboardGui")
         if billboard then
+            -- Légèrement plus petit que les brainrots placés dans les bases
+            billboard.Size = UDim2.new(0, 150, 0, 75)
+            -- Calculer le StudsOffset basé sur la taille réelle du modèle entier (pas juste le PrimaryPart)
+            local boundingCF, boundingSize = piece:GetBoundingBox()
+            local modelTopY = boundingCF.Position.Y + boundingSize.Y / 2
+            local offsetY = (modelTopY - primaryPart.Position.Y) + 2
+            billboard.StudsOffset = Vector3.new(0, offsetY, 0)
+            billboard.MaxDistance = 50
+            billboard.AlwaysOnTop = false
+
             -- Chercher NameLabel pour afficher le nom du template
             local nameLabel = billboard:FindFirstChild("NameLabel")
             if nameLabel and nameLabel:IsA("TextLabel") then
                 nameLabel.Text = templateName -- Affiche "brrbrr", "lalero", etc.
             end
-            
+
             -- Chercher PriceLabel pour afficher le prix
             local priceLabel = billboard:FindFirstChild("PriceLabel")
             if priceLabel and priceLabel:IsA("TextLabel") then
@@ -912,12 +924,18 @@ function ArenaSystem:_SpawnSpecificPiece(setName, pieceType, pieceInfo, template
     if primaryPart then
         local billboard = primaryPart:FindFirstChildOfClass("BillboardGui")
         if billboard then
+            -- Calculer le StudsOffset basé sur la taille réelle du modèle entier
+            local boundingCF, boundingSize = piece:GetBoundingBox()
+            local modelTopY = boundingCF.Position.Y + boundingSize.Y / 2
+            local offsetY = (modelTopY - primaryPart.Position.Y) + 2
+            billboard.StudsOffset = Vector3.new(0, offsetY, 0)
+
             -- Chercher NameLabel pour afficher le nom du template
             local nameLabel = billboard:FindFirstChild("NameLabel")
             if nameLabel and nameLabel:IsA("TextLabel") then
                 nameLabel.Text = templateName
             end
-            
+
             -- Chercher PriceLabel pour afficher le prix
             local priceLabel = billboard:FindFirstChild("PriceLabel")
             if priceLabel and priceLabel:IsA("TextLabel") then
@@ -925,7 +943,7 @@ function ArenaSystem:_SpawnSpecificPiece(setName, pieceType, pieceInfo, template
             end
         end
     end
-    
+
     -- Position personnalisée
     piece:SetPrimaryPartCFrame(CFrame.new(position))
     
