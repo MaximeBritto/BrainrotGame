@@ -77,6 +77,14 @@ function BaseSystem:_InitializeBases()
     end
     
     table.sort(self._availableBases)
+
+    -- Créer les labels "Empty" sur toutes les bases
+    for _, base in ipairs(basesFolder:GetChildren()) do
+        if base:IsA("Model") and string.match(base.Name, "^Base_%d+$") then
+            self:_UpdateBaseLabel(base, "Empty")
+        end
+    end
+
     -- print("[BaseSystem] " .. #self._availableBases .. " base(s) trouvée(s)")
 end
 
@@ -124,7 +132,10 @@ function BaseSystem:AssignBase(player)
     
     -- Attribut pour que le client trouve sa base (EconomyController, etc.)
     baseModel:SetAttribute("OwnerUserId", player.UserId)
-    
+
+    -- Afficher le nom du joueur au-dessus de la base
+    self:_UpdateBaseLabel(baseModel, player.DisplayName)
+
     -- Mettre à jour les données runtime du joueur
     local runtimeData = PlayerService:GetRuntimeData(player)
     if runtimeData then
@@ -154,7 +165,10 @@ function BaseSystem:ReleaseBase(player)
     
     -- Retirer l'attribut pour que le client ne prenne plus cette base
     assignment.Base:SetAttribute("OwnerUserId", nil)
-    
+
+    -- Remettre le label à "Empty"
+    self:_UpdateBaseLabel(assignment.Base, "Empty")
+
     -- Remettre la base dans les disponibles
     table.insert(self._availableBases, assignment.BaseIndex)
     table.sort(self._availableBases)
@@ -438,10 +452,15 @@ function BaseSystem:_SetFloorVisible(floor, visible)
 
     if floor:IsA("Model") or floor:IsA("Folder") then
         for _, desc in ipairs(floor:GetDescendants()) do
-            -- Skip parts that belong to a Brainrot model (managed by BrainrotModelSystem)
-            if desc:IsA("BasePart") and not self:_IsInsideBrainrotModel(desc) then
+            if self:_IsInsideBrainrotModel(desc) then
+                -- Skip: managed by BrainrotModelSystem
+            elseif desc:IsA("BasePart") then
                 desc.Transparency = visible and 0 or 1
                 desc.CanCollide = visible
+            elseif desc:IsA("SurfaceGui") or desc:IsA("BillboardGui") then
+                desc.Enabled = visible
+            elseif desc:IsA("Decal") or desc:IsA("Texture") then
+                desc.Transparency = visible and 0 or 1
             end
         end
         return
@@ -512,6 +531,75 @@ function BaseSystem:_CreateBrainrotModel(brainrotData)
     model.PrimaryPart = part
     
     return model
+end
+
+--[[
+    Crée ou met à jour le BillboardGui au-dessus d'une base avec le nom du propriétaire
+    @param baseModel: Model - La base
+    @param text: string - Texte à afficher (nom du joueur ou "Empty")
+]]
+function BaseSystem:_UpdateBaseLabel(baseModel, text)
+    -- Trouver la porte pour positionner le label au-dessus
+    local doorFolder = baseModel:FindFirstChild(Constants.WorkspaceNames.DoorFolder)
+    if not doorFolder then return end
+
+    local bars = doorFolder:FindFirstChild(Constants.WorkspaceNames.DoorBars)
+    if not bars then return end
+
+    -- Créer ou réutiliser un Part invisible centré sur la porte comme ancre
+    local anchor = doorFolder:FindFirstChild("_LabelAnchor")
+    if not anchor then
+        anchor = Instance.new("Part")
+        anchor.Name = "_LabelAnchor"
+        anchor.Size = Vector3.new(1, 1, 1)
+        anchor.Transparency = 1
+        anchor.Anchored = true
+        anchor.CanCollide = false
+        anchor.CanQuery = false
+        anchor.CanTouch = false
+
+        -- Calculer le centre de la porte
+        if bars:IsA("Model") then
+            local cf, size = bars:GetBoundingBox()
+            anchor.CFrame = cf
+        elseif bars:IsA("BasePart") then
+            anchor.CFrame = bars.CFrame
+        end
+
+        anchor.Parent = doorFolder
+    end
+
+    local billboard = doorFolder:FindFirstChild("OwnerBillboard")
+    if not billboard then
+        billboard = Instance.new("BillboardGui")
+        billboard.Name = "OwnerBillboard"
+        billboard.Adornee = anchor
+        billboard.Size = UDim2.new(14, 0, 3, 0)
+        billboard.StudsOffset = Vector3.new(0, 8, 0)
+        billboard.AlwaysOnTop = true
+        billboard.LightInfluence = 0
+        billboard.MaxDistance = 100
+        billboard.Parent = doorFolder
+
+        local label = Instance.new("TextLabel")
+        label.Name = "NameLabel"
+        label.Size = UDim2.new(1, 0, 1, 0)
+        label.BackgroundTransparency = 1
+        label.Font = Enum.Font.GothamBold
+        label.TextScaled = true
+        label.TextColor3 = Color3.fromRGB(255, 255, 255)
+        label.TextStrokeTransparency = 0.3
+        label.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+        label.Parent = billboard
+    end
+
+    local label = billboard:FindFirstChild("NameLabel")
+    if label then
+        label.Text = text
+        label.TextColor3 = (text == "Empty")
+            and Color3.fromRGB(150, 150, 150)
+            or Color3.fromRGB(255, 255, 255)
+    end
 end
 
 --[[
