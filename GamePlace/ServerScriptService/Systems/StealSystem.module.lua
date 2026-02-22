@@ -251,187 +251,69 @@ function StealSystem:_AttachBrainrotToHand(player, carriedData)
 	local character = player.Character
 	if not character then return end
 
-	-- Main gauche (la batte est sur la droite)
-	local leftHand = character:FindFirstChild("LeftHand") or character:FindFirstChild("Left Arm")
-	if not leftHand then
-		warn("[StealSystem] Main gauche introuvable!")
-		return
-	end
+	-- Supprimer l'ancien modèle s'il existe
+	local old = character:FindFirstChild("CarriedBrainrot")
+	if old then old:Destroy() end
 
-	-- Supprimer l'ancien modèle si présent
-	local oldModel = character:FindFirstChild("CarriedBrainrot")
-	if oldModel then oldModel:Destroy() end
-
-	-- Construire le modèle 3D via BrainrotModelSystem
+	-- Assembler le modèle 3D côté serveur pour qu'il soit visible par tous
 	if not BrainrotModelSystem then
 		warn("[StealSystem] BrainrotModelSystem non disponible")
+		character:SetAttribute("CarryingBrainrot", true)
 		return
 	end
 
 	local model = BrainrotModelSystem:AssembleBrainrot(carriedData)
 	if not model then
-		warn("[StealSystem] Échec assemblage du modèle pour porter")
+		warn("[StealSystem] Échec d'assemblage du modèle porté")
+		character:SetAttribute("CarryingBrainrot", true)
 		return
 	end
 
 	model.Name = "CarriedBrainrot"
 
-	-- Identifier les parties (head, body, legs)
-	local headPart = nil
-	local bodyPart = model.PrimaryPart
-	local legsPart = nil
-
-	for _, part in ipairs(model:GetChildren()) do
-		if part:IsA("BasePart") then
-			if part:FindFirstChild("TopAttachment") and not part:FindFirstChild("BottomAttachment") then
-				legsPart = part
-			end
-			if part:FindFirstChild("BottomAttachment") and not part:FindFirstChild("TopAttachment") then
-				headPart = part
-			end
-		end
-	end
-
-	-- Réduire la taille (40% de la taille originale)
-	for _, part in ipairs(model:GetDescendants()) do
-		if part:IsA("BasePart") then
-			part.Size = part.Size * 0.4
-			part.CanCollide = false
-			part.Anchored = false
-		end
-	end
-
-	-- Ajouter des Highlights colorés par partie (Head=Rouge, Body=Vert, Legs=Bleu-Violet)
-	if headPart then
-		local headHighlight = Instance.new("Highlight")
-		headHighlight.Name = "HeadHighlight"
-		headHighlight.FillColor = Color3.fromRGB(255, 0, 0) -- Rouge
-		headHighlight.OutlineColor = Color3.fromRGB(255, 100, 100)
-		headHighlight.FillTransparency = 1 -- Seulement le contour
-		headHighlight.OutlineTransparency = 0
-		headHighlight.Enabled = false -- Désactivé par défaut, activé par le client selon la distance
-		headHighlight.Adornee = headPart
-		headHighlight.Parent = headPart
-		
-		-- Label "HEAD"
-		local billboard = Instance.new("BillboardGui")
-		billboard.Name = "TypeLabel"
-		billboard.Size = UDim2.new(0, 60, 0, 20)
-		billboard.StudsOffset = Vector3.new(0, headPart.Size.Y * 0.4 + 2, 0) -- Encore plus haut
-		billboard.AlwaysOnTop = true
-		billboard.Enabled = false -- Désactivé par défaut, activé par le client selon la distance
-		billboard.Adornee = headPart
-		
-		local label = Instance.new("TextLabel")
-		label.Size = UDim2.new(1, 0, 1, 0)
-		label.BackgroundTransparency = 1
-		label.Text = "HEAD"
-		label.TextColor3 = Color3.fromRGB(255, 0, 0)
-		label.TextScaled = true
-		label.Font = Enum.Font.Bangers
-		label.TextStrokeTransparency = 0.5
-		label.TextStrokeColor3 = Color3.new(0, 0, 0)
-		label.Parent = billboard
-		
-		billboard.Parent = headPart
-	end
-
-	if bodyPart then
-		local bodyHighlight = Instance.new("Highlight")
-		bodyHighlight.Name = "BodyHighlight"
-		bodyHighlight.FillColor = Color3.fromRGB(0, 255, 0) -- Vert
-		bodyHighlight.OutlineColor = Color3.fromRGB(100, 255, 100)
-		bodyHighlight.FillTransparency = 1 -- Seulement le contour
-		bodyHighlight.OutlineTransparency = 0
-		bodyHighlight.Enabled = false -- Désactivé par défaut, activé par le client selon la distance
-		bodyHighlight.Adornee = bodyPart
-		bodyHighlight.Parent = bodyPart
-		
-		-- Label "BODY"
-		local billboard = Instance.new("BillboardGui")
-		billboard.Name = "TypeLabel"
-		billboard.Size = UDim2.new(0, 60, 0, 20)
-		billboard.StudsOffset = Vector3.new(0, bodyPart.Size.Y * 0.4 + 2, 0) -- Encore plus haut
-		billboard.AlwaysOnTop = true
-		billboard.Enabled = false -- Désactivé par défaut, activé par le client selon la distance
-		billboard.Adornee = bodyPart
-		
-		local label = Instance.new("TextLabel")
-		label.Size = UDim2.new(1, 0, 1, 0)
-		label.BackgroundTransparency = 1
-		label.Text = "BODY"
-		label.TextColor3 = Color3.fromRGB(0, 255, 0)
-		label.TextScaled = true
-		label.Font = Enum.Font.Bangers
-		label.TextStrokeTransparency = 0.5
-		label.TextStrokeColor3 = Color3.new(0, 0, 0)
-		label.Parent = billboard
-		
-		billboard.Parent = bodyPart
-	end
-
-	if legsPart then
-		local legsHighlight = Instance.new("Highlight")
-		legsHighlight.Name = "LegsHighlight"
-		legsHighlight.FillColor = Color3.fromRGB(138, 43, 226) -- Bleu-Violet
-		legsHighlight.OutlineColor = Color3.fromRGB(180, 100, 255)
-		legsHighlight.FillTransparency = 1 -- Seulement le contour
-		legsHighlight.OutlineTransparency = 0
-		legsHighlight.Enabled = false -- Désactivé par défaut, activé par le client selon la distance
-		legsHighlight.Adornee = legsPart
-		legsHighlight.Parent = legsPart
-		
-		-- Label "LEGS"
-		local billboard = Instance.new("BillboardGui")
-		billboard.Name = "TypeLabel"
-		billboard.Size = UDim2.new(0, 60, 0, 20)
-		billboard.StudsOffset = Vector3.new(0, legsPart.Size.Y * 0.4 + 2, 0) -- Encore plus haut
-		billboard.AlwaysOnTop = true
-		billboard.Enabled = false -- Désactivé par défaut, activé par le client selon la distance
-		billboard.Adornee = legsPart
-		
-		local label = Instance.new("TextLabel")
-		label.Size = UDim2.new(1, 0, 1, 0)
-		label.BackgroundTransparency = 1
-		label.Text = "LEGS"
-		label.TextColor3 = Color3.fromRGB(138, 43, 226)
-		label.TextScaled = true
-		label.Font = Enum.Font.Bangers
-		label.TextStrokeTransparency = 0.5
-		label.TextStrokeColor3 = Color3.new(0, 0, 0)
-		label.Parent = billboard
-		
-		billboard.Parent = legsPart
-	end
-
-	-- PrimaryPart (bodyPart)
-	local primaryPart = model.PrimaryPart
-	if not primaryPart then
-		primaryPart = model:FindFirstChildWhichIsA("BasePart")
-		model.PrimaryPart = primaryPart
-	end
-
-	if not primaryPart then
-		warn("[StealSystem] Pas de PrimaryPart pour le modèle porté")
+	-- Trouver la main gauche
+	local leftHand = character:FindFirstChild("LeftHand") or character:FindFirstChild("Left Arm")
+	if not leftHand then
 		model:Destroy()
+		warn("[StealSystem] Main gauche introuvable!")
+		character:SetAttribute("CarryingBrainrot", true)
 		return
 	end
 
-	-- Souder à la main gauche (même pattern que BatSystem)
+	-- Préparer toutes les parts : désactiver collision, désancrer, supprimer BillboardGui
+	for _, desc in ipairs(model:GetDescendants()) do
+		if desc:IsA("BasePart") then
+			desc.CanCollide = false
+			desc.Anchored = false
+		end
+		if desc:IsA("BillboardGui") then
+			desc:Destroy()
+		end
+		if desc:IsA("ProximityPrompt") then
+			desc:Destroy()
+		end
+	end
+
+	-- Positionner le modèle au-dessus de la main gauche
+	local primaryPart = model.PrimaryPart
+	if not primaryPart then
+		model:Destroy()
+		character:SetAttribute("CarryingBrainrot", true)
+		return
+	end
+
+	model:PivotTo(leftHand.CFrame * CFrame.new(0, 1.5, 0))
+
+	-- Souder la PrimaryPart à la main gauche (comme la batte sur la main droite)
 	local weld = Instance.new("WeldConstraint")
 	weld.Part0 = leftHand
 	weld.Part1 = primaryPart
 	weld.Parent = primaryPart
 
-	-- Positionner au-dessus de la main
-	primaryPart.CFrame = leftHand.CFrame * CFrame.new(0, 1, 0)
-
 	model.Parent = character
-
-	-- Attribut pour que les autres systèmes sachent
 	character:SetAttribute("CarryingBrainrot", true)
 
-	print(string.format("[StealSystem] Brainrot attaché à la main de %s", player.Name))
+	print(string.format("[StealSystem] Modèle porté soudé à la main de %s (visible par tous)", player.Name))
 end
 
 ---

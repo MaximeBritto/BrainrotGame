@@ -126,6 +126,11 @@ end
 function BatSystem:HandleBatHit(attacker, victimId)
     local attackerId = attacker.UserId
 
+    -- 0. Vérifier que l'attaquant ne porte pas un brainrot volé
+    if PlayerService and PlayerService:IsCarryingBrainrot(attacker) then
+        return
+    end
+
     -- 1. Vérifier le cooldown de l'attaquant
     if not self:_CheckCooldown(attackerId) then
         return

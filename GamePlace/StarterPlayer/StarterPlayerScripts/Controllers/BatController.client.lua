@@ -99,9 +99,10 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 		return
 	end
 
-	-- Vérifier que le joueur a une batte
+	-- Vérifier que le joueur a une batte et ne porte pas un brainrot volé
 	local character = player.Character
 	if not character or not character:GetAttribute("HasBat") then return end
+	if character:GetAttribute("CarryingBrainrot") then return end
 
 	-- Cooldown
 	local now = tick()

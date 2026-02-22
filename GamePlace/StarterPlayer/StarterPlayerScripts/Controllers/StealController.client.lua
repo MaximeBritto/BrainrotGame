@@ -1,5 +1,6 @@
 -- StarterPlayer/StarterPlayerScripts/Controllers/StealController.client.lua
 -- Gère le vol de Brainrot (StealPrompt) et le placement du brainrot volé (PlacePrompt)
+-- + Affichage du modèle 3D porté en main (côté client, même approche que PreviewBrainrotController)
 
 -- Services
 local Players = game:GetService("Players")
@@ -14,6 +15,18 @@ local remotes = ReplicatedStorage:WaitForChild("Remotes")
 -- État local
 local _isCarrying = false
 local _placePrompts = {} -- ProximityPrompts créés pour les slots vides
+
+-- Le modèle 3D porté est désormais géré côté serveur (StealSystem)
+-- pour être visible par tous les joueurs
+
+-- ═══════════════════════════════════════════════════════
+-- Le modèle 3D est créé côté serveur et soudé à la main gauche
+-- (visible par tous les joueurs automatiquement)
+-- ═══════════════════════════════════════════════════════
+
+-- ═══════════════════════════════════════════════════════
+-- STEAL PROMPTS (inchangé)
+-- ═══════════════════════════════════════════════════════
 
 ---
 -- Cache les StealPrompts sur les Brainrots du joueur local
@@ -37,6 +50,10 @@ Workspace.DescendantAdded:Connect(function(desc)
 		hideOwnStealPrompt(desc)
 	end
 end)
+
+-- ═══════════════════════════════════════════════════════
+-- PLACE PROMPTS (inchangé)
+-- ═══════════════════════════════════════════════════════
 
 ---
 -- Trouve la base du joueur local via l'attribut OwnerUserId
@@ -113,6 +130,10 @@ local function removePlacePrompts()
 	end
 	_placePrompts = {}
 end
+
+-- ═══════════════════════════════════════════════════════
+-- ÉVÉNEMENTS REMOTES
+-- ═══════════════════════════════════════════════════════
 
 ---
 -- Écoute SyncCarriedBrainrot pour savoir si on porte un brainrot
