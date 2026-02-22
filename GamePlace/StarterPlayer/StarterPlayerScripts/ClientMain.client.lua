@@ -98,12 +98,7 @@ notification.OnClientEvent:Connect(function(data)
     end
 end)
 
--- SyncCodex: Reçoit les mises à jour du Codex (Phase 6)
-local syncCodex = Remotes:WaitForChild("SyncCodex")
-syncCodex.OnClientEvent:Connect(function(data)
-    -- print("[ClientMain] SyncCodex received")
-    CodexController:UpdateCodex(data)
-end)
+-- SyncCodex: géré directement par CodexController:Init() (listener interne)
 
 -- SyncDoorState: Reçoit les mises à jour de l'état de la porte (Phase 2)
 local syncDoorState = Remotes:WaitForChild("SyncDoorState")
@@ -272,6 +267,10 @@ task.spawn(function()
         -- Mettre à jour le preview avec les pièces initiales (si le joueur en avait)
         if fullData.PiecesInHand then
             PreviewBrainrotController:UpdatePreview(fullData.PiecesInHand)
+        end
+        -- Initialiser le Codex avec les données sauvegardées
+        if fullData.CodexUnlocked then
+            CodexController:UpdateCodex(fullData.CodexUnlocked)
         end
     else
         warn("[ClientMain] No data received from server")

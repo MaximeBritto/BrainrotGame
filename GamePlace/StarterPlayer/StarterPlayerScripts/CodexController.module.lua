@@ -427,9 +427,11 @@ function CodexController:_AssemblePreviewModel(setName)
         end
     end
 
-    -- Position Legs at origin
+    -- Position Legs at origin (avec orientation via TopAttachment, comme BrainrotModelSystem)
     if legsModel and legsPart then
-        repositionModel(legsModel, legsPart, CFrame.new(0, legsPart.Size.Y / 2, 0))
+        local legsTopAtt = legsPart:FindFirstChild("TopAttachment")
+        local legsOrientation = legsTopAtt and legsTopAtt.CFrame.Rotation or CFrame.new()
+        repositionModel(legsModel, legsPart, CFrame.new(0, legsPart.Size.Y / 2, 0) * legsOrientation)
     end
 
     -- Body -> Legs via Attachments
@@ -475,21 +477,34 @@ function CodexController:_AssemblePreviewModel(setName)
     if headModel then headModel.Parent = model end
 
     model.PrimaryPart = bodyPart or headPart or legsPart
-    return model
+
+    return model, headModel, bodyModel, legsModel
 end
 
 -- ══════════════════════════════════════════
 -- Card creation
 -- ══════════════════════════════════════════
 
-function CodexController:_CreateCard(setName, setData, isDiscovered, layoutOrder, unlockedParts, totalParts)
+function CodexController:_CreateCard(setName, setData, isDiscovered, layoutOrder, unlockedParts, totalParts, partsUnlocked)
     unlockedParts = unlockedParts or 0
     totalParts = totalParts or 3
     local rarity = setData.Rarity or "Common"
     local rarityInfo = BrainrotData.Rarities[rarity] or {}
     local rarityColor = rarityInfo.Color or Color3.new(1, 1, 1)
     local rarityDisplay = RARITY_DISPLAY[rarity] or rarity
-    local displayName = SET_DISPLAY_NAMES[setName] or setName
+    -- Build name from unlocked parts: DisplayName if unlocked, "???" if locked
+    local nameParts = {}
+    for _, partType in ipairs({"Head", "Body", "Legs"}) do
+        local partInfo = setData[partType]
+        if partInfo and partInfo.TemplateName and partInfo.TemplateName ~= "" then
+            if partsUnlocked and partsUnlocked[partType] then
+                table.insert(nameParts, partInfo.DisplayName)
+            else
+                table.insert(nameParts, "???")
+            end
+        end
+    end
+    local dynamicName = table.concat(nameParts, " ")
 
     local card = Instance.new("Frame")
     card.Name = "Card_" .. setName
@@ -504,7 +519,7 @@ function CodexController:_CreateCard(setName, setData, isDiscovered, layoutOrder
     nameLabel.Size = UDim2.new(1, -10, 0, 20)
     nameLabel.Position = UDim2.new(0, 5, 0, 4)
     nameLabel.BackgroundTransparency = 1
-    nameLabel.Text = isDiscovered and displayName or ""
+    nameLabel.Text = dynamicName
     nameLabel.TextColor3 = Color3.new(1, 1, 1)
     nameLabel.TextSize = 13
     nameLabel.Font = Enum.Font.GothamBold
@@ -527,24 +542,38 @@ function CodexController:_CreateCard(setName, setData, isDiscovered, layoutOrder
     local viewport = Instance.new("ViewportFrame")
     viewport.Size = UDim2.new(1, 0, 1, 0)
     viewport.BackgroundTransparency = 1
+    viewport.Ambient = Color3.fromRGB(200, 200, 200)
+    viewport.LightColor = Color3.fromRGB(255, 255, 255)
+    viewport.LightDirection = Vector3.new(-1, -1, -1)
     viewport.Parent = previewFrame
 
-    local previewModel = self:_AssemblePreviewModel(setName)
+    local previewModel, headSubModel, bodySubModel, legsSubModel = self:_AssemblePreviewModel(setName)
     if previewModel then
-        -- Black silhouette for undiscovered
-        if not isDiscovered then
-            for _, desc in ipairs(previewModel:GetDescendants()) do
+        -- Black out individual undiscovered parts (per-part silhouette)
+        local function applyBlackout(subModel)
+            if not subModel then return end
+            for _, desc in ipairs(subModel:GetDescendants()) do
                 if desc:IsA("BasePart") then
                     desc.Color = Color3.fromRGB(12, 12, 20)
                     desc.Material = Enum.Material.SmoothPlastic
+                    if desc:IsA("MeshPart") then
+                        desc.TextureID = ""
+                    end
                     for _, c in ipairs(desc:GetChildren()) do
                         if c:IsA("Decal") or c:IsA("Texture") or c:IsA("SurfaceGui") then
                             c:Destroy()
+                        elseif c:IsA("SpecialMesh") then
+                            c.TextureId = ""
                         end
                     end
                 end
             end
         end
+
+        local pl = partsUnlocked or {}
+        if not pl.Head then applyBlackout(headSubModel) end
+        if not pl.Body then applyBlackout(bodySubModel) end
+        if not pl.Legs then applyBlackout(legsSubModel) end
 
         previewModel.Parent = viewport
 
@@ -660,19 +689,9 @@ function CodexController:RefreshList()
         if not setData then continue end
 
         local parts = getPartsUnlocked(unlocked, setName)
-        local hasAny = parts.Head or parts.Body or parts.Legs
         local rarity = setData.Rarity or "Common"
 
-        totalSets = totalSets + 1
-        if hasAny then discoveredSets = discoveredSets + 1 end
-
-        -- Active filter
-        if self._activeFilter and rarity ~= self._activeFilter then continue end
-
-        filteredTotal = filteredTotal + 1
-        if hasAny then filteredDiscovered = filteredDiscovered + 1 end
-
-        -- Count existing parts (non-empty TemplateName) and unlocked parts
+        -- Count existing parts (non-empty TemplateName) and unlocked parts FIRST
         local totalParts = 0
         local unlockedParts = 0
         for _, partType in ipairs({"Head", "Body", "Legs"}) do
@@ -685,8 +704,20 @@ function CodexController:RefreshList()
             end
         end
 
+        -- isDiscovered based on actual template parts unlocked (consistent with counter)
+        local isDiscovered = unlockedParts > 0
+
+        totalSets = totalSets + 1
+        if isDiscovered then discoveredSets = discoveredSets + 1 end
+
+        -- Active filter
+        if self._activeFilter and rarity ~= self._activeFilter then continue end
+
+        filteredTotal = filteredTotal + 1
+        if isDiscovered then filteredDiscovered = filteredDiscovered + 1 end
+
         layoutOrder = layoutOrder + 1
-        local card = self:_CreateCard(setName, setData, hasAny, layoutOrder, unlockedParts, totalParts)
+        local card = self:_CreateCard(setName, setData, isDiscovered, layoutOrder, unlockedParts, totalParts, parts)
         card.Parent = grid
     end
 
