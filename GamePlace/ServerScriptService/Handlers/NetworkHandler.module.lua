@@ -45,6 +45,9 @@ local BatSystem = nil
 -- Systèmes (Phase 9)
 local ShopSystem = nil
 
+-- Systèmes (Lucky Block)
+local LuckyBlockSystem = nil
+
 local NetworkHandler = {}
 NetworkHandler._initialized = false
 
@@ -84,6 +87,9 @@ function NetworkHandler:Init(services)
 
     -- Récupérer les systèmes (Phase 9)
     ShopSystem = services.ShopSystem
+
+    -- Récupérer les systèmes (Lucky Block)
+    LuckyBlockSystem = services.LuckyBlockSystem
 
     -- Connecter les handlers
     self:_ConnectHandlers()
@@ -223,6 +229,45 @@ function NetworkHandler:_ConnectHandlers()
 
             if not success then
                 warn("[NetworkHandler] Erreur RequestShopPurchase: " .. tostring(err))
+            end
+        end)
+    end
+
+    -- Achat Lucky Block (Lucky Block)
+    if remotes.BuyLuckyBlock then
+        remotes.BuyLuckyBlock.OnServerEvent:Connect(function(player, amount)
+            if type(amount) == "string" then
+                amount = tonumber(amount)
+            end
+            if not amount or type(amount) ~= "number" then return end
+
+            local success, err = pcall(function()
+                if LuckyBlockSystem then
+                    LuckyBlockSystem:RequestBuy(player, amount)
+                else
+                    warn("[NetworkHandler] LuckyBlockSystem non initialisé!")
+                end
+            end)
+
+            if not success then
+                warn("[NetworkHandler] Erreur BuyLuckyBlock: " .. tostring(err))
+            end
+        end)
+    end
+
+    -- Ouvrir Lucky Block (Lucky Block)
+    if remotes.OpenLuckyBlock then
+        remotes.OpenLuckyBlock.OnServerEvent:Connect(function(player)
+            local success, err = pcall(function()
+                if LuckyBlockSystem then
+                    LuckyBlockSystem:TryOpen(player)
+                else
+                    warn("[NetworkHandler] LuckyBlockSystem non initialisé!")
+                end
+            end)
+
+            if not success then
+                warn("[NetworkHandler] Erreur OpenLuckyBlock: " .. tostring(err))
             end
         end)
     end
@@ -464,6 +509,7 @@ function NetworkHandler:_HandleGetFullPlayerData(player)
         OwnedSlots = playerData and (playerData.OwnedSlots or 10),
         PlacedBrainrots = playerData and playerData.PlacedBrainrots or {},
         SlotCash = playerData and playerData.SlotCash or {},
+        LuckyBlocks = playerData and playerData.LuckyBlocks or 0,
         CodexUnlocked = playerData and playerData.CodexUnlocked or {},
         CompletedSets = playerData and playerData.CompletedSets or {},
         Stats = playerData and playerData.Stats or {},
@@ -560,6 +606,9 @@ function NetworkHandler:UpdateSystems(systems)
     end
     if systems.ShopSystem then
         ShopSystem = systems.ShopSystem
+    end
+    if systems.LuckyBlockSystem then
+        LuckyBlockSystem = systems.LuckyBlockSystem
     end
 
     print("[NetworkHandler] Systèmes mis à jour")

@@ -58,7 +58,7 @@ local offsetCFrame = CFrame.new(offset)
 local spinSpeed = GameConfig.Arena.SpinnerSpeed or 2
 local angle = 0
 
-print("[SpinnerRotation] Rotation du Spinner activée - Vitesse: " .. spinSpeed .. " tours/sec")
+-- print("[SpinnerRotation] Rotation du Spinner activée - Vitesse: " .. spinSpeed .. " tours/sec")
 
 -- Boucle de rotation
 RunService.Heartbeat:Connect(function(deltaTime)

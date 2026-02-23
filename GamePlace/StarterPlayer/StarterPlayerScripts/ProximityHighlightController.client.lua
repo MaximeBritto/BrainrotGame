@@ -86,4 +86,4 @@ RunService.Heartbeat:Connect(function()
 	end
 end)
 
-print("[ProximityHighlightController] Initialisé - Distance: " .. PROXIMITY_DISTANCE .. " studs")
+-- print("[ProximityHighlightController] Initialisé - Distance: " .. PROXIMITY_DISTANCE .. " studs")

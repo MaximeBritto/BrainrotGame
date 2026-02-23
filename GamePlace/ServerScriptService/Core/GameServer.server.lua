@@ -154,6 +154,19 @@ do
     end
 end
 
+-- Lucky Block
+local LuckyBlockSystem, luckyBlockLoadErr
+do
+    local ok, mod = pcall(function()
+        return require(Systems["LuckyBlockSystem.module"])
+    end)
+    if ok then
+        LuckyBlockSystem = mod
+    else
+        luckyBlockLoadErr = mod
+    end
+end
+
 -- Phase 9: Shop Robux
 local ShopSystem, shopLoadErr
 do
@@ -479,12 +492,34 @@ else
     end
 end
 
--- 13. ShopSystem (Phase 9)
+-- 13. LuckyBlockSystem (Lucky Block)
+if LuckyBlockSystem and PlacementSystem and BrainrotModelSystem then
+    LuckyBlockSystem:Init({
+        PlayerService = PlayerService,
+        DataService = DataService,
+        PlacementSystem = PlacementSystem,
+        BrainrotModelSystem = BrainrotModelSystem,
+        NetworkSetup = NetworkSetup,
+    })
+    -- print("[GameServer] LuckyBlockSystem: OK")
+
+    NetworkHandler:UpdateSystems({LuckyBlockSystem = LuckyBlockSystem})
+else
+    if not LuckyBlockSystem then
+        warn("[GameServer] LuckyBlockSystem non chargé:", luckyBlockLoadErr or "inconnu")
+    end
+    if not PlacementSystem then
+        warn("[GameServer] LuckyBlockSystem nécessite PlacementSystem!")
+    end
+end
+
+-- 14. ShopSystem (Phase 9)
 if ShopSystem and EconomySystem then
     ShopSystem:Init({
         EconomySystem = EconomySystem,
         NetworkSetup = NetworkSetup,
         DataService = DataService,
+        LuckyBlockSystem = LuckyBlockSystem,
     })
     -- print("[GameServer] ShopSystem: OK")
 

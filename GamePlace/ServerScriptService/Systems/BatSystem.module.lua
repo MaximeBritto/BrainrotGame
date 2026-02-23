@@ -30,7 +30,7 @@ local BAT_MAX_DISTANCE = GameConfig.BatMaxDistance or 10 -- studs
 -- Initialisation
 ---
 function BatSystem:Init(services)
-    print("[BatSystem] Initialisation...")
+    -- print("[BatSystem] Initialisation...")
 
     if services then
         PlayerService = services.PlayerService
@@ -63,7 +63,7 @@ function BatSystem:Init(services)
         end
     end
 
-    print("[BatSystem] Initialisé!")
+    -- print("[BatSystem] Initialisé!")
 end
 
 ---
@@ -115,7 +115,7 @@ function BatSystem:_GiveBat(player, character)
     -- Marquer le joueur comme ayant une batte
     character:SetAttribute("HasBat", true)
 
-    print(string.format("[BatSystem] Batte soudée à la main de %s", player.Name))
+    -- print(string.format("[BatSystem] Batte soudée à la main de %s", player.Name))
 end
 
 ---
@@ -170,7 +170,7 @@ function BatSystem:HandleBatHit(attacker, victimId)
     _playerStates[attackerId] = _playerStates[attackerId] or {}
     _playerStates[attackerId].LastBatHitTime = tick()
 
-    print(string.format("[BatSystem] %s a assommé %s", attacker.Name, victim.Name))
+    -- print(string.format("[BatSystem] %s a assommé %s", attacker.Name, victim.Name))
 end
 
 ---
@@ -269,7 +269,7 @@ function BatSystem:_RemoveStun(victim)
         Message = "Vous pouvez bouger à nouveau."
     })
 
-    print(string.format("[BatSystem] %s n'est plus assommé", victim.Name))
+    -- print(string.format("[BatSystem] %s n'est plus assommé", victim.Name))
 end
 
 ---
@@ -332,7 +332,7 @@ function BatSystem:_ReturnStolenBrainrot(victim)
                     Message = "Votre Brainrot volé a été récupéré!"
                 })
 
-                print(string.format("[BatSystem] Brainrot retourné au slot %d de %s", originalSlotId, owner.Name))
+                -- print(string.format("[BatSystem] Brainrot retourné au slot %d de %s", originalSlotId, owner.Name))
             end
         end
     end
@@ -342,7 +342,7 @@ function BatSystem:_ReturnStolenBrainrot(victim)
         Message = "Vous avez perdu le Brainrot volé!"
     })
 
-    print(string.format("[BatSystem] Brainrot volé retiré de %s", victim.Name))
+    -- print(string.format("[BatSystem] Brainrot volé retiré de %s", victim.Name))
 end
 
 ---

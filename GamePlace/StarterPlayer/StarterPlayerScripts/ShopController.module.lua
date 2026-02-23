@@ -146,7 +146,7 @@ function ShopController:Init()
         self:SwitchTab(sorted[1].Id)
     end
 
-    print("[ShopController] Initialisé!")
+    -- print("[ShopController] Initialisé!")
 end
 
 -- ═══════════════════════════════════════════════════════
@@ -487,8 +487,8 @@ end
 -- ═══════════════════════════════════════════════════════
 
 function ShopController:_OnBuyClicked(categoryId, productIndex, product)
-    print(string.format("[ShopController] Achat cliqué: %s #%d (%s, R$%d)",
-        categoryId, productIndex, product.DisplayName, product.Robux))
+    -- print(string.format("[ShopController] Achat cliqué: %s #%d (%s, R$%d)",
+    --     categoryId, productIndex, product.DisplayName, product.Robux))
 
     local requestRemote = Remotes:FindFirstChild("RequestShopPurchase")
     if requestRemote then
@@ -520,7 +520,7 @@ function ShopController:Open()
     })
     tweenOpen:Play()
 
-    print("[ShopController] Shop ouvert")
+    -- print("[ShopController] Shop ouvert")
 end
 
 function ShopController:Close()
@@ -541,7 +541,7 @@ function ShopController:Close()
         isOpen = false
     end)
 
-    print("[ShopController] Shop fermé")
+    -- print("[ShopController] Shop fermé")
 end
 
 function ShopController:Toggle()

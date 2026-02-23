@@ -68,6 +68,11 @@ local DefaultPlayerData = {
     },
     
     -- ═══════════════════════════════════════
+    -- LUCKY BLOCKS
+    -- ═══════════════════════════════════════
+    LuckyBlocks = 0,  -- Nombre de Lucky Blocks disponibles (achetés via Robux)
+
+    -- ═══════════════════════════════════════
     -- RÉSERVÉ POUR FUTURES FEATURES
     -- ═══════════════════════════════════════
     Inventory = {},                 -- Items spéciaux

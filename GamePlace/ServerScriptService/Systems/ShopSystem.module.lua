@@ -25,6 +25,7 @@ local ShopProducts = nil
 local EconomySystem = nil
 local NetworkSetup = nil
 local DataService = nil
+local LuckyBlockSystem = nil
 
 -- Mapping: ProductId → { Cash = number, CategoryId = string, DisplayName = string }
 local _productMap = {}
@@ -48,6 +49,7 @@ function ShopSystem:Init(services)
     EconomySystem = services.EconomySystem
     NetworkSetup = services.NetworkSetup
     DataService = services.DataService
+    LuckyBlockSystem = services.LuckyBlockSystem
 
     if not EconomySystem then
         warn("[ShopSystem] EconomySystem requis! Le shop ne fonctionnera pas sans.")
@@ -169,6 +171,16 @@ function ShopSystem:_SetupProcessReceipt()
                 print(string.format("[ShopSystem] +$%d accordé à %s (produit: %s)",
                     productInfo.Cash, player.Name, productInfo.DisplayName))
             end
+
+            if productInfo.LuckyBlocks and productInfo.LuckyBlocks > 0 then
+                if LuckyBlockSystem then
+                    LuckyBlockSystem:AddLuckyBlocks(player, productInfo.LuckyBlocks)
+                    print(string.format("[ShopSystem] +%d Lucky Blocks accordé à %s (produit: %s)",
+                        productInfo.LuckyBlocks, player.Name, productInfo.DisplayName))
+                else
+                    warn("[ShopSystem] LuckyBlockSystem non injecté! Lucky Blocks non accordés.")
+                end
+            end
         end)
 
         if not success then
@@ -203,6 +215,7 @@ function ShopSystem:_BuildProductMap()
             if product.ProductId and product.ProductId > 0 then
                 _productMap[product.ProductId] = {
                     Cash = product.Cash,
+                    LuckyBlocks = product.LuckyBlocks,
                     Robux = product.Robux,
                     DisplayName = product.DisplayName,
                     CategoryId = category.Id,

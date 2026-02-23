@@ -50,6 +50,27 @@ local ShopProducts = {
             },
         },
 
+        {
+            Id = "LuckyBlocks",
+            DisplayName = "LUCKY BLOCKS",
+            Icon = "rbxassetid://0",
+            Order = 2,
+            Products = {
+                {
+                    ProductId = 3543915022,        -- À renseigner après création sur Roblox
+                    LuckyBlocks = 1,
+                    Robux = 49,
+                    DisplayName = "1 Lucky Block",
+                },
+                {
+                    ProductId = 3543915185,        -- À renseigner après création sur Roblox
+                    LuckyBlocks = 3,
+                    Robux = 99,           -- ~33% discount vs x3
+                    DisplayName = "3 Lucky Blocks",
+                },
+            },
+        },
+
         --[[
         {
             Id = "GamePasses",

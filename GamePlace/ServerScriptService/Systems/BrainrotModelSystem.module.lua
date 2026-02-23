@@ -407,7 +407,7 @@ function BrainrotModelSystem:CreateBrainrotModel(player, slotIndex, brainrotData
         proximityPrompt:SetAttribute("OwnerId", player.UserId)
         proximityPrompt:SetAttribute("SlotId", slotIndex)
 
-        print(string.format("[BrainrotModelSystem] ProximityPrompt ajouté au Brainrot de %d (slot %d)", player.UserId, slotIndex))
+        -- print(string.format("[BrainrotModelSystem] ProximityPrompt ajouté au Brainrot de %d (slot %d)", player.UserId, slotIndex))
     end
 
     -- 9. Désactiver les collisions pour permettre de passer à travers

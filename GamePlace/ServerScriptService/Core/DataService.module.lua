@@ -44,7 +44,7 @@ function DataService:Init(services)
         return
     end
     
-    print("[DataService] Initialisation...")
+    -- print("[DataService] Initialisation...")
     
     -- Phase 6: stocker NetworkSetup pour SyncCodex après UnlockCodexEntry
     if services and services.NetworkSetup then
@@ -58,7 +58,7 @@ function DataService:Init(services)
     
     if success then
         dataStore = result
-        print("[DataService] DataStore connecté: " .. GameConfig.DataStore.Name)
+        -- print("[DataService] DataStore connecté: " .. GameConfig.DataStore.Name)
     else
         warn("[DataService] Impossible de créer DataStore: " .. tostring(result))
         warn("[DataService] Mode hors-ligne activé (données non persistantes)")
@@ -68,7 +68,7 @@ function DataService:Init(services)
     self:_StartAutoSave()
     
     self._initialized = true
-    print("[DataService] Initialisé!")
+    -- print("[DataService] Initialisé!")
 end
 
 --[[
@@ -80,7 +80,7 @@ function DataService:LoadPlayerData(player)
     local userId = player.UserId
     local key = "Player_" .. userId
     
-    print("[DataService] Chargement des données pour " .. player.Name .. " (ID: " .. userId .. ")")
+    -- print("[DataService] Chargement des données pour " .. player.Name .. " (ID: " .. userId .. ")")
     
     -- Tenter de charger depuis DataStore
     local data = nil
@@ -106,7 +106,7 @@ function DataService:LoadPlayerData(player)
     
     -- Si pas de données, utiliser les données par défaut
     if data == nil then
-        print("[DataService] Nouveau joueur ou données vides, utilisation des défauts")
+        -- print("[DataService] Nouveau joueur ou données vides, utilisation des défauts")
         data = self:_DeepCopy(DefaultPlayerData)
     else
         -- Appliquer les migrations si nécessaire
@@ -116,7 +116,7 @@ function DataService:LoadPlayerData(player)
     -- Mettre en cache
     self._cache[userId] = data
     
-    print("[DataService] Données chargées pour " .. player.Name)
+    -- print("[DataService] Données chargées pour " .. player.Name)
     self.OnPlayerDataLoaded:Fire(player, data)
     
     return data
@@ -137,10 +137,10 @@ function DataService:SavePlayerData(player)
         return false
     end
     
-    print("[DataService] Sauvegarde des données pour " .. player.Name)
+    -- print("[DataService] Sauvegarde des données pour " .. player.Name)
     
     if not dataStore then
-        print("[DataService] Mode hors-ligne, sauvegarde ignorée")
+        -- print("[DataService] Mode hors-ligne, sauvegarde ignorée")
         return true -- Pas d'erreur, juste pas de DataStore
     end
     
@@ -151,7 +151,7 @@ function DataService:SavePlayerData(player)
         end)
         
         if success then
-            print("[DataService] Données sauvegardées pour " .. player.Name)
+            -- print("[DataService] Données sauvegardées pour " .. player.Name)
             self.OnPlayerDataSaved:Fire(player)
             return true
         else
@@ -249,7 +249,7 @@ end
 ]]
 function DataService:CleanupPlayer(player)
     self._cache[player.UserId] = nil
-    print("[DataService] Cache nettoyé pour " .. player.Name)
+    -- print("[DataService] Cache nettoyé pour " .. player.Name)
 end
 
 --[[
@@ -265,13 +265,13 @@ function DataService:_MigrateData(data)
         return data -- Pas de migration nécessaire
     end
     
-    print("[DataService] Migration des données de v" .. currentVersion .. " vers v" .. latestVersion)
+    -- print("[DataService] Migration des données de v" .. currentVersion .. " vers v" .. latestVersion)
     
     -- Ajouter les nouvelles clés manquantes
     for key, value in pairs(DefaultPlayerData) do
         if data[key] == nil then
             data[key] = self:_DeepCopy(value)
-            print("[DataService] Ajout de la clé manquante: " .. key)
+            -- print("[DataService] Ajout de la clé manquante: " .. key)
         end
     end
     
@@ -307,7 +307,7 @@ function DataService:_StartAutoSave()
         while true do
             task.wait(GameConfig.DataStore.AutoSaveInterval)
             
-            print("[DataService] Auto-save en cours...")
+            -- print("[DataService] Auto-save en cours...")
             
             for _, player in ipairs(Players:GetPlayers()) do
                 if self._cache[player.UserId] then
@@ -315,11 +315,11 @@ function DataService:_StartAutoSave()
                 end
             end
             
-            print("[DataService] Auto-save terminé")
+            -- print("[DataService] Auto-save terminé")
         end
     end)
     
-    print("[DataService] Auto-save démarré (intervalle: " .. GameConfig.DataStore.AutoSaveInterval .. "s)")
+    -- print("[DataService] Auto-save démarré (intervalle: " .. GameConfig.DataStore.AutoSaveInterval .. "s)")
 end
 
 --[[
@@ -377,7 +377,7 @@ function DataService:UnlockCodexEntry(player, setName)
     end
     
     playerData.CodexUnlocked[setName] = {Head = true, Body = true, Legs = true}
-    print("[DataService] Codex débloqué: " .. player.Name .. " - " .. setName .. " (3/3)")
+    -- print("[DataService] Codex débloqué: " .. player.Name .. " - " .. setName .. " (3/3)")
     self:_SendCodexToClient(player)
     return true
 end

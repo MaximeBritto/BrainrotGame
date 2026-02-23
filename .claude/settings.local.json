@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "WebFetch(domain:devforum.roblox.com)"
+      "WebFetch(domain:devforum.roblox.com)",
+      "Bash(find:*)",
+      "Bash(git diff:*)"
     ]
   }
 }

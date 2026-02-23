@@ -26,7 +26,7 @@ local STEAL_MAX_DISTANCE = GameConfig.StealMaxDistance or 15
 -- @param services table - { BrainrotModelSystem, PlayerService, PlacementSystem }
 ---
 function StealSystem:Init(services)
-	print("[StealSystem] Initialisation...")
+	-- print("[StealSystem] Initialisation...")
 	if services then
 		BrainrotModelSystem = services.BrainrotModelSystem
 		PlayerService = services.PlayerService
@@ -36,7 +36,7 @@ function StealSystem:Init(services)
 	if not remotes then
 		warn("[StealSystem] Remotes introuvable!")
 	end
-	print("[StealSystem] Initialisé!")
+	-- print("[StealSystem] Initialisé!")
 end
 
 ---
@@ -48,8 +48,8 @@ end
 ---
 function StealSystem:ExecuteSteal(thief, ownerId, slotId)
 	local thiefId = thief.UserId
-	print(string.format("[StealSystem] ExecuteSteal - thief: %s (id: %d), ownerId: %d, slotId: %s",
-		thief.Name, thiefId, ownerId, tostring(slotId)))
+	-- print(string.format("[StealSystem] ExecuteSteal - thief: %s (id: %d), ownerId: %d, slotId: %s",
+	-- 	thief.Name, thiefId, ownerId, tostring(slotId)))
 
 	-- 0. On ne peut pas se voler soi-même
 	if thiefId == ownerId then
@@ -171,8 +171,8 @@ function StealSystem:ExecuteSteal(thief, ownerId, slotId)
 		Message = "Brainrot volé! Allez le placer dans votre base (E sur un slot vide)."
 	})
 
-	print(string.format("[StealSystem] %s a volé le Brainrot de %s (slot %d) - porté en main",
-		thief.Name, owner.Name, slotId))
+	-- print(string.format("[StealSystem] %s a volé le Brainrot de %s (slot %d) - porté en main",
+	-- 	thief.Name, owner.Name, slotId))
 
 	return true
 end
@@ -237,7 +237,7 @@ function StealSystem:PlaceStolenBrainrot(player, slotIndex)
 		Message = "Brainrot placé dans votre base!"
 	})
 
-	print(string.format("[StealSystem] %s a placé le Brainrot volé dans le slot %d", player.Name, slotIndex))
+	-- print(string.format("[StealSystem] %s a placé le Brainrot volé dans le slot %d", player.Name, slotIndex))
 
 	return true
 end
@@ -313,7 +313,7 @@ function StealSystem:_AttachBrainrotToHand(player, carriedData)
 	model.Parent = character
 	character:SetAttribute("CarryingBrainrot", true)
 
-	print(string.format("[StealSystem] Modèle porté soudé à la main de %s (visible par tous)", player.Name))
+	-- print(string.format("[StealSystem] Modèle porté soudé à la main de %s (visible par tous)", player.Name))
 end
 
 ---

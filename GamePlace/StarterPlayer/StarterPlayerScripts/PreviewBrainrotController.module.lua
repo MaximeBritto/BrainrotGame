@@ -59,7 +59,7 @@ function PreviewBrainrotController:Init()
         end
     end)
 
-    print("[PreviewBrainrotController] Initialisé!")
+    -- print("[PreviewBrainrotController] Initialisé!")
 end
 
 -- ═══════════════════════════════════════════════════════
@@ -137,7 +137,7 @@ function PreviewBrainrotController:UpdatePreview(pieces)
         for _, desc in ipairs(model:GetDescendants()) do
             if desc:IsA("BasePart") then totalParts = totalParts + 1 end
         end
-        print(string.format("[PreviewBrainrotController] Preview créé avec %d part(s)", totalParts))
+        -- print(string.format("[PreviewBrainrotController] Preview créé avec %d part(s)", totalParts))
     end
 
     -- Démarrer le suivi
@@ -173,7 +173,7 @@ local function _MoveTemplateToModel(templateModel, targetModel)
     end
 
     if DEBUG_PREVIEW then
-        print(string.format("[PreviewBrainrotController] Template '%s' : %d part(s) déplacée(s)", templateModel.Name, partsMoved))
+        -- print(string.format("[PreviewBrainrotController] Template '%s' : %d part(s) déplacée(s)", templateModel.Name, partsMoved))
     end
 
     templateModel:Destroy()
@@ -241,9 +241,9 @@ function PreviewBrainrotController:_AssemblePreview(pieces)
     if not headTemplate and not bodyTemplate and not legsTemplate then
         warn("[PreviewBrainrotController] Aucun template trouvé pour les pièces")
         if DEBUG_PREVIEW then
-            print("[PreviewBrainrotController] DEBUG pieces:", pieces and #pieces or 0)
+            -- print("[PreviewBrainrotController] DEBUG pieces:", pieces and #pieces or 0)
             for i, p in ipairs(pieces or {}) do
-                print("  ", i, p.SetName, p.PieceType)
+                -- print("  ", i, p.SetName, p.PieceType)
             end
         end
         return nil
@@ -276,7 +276,7 @@ function PreviewBrainrotController:_AssemblePreview(pieces)
         end
     end
     if DEBUG_PREVIEW then
-        print(string.format("[PreviewBrainrotController] Total parts dans le modèle: %d (scale %.0f%%)", partCount, PREVIEW_SCALE * 100))
+        -- print(string.format("[PreviewBrainrotController] Total parts dans le modèle: %d (scale %.0f%%)", partCount, PREVIEW_SCALE * 100))
     end
 
     -- 7. Positionner et connecter (ordre: Legs en bas → Body au milieu → Head en haut)
@@ -381,8 +381,8 @@ function PreviewBrainrotController:_AssemblePreview(pieces)
     end
 
     if DEBUG_PREVIEW then
-        print(string.format("[PreviewBrainrotController] Assemblage OK - Head:%s Body:%s Legs:%s",
-            tostring(headPart ~= nil), tostring(bodyPart ~= nil), tostring(legsPart ~= nil)))
+        -- print(string.format("[PreviewBrainrotController] Assemblage OK - Head:%s Body:%s Legs:%s",
+        --     tostring(headPart ~= nil), tostring(bodyPart ~= nil), tostring(legsPart ~= nil)))
     end
 
     return model

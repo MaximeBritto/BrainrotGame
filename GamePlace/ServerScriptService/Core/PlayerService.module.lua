@@ -135,6 +135,11 @@ function PlayerService:OnPlayerJoin(player)
     elseif remotes and remotes.SyncCodex then
         remotes.SyncCodex:FireClient(player, playerData.CodexUnlocked or {})
     end
+
+    -- Envoyer les données Lucky Blocks au client
+    if remotes.SyncLuckyBlockData then
+        remotes.SyncLuckyBlockData:FireClient(player, { Count = playerData.LuckyBlocks or 0 })
+    end
     
     -- print("[PlayerService] Joueur initialisé: " .. player.Name)
 end

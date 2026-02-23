@@ -220,7 +220,7 @@ function UIController:ShowNotification(notifType, message, duration)
         notif:Destroy()
     end)
     
-    print("[UIController] Notification: [" .. notifType .. "] " .. message)
+    -- print("[UIController] Notification: [" .. notifType .. "] " .. message)
 end
 
 --[[

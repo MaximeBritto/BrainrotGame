@@ -23,7 +23,7 @@ function CodexService:Init(services)
         return
     end
     
-    print("[CodexService] Initialisation...")
+    -- print("[CodexService] Initialisation...")
     
     DataService = services.DataService
     NetworkSetup = services.NetworkSetup
@@ -33,7 +33,7 @@ function CodexService:Init(services)
     end
     
     self._initialized = true
-    print("[CodexService] Initialisé")
+    -- print("[CodexService] Initialisé")
 end
 
 --[[

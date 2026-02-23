@@ -66,6 +66,8 @@ local Constants = {
         PlaceStolenBrainrot = "PlaceStolenBrainrot", -- Phase 8: Placer brainrot volé sur un slot
         BatHit = "BatHit",                          -- Phase 8: Coup de batte
         RequestShopPurchase = "RequestShopPurchase",   -- Phase 9: Achat shop Robux
+        BuyLuckyBlock = "BuyLuckyBlock",               -- Lucky Block: Déclenche achat Robux
+        OpenLuckyBlock = "OpenLuckyBlock",             -- Lucky Block: Ouvrir un Lucky Block
 
         -- Serveur → Client
         SyncPlayerData = "SyncPlayerData",
@@ -76,6 +78,8 @@ local Constants = {
         SyncPlacedBrainrots = "SyncPlacedBrainrots",  -- Phase 8: Sync Brainrots placés
         SyncCarriedBrainrot = "SyncCarriedBrainrot", -- Phase 8: Sync état brainrot porté
         SyncStunState = "SyncStunState",            -- Phase 8: État d'assommage
+        SyncLuckyBlockData = "SyncLuckyBlockData", -- Lucky Block: Sync compteur
+        LuckyBlockReveal = "LuckyBlockReveal",     -- Lucky Block: Résultat pour animation
 
         -- RemoteFunctions
         GetFullPlayerData = "GetFullPlayerData",

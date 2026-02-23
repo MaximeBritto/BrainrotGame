@@ -39,7 +39,7 @@ function DoorSystem:Init(services)
         return
     end
     
-    print("[DoorSystem] Initialisation...")
+    -- print("[DoorSystem] Initialisation...")
     
     -- Récupérer les services
     BaseSystem = services.BaseSystem
@@ -56,7 +56,7 @@ function DoorSystem:Init(services)
     self:_StartDoorUpdateLoop()
     
     self._initialized = true
-    print("[DoorSystem] Initialisé!")
+    -- print("[DoorSystem] Initialisé!")
 end
 
 --[[
@@ -81,7 +81,7 @@ function DoorSystem:_SetupCollisionGroups()
         )
     end)
     
-    print("[DoorSystem] CollisionGroups configurés")
+    -- print("[DoorSystem] CollisionGroups configurés")
 end
 
 --[[
@@ -121,7 +121,7 @@ function DoorSystem:_InitializeAllDoors()
         end
     end
     
-    print("[DoorSystem] " .. doorCount .. " porte(s) initialisée(s) (ouvertes)")
+    -- print("[DoorSystem] " .. doorCount .. " porte(s) initialisée(s) (ouvertes)")
 end
 
 --[[
@@ -169,7 +169,7 @@ function DoorSystem:ActivateDoor(player)
     -- Synchroniser avec le client
     self:_SyncDoorState(player)
     
-    print("[DoorSystem] Porte fermée pour " .. player.Name .. " pendant " .. GameConfig.Door.CloseDuration .. "s")
+    -- print("[DoorSystem] Porte fermée pour " .. player.Name .. " pendant " .. GameConfig.Door.CloseDuration .. "s")
     
     return Constants.ActionResult.Success
 end
@@ -350,7 +350,7 @@ function DoorSystem:_StartDoorUpdateLoop()
                             -- Synchroniser avec le client
                             self:_SyncDoorState(player)
                             
-                            print("[DoorSystem] Porte rouverte pour " .. player.Name)
+                            -- print("[DoorSystem] Porte rouverte pour " .. player.Name)
                         end
                     end
                 end
@@ -358,7 +358,7 @@ function DoorSystem:_StartDoorUpdateLoop()
         end
     end)
     
-    print("[DoorSystem] Loop de mise à jour démarrée")
+    -- print("[DoorSystem] Loop de mise à jour démarrée")
 end
 
 --[[

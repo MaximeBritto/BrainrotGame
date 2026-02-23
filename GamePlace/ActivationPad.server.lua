@@ -24,7 +24,7 @@ local DoorSystem = require(Systems["DoorSystem.module"])
 local Core = ServerScriptService:WaitForChild("Core")
 local NetworkSetup = require(Core["NetworkSetup.module"])
 
-print("[ActivationPad] Script chargé pour: " .. pad:GetFullName())
+-- print("[ActivationPad] Script chargé pour: " .. pad:GetFullName())
 
 -- Cooldown par joueur (éviter le spam)
 local cooldowns = {}
@@ -57,7 +57,7 @@ pad.Touched:Connect(function(hit)
     
     cooldowns[player.UserId] = currentTime
     
-    print("[ActivationPad] " .. player.Name .. " a touché le pad")
+    -- print("[ActivationPad] " .. player.Name .. " a touché le pad")
     
     -- Activer la porte via DoorSystem
     local result = DoorSystem:ActivateDoor(player)
@@ -73,7 +73,7 @@ pad.Touched:Connect(function(hit)
                 Duration = 3
             })
         end
-        print("[ActivationPad] Porte activée pour " .. player.Name)
+        -- print("[ActivationPad] Porte activée pour " .. player.Name)
         
     elseif result == "OnCooldown" then
         local doorState = DoorSystem:GetDoorState(player)
@@ -96,4 +96,4 @@ pad.Touched:Connect(function(hit)
     end
 end)
 
-print("[ActivationPad] Prêt à détecter les touches")
+-- print("[ActivationPad] Prêt à détecter les touches")

@@ -117,9 +117,9 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 
 	if targetPlayer then
 		remotes.BatHit:FireServer(targetPlayer.UserId)
-		print(string.format("[BatController] Coup envoyé vers %s", targetPlayer.Name))
+		-- print(string.format("[BatController] Coup envoyé vers %s", targetPlayer.Name))
 	else
-		print("[BatController] Aucun joueur à portée")
+		-- print("[BatController] Aucun joueur à portée")
 	end
 end)
 

@@ -30,7 +30,7 @@ function PlacementSystem:Init(services)
         return
     end
     
-    print("[PlacementSystem] Initialisation...")
+    -- print("[PlacementSystem] Initialisation...")
     
     -- Récupérer les services injectés
     DataService = services.DataService
@@ -47,7 +47,7 @@ function PlacementSystem:Init(services)
     GameConfig = require(Config:WaitForChild("GameConfig.module"))
     
     self._initialized = true
-    print("[PlacementSystem] Initialisé")
+    -- print("[PlacementSystem] Initialisé")
 end
 
 --[[
@@ -167,7 +167,7 @@ function PlacementSystem:RemoveBrainrot(player, slotIndex)
         BrainrotModelSystem:DestroyBrainrotModel(player, slotIndex)
     end
     
-    print("[PlacementSystem] Brainrot retiré: " .. player.Name .. " slot " .. slotIndex)
+    -- print("[PlacementSystem] Brainrot retiré: " .. player.Name .. " slot " .. slotIndex)
     
     return true
 end

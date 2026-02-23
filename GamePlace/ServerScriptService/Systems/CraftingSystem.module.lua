@@ -33,7 +33,7 @@ function CraftingSystem:Init(services)
         return
     end
     
-    print("[CraftingSystem] Initialisation...")
+    -- print("[CraftingSystem] Initialisation...")
     
     -- Récupérer les services injectés
     DataService = services.DataService
@@ -55,7 +55,7 @@ function CraftingSystem:Init(services)
     Constants = require(Shared:WaitForChild("Constants.module"))
     
     self._initialized = true
-    print("[CraftingSystem] Initialisé")
+    -- print("[CraftingSystem] Initialisé")
 end
 
 --[[

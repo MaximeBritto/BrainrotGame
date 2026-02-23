@@ -28,7 +28,7 @@ function InventorySystem:Init(services)
         return
     end
     
-    print("[InventorySystem] Initialisation...")
+    -- print("[InventorySystem] Initialisation...")
     
     -- Récupérer les services injectés
     PlayerService = services.PlayerService
@@ -50,7 +50,7 @@ function InventorySystem:Init(services)
     Constants = require(Shared:WaitForChild("Constants.module"))
     
     self._initialized = true
-    print("[InventorySystem] Initialisé")
+    -- print("[InventorySystem] Initialisé")
 end
 
 --[[
@@ -169,9 +169,9 @@ function InventorySystem:TryPickupPiece(player, pieceId)
     ArenaSystem:RemovePiece(piece)
     
     if replacedPieceData then
-        print("[InventorySystem] " .. player.Name .. " a remplacé " .. replacedPieceData.DisplayName .. " par " .. displayName .. " " .. pieceType)
+        -- print("[InventorySystem] " .. player.Name .. " a remplacé " .. replacedPieceData.DisplayName .. " par " .. displayName .. " " .. pieceType)
     else
-        print("[InventorySystem] " .. player.Name .. " a ramassé: " .. displayName .. " " .. pieceType)
+        -- print("[InventorySystem] " .. player.Name .. " a ramassé: " .. displayName .. " " .. pieceType)
     end
     
     return true, Constants.ActionResult.Success, pieceData, replacedPieceData

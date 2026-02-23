@@ -166,7 +166,7 @@ ProximityPromptService.PromptTriggered:Connect(function(promptObject, playerWhoT
 
 		if ownerId and slotId then
 			remotes.StealBrainrot:FireServer(ownerId, slotId)
-			print(string.format("[StealController] Vol envoyé au serveur (owner: %d, slot: %d)", ownerId, slotId))
+			-- print(string.format("[StealController] Vol envoyé au serveur (owner: %d, slot: %d)", ownerId, slotId))
 		end
 		return
 	end
@@ -178,7 +178,7 @@ ProximityPromptService.PromptTriggered:Connect(function(promptObject, playerWhoT
 		local slotIndex = promptObject:GetAttribute("SlotIndex")
 		if slotIndex then
 			remotes.PlaceStolenBrainrot:FireServer(slotIndex)
-			print(string.format("[StealController] Placement envoyé au serveur (slot: %d)", slotIndex))
+			-- print(string.format("[StealController] Placement envoyé au serveur (slot: %d)", slotIndex))
 		end
 		return
 	end

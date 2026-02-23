@@ -38,7 +38,7 @@ function EconomySystem:Init(services)
         return
     end
     
-    print("[EconomySystem] Initialisation...")
+    -- print("[EconomySystem] Initialisation...")
     
     -- Charger Config/Data ici pour ne pas bloquer le require() du module
     local Config = ReplicatedStorage:WaitForChild("Config")
@@ -64,7 +64,7 @@ function EconomySystem:Init(services)
     self:_StartRevenueLoop()
     
     self._initialized = true
-    print("[EconomySystem] Initialisé!")
+    -- print("[EconomySystem] Initialisé!")
 end
 
 -- ═══════════════════════════════════════════════════════
@@ -88,7 +88,7 @@ function EconomySystem:AddCash(player, amount)
     -- Incrémenter les stats
     DataService:IncrementValue(player, "Stats.TotalCashEarned", amount)
     
-    print("[EconomySystem] " .. player.Name .. " +$" .. amount .. " (total: $" .. newAmount .. ")")
+    -- print("[EconomySystem] " .. player.Name .. " +$" .. amount .. " (total: $" .. newAmount .. ")")
     
     -- Sync vers le client
     self:_SyncCash(player, newAmount)
@@ -111,13 +111,13 @@ function EconomySystem:RemoveCash(player, amount)
     local currentCash = self:GetCash(player)
     
     if currentCash < amount then
-        print("[EconomySystem] " .. player.Name .. " n'a pas assez d'argent ($" .. currentCash .. " < $" .. amount .. ")")
+        -- print("[EconomySystem] " .. player.Name .. " n'a pas assez d'argent ($" .. currentCash .. " < $" .. amount .. ")")
         return false
     end
     
     local newAmount = DataService:IncrementValue(player, "Cash", -amount)
     
-    print("[EconomySystem] " .. player.Name .. " -$" .. amount .. " (total: $" .. newAmount .. ")")
+    -- print("[EconomySystem] " .. player.Name .. " -$" .. amount .. " (total: $" .. newAmount .. ")")
     
     -- Sync vers le client
     self:_SyncCash(player, newAmount)
@@ -196,7 +196,7 @@ function EconomySystem:CollectSlotCash(player, slotIndex)
         -- Ajouter au portefeuille
         self:AddCash(player, amount)
         
-        print("[EconomySystem] " .. player.Name .. " a collecté $" .. amount .. " du slot " .. slotIndex)
+        -- print("[EconomySystem] " .. player.Name .. " a collecté $" .. amount .. " du slot " .. slotIndex)
         
         -- Sync le SlotCash vers le client
         self:_SyncSlotCash(player, data.SlotCash)
@@ -225,7 +225,7 @@ function EconomySystem:CollectAllSlotCash(player)
     
     if totalCollected > 0 then
         self:AddCash(player, totalCollected)
-        print("[EconomySystem] " .. player.Name .. " a collecté un total de $" .. totalCollected)
+        -- print("[EconomySystem] " .. player.Name .. " a collecté un total de $" .. totalCollected)
         
         -- Sync le SlotCash vers le client
         self:_SyncSlotCash(player, data.SlotCash)
@@ -268,7 +268,7 @@ function EconomySystem:_StartRevenueLoop()
     self._revenueLoopRunning = true
     
     task.spawn(function()
-        print("[EconomySystem] Revenue loop démarrée (tick: " .. GameConfig.Economy.RevenueTickRate .. "s)")
+        -- print("[EconomySystem] Revenue loop démarrée (tick: " .. GameConfig.Economy.RevenueTickRate .. "s)")
         
         while self._revenueLoopRunning do
             task.wait(GameConfig.Economy.RevenueTickRate)
@@ -397,7 +397,7 @@ function EconomySystem:BuyNextSlot(player)
     
     -- Vérifier le maximum
     if nextSlot > GameConfig.Base.MaxSlots then
-        print("[EconomySystem] " .. player.Name .. " a déjà le maximum de slots (" .. GameConfig.Base.MaxSlots .. ")")
+        -- print("[EconomySystem] " .. player.Name .. " a déjà le maximum de slots (" .. GameConfig.Base.MaxSlots .. ")")
         return "MaxSlotsReached", nil
     end
     
@@ -410,7 +410,7 @@ function EconomySystem:BuyNextSlot(player)
     
     -- Vérifier l'argent
     if not self:CanAfford(player, price) then
-        print("[EconomySystem] " .. player.Name .. " n'a pas assez d'argent pour le slot " .. nextSlot .. " ($" .. price .. ")")
+        -- print("[EconomySystem] " .. player.Name .. " n'a pas assez d'argent pour le slot " .. nextSlot .. " ($" .. price .. ")")
         return "NotEnoughMoney", nil
     end
     
@@ -420,7 +420,7 @@ function EconomySystem:BuyNextSlot(player)
     -- Incrémenter les slots possédés
     local newSlotCount = DataService:IncrementValue(player, "OwnedSlots", 1)
     
-    print("[EconomySystem] " .. player.Name .. " a acheté le slot " .. nextSlot .. " pour $" .. price .. " (total: " .. newSlotCount .. " slots)")
+    -- print("[EconomySystem] " .. player.Name .. " a acheté le slot " .. nextSlot .. " pour $" .. price .. " (total: " .. newSlotCount .. " slots)")
     
     -- Vérifier le déblocage d'étage
     local unlockedFloor = self:CheckFloorUnlock(player, newSlotCount)
@@ -465,7 +465,7 @@ function EconomySystem:CheckFloorUnlock(player, currentSlots)
             -- Étage atteint exactement maintenant!
             unlockedFloor = floor
             
-            print("[EconomySystem] " .. player.Name .. " a débloqué l'étage " .. floor .. " !")
+            -- print("[EconomySystem] " .. player.Name .. " a débloqué l'étage " .. floor .. " !")
             
             -- Appeler BaseSystem pour afficher l'étage
             if BaseSystem and BaseSystem.UnlockFloor then

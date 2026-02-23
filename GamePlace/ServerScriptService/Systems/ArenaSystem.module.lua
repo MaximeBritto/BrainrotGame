@@ -101,7 +101,7 @@ function ArenaSystem:Init(services)
     self:_StartCleanupLoop()
     
     self._initialized = true
-    print("[ArenaSystem] Initialisé - Spawn actif avec " .. #self._cannons .. " canons")
+    -- print("[ArenaSystem] Initialisé - Spawn actif avec " .. #self._cannons .. " canons")
 end
 
 --[[
@@ -248,7 +248,7 @@ function ArenaSystem:_InitializeCannons(arena)
                     }
                     
                     table.insert(self._cannons, cannonData)
-                    print("[ArenaSystem] Canon trouvé: " .. child.Name .. " à " .. tostring(firePosition))
+                    -- print("[ArenaSystem] Canon trouvé: " .. child.Name .. " à " .. tostring(firePosition))
                 else
                     warn("[ArenaSystem] Canon " .. child.Name .. " - impossible de déterminer la position de tir")
                 end
@@ -1140,7 +1140,7 @@ function ArenaSystem:SpawnPieceFromData(pieceData, position)
 
     local piece = self:_SpawnSpecificPiece(setName, pieceType, pieceInfo, templateName, template, dropPosition)
     if piece then
-        print("[ArenaSystem] Pièce droppée: " .. setName .. " " .. pieceType .. " à " .. tostring(position))
+        -- print("[ArenaSystem] Pièce droppée: " .. setName .. " " .. pieceType .. " à " .. tostring(position))
     end
 
     return piece
