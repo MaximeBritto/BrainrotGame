@@ -44,6 +44,8 @@ local GameConfig = {
     Door = {
         CloseDuration = 30,                 -- Durée fermeture en secondes
         CooldownAfterOpen = 0,              -- Cooldown après ouverture (0 = immédiat)
+        DoorOpenProductId = 3544540787,              -- Developer Product ID (à créer sur roblox.com, 80 Robux)
+        DoorOpenRobux = 80,                 -- Prix en Robux pour ouvrir la porte d'un autre joueur
     },
     
     -- ═══════════════════════════════════════

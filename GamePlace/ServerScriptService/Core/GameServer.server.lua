@@ -522,6 +522,7 @@ if ShopSystem and EconomySystem then
         NetworkSetup = NetworkSetup,
         DataService = DataService,
         LuckyBlockSystem = LuckyBlockSystem,
+        DoorSystem = DoorSystem,
     })
     -- print("[GameServer] ShopSystem: OK")
 

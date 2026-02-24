@@ -255,6 +255,28 @@ function NetworkHandler:_ConnectHandlers()
         end)
     end
 
+    -- Ouverture de porte payante (Robux)
+    if remotes.RequestDoorOpen then
+        remotes.RequestDoorOpen.OnServerEvent:Connect(function(player, targetOwnerId)
+            if type(targetOwnerId) == "string" then
+                targetOwnerId = tonumber(targetOwnerId)
+            end
+            if not targetOwnerId or type(targetOwnerId) ~= "number" then return end
+
+            local success, err = pcall(function()
+                if DoorSystem then
+                    DoorSystem:RequestDoorOpen(player, targetOwnerId)
+                else
+                    warn("[NetworkHandler] DoorSystem non initialisé!")
+                end
+            end)
+
+            if not success then
+                warn("[NetworkHandler] Erreur RequestDoorOpen: " .. tostring(err))
+            end
+        end)
+    end
+
     -- Ouvrir Lucky Block (Lucky Block)
     if remotes.OpenLuckyBlock then
         remotes.OpenLuckyBlock.OnServerEvent:Connect(function(player)

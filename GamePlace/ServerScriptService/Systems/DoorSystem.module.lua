@@ -11,6 +11,7 @@
 
 local Players = game:GetService("Players")
 local PhysicsService = game:GetService("PhysicsService")
+local MarketplaceService = game:GetService("MarketplaceService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Modules
@@ -28,6 +29,7 @@ local NetworkSetup = nil
 local DoorSystem = {}
 DoorSystem._initialized = false
 DoorSystem._doorStates = {} -- {[userId] = {State, CloseTime, ReopenTime}}
+DoorSystem._pendingDoorOpen = {} -- {[buyerUserId] = targetOwnerUserId}
 
 --[[
     Initialise le système
@@ -313,6 +315,144 @@ function DoorSystem:CanPlayerPass(player, base)
     
     -- Base sans propriétaire, tout le monde peut passer
     return true
+end
+
+-- ═══════════════════════════════════════════════════════
+-- OUVERTURE DE PORTE PAYANTE (Robux)
+-- ═══════════════════════════════════════════════════════
+
+--[[
+    Demande d'ouverture de porte payante (appelé par NetworkHandler)
+    @param player: Player - L'acheteur
+    @param targetOwnerId: number - UserId du propriétaire de la base
+]]
+function DoorSystem:RequestDoorOpen(player, targetOwnerId)
+    if not targetOwnerId or type(targetOwnerId) ~= "number" then
+        self:_SendNotification(player, "Error", "Invalid target!")
+        return
+    end
+
+    -- Vérifier que ce n'est pas sa propre base
+    if player.UserId == targetOwnerId then
+        self:_SendNotification(player, "Error", "This is your own base!")
+        return
+    end
+
+    -- Vérifier que la porte cible est bien fermée
+    local doorState = self._doorStates[targetOwnerId]
+    if not doorState or doorState.State ~= Constants.DoorState.Closed then
+        self:_SendNotification(player, "Error", "This door is already open!")
+        return
+    end
+
+    -- Vérifier que le ProductId est configuré
+    local productId = GameConfig.Door.DoorOpenProductId
+    if not productId or productId == 0 then
+        warn("[DoorSystem] DoorOpenProductId non configuré!")
+        self:_SendNotification(player, "Error", "Feature not available yet.")
+        return
+    end
+
+    -- Stocker le contexte d'achat
+    self._pendingDoorOpen[player.UserId] = targetOwnerId
+
+    -- Déclencher la fenêtre d'achat Roblox native
+    local success, err = pcall(function()
+        MarketplaceService:PromptProductPurchase(player, productId)
+    end)
+
+    if not success then
+        warn("[DoorSystem] Erreur PromptProductPurchase: " .. tostring(err))
+        self._pendingDoorOpen[player.UserId] = nil
+        self:_SendNotification(player, "Error", "Purchase error. Try again.")
+    end
+end
+
+--[[
+    Traite l'achat confirmé d'ouverture de porte (appelé par ShopSystem.ProcessReceipt)
+    @param player: Player - L'acheteur
+    @return boolean - true si traité avec succès
+]]
+function DoorSystem:ProcessDoorPurchase(player)
+    local targetOwnerId = self._pendingDoorOpen[player.UserId]
+    self._pendingDoorOpen[player.UserId] = nil
+
+    if not targetOwnerId then
+        warn("[DoorSystem] Aucun achat de porte en attente pour " .. player.Name)
+        return false
+    end
+
+    -- Ouvrir la porte cible
+    local opened = self:ForceOpenDoor(targetOwnerId)
+
+    if opened then
+        self:_SendNotification(player, "Success", "Door opened!")
+        -- Notifier le propriétaire aussi
+        local owner = Players:GetPlayerByUserId(targetOwnerId)
+        if owner then
+            self:_SendNotification(owner, "Warning", player.Name .. " paid to open your door!")
+        end
+    else
+        self:_SendNotification(player, "Error", "Door is already open.")
+    end
+
+    return opened
+end
+
+--[[
+    Force l'ouverture de la porte d'un joueur (bypass timer)
+    @param ownerUserId: number - UserId du propriétaire
+    @return boolean - true si la porte a été ouverte
+]]
+function DoorSystem:ForceOpenDoor(ownerUserId)
+    local doorState = self._doorStates[ownerUserId]
+    if not doorState or doorState.State ~= Constants.DoorState.Closed then
+        return false
+    end
+
+    local owner = Players:GetPlayerByUserId(ownerUserId)
+    if not owner then
+        return false
+    end
+
+    local base = BaseSystem:GetPlayerBase(owner)
+    if not base then
+        return false
+    end
+
+    -- Ouvrir la porte
+    self:_OpenDoor(owner, base)
+
+    -- Mettre à jour l'état
+    doorState.State = Constants.DoorState.Open
+
+    -- Mettre à jour runtime
+    local runtimeData = PlayerService:GetRuntimeData(owner)
+    if runtimeData then
+        runtimeData.DoorState = Constants.DoorState.Open
+    end
+
+    -- Synchroniser avec le client du propriétaire
+    self:_SyncDoorState(owner)
+
+    return true
+end
+
+--[[
+    Envoie une notification au client
+    @param player: Player
+    @param notifType: string
+    @param message: string
+]]
+function DoorSystem:_SendNotification(player, notifType, message)
+    local remotes = NetworkSetup:GetAllRemotes()
+    if remotes and remotes.Notification then
+        remotes.Notification:FireClient(player, {
+            Type = notifType,
+            Message = message,
+            Duration = 3,
+        })
+    end
 end
 
 --[[

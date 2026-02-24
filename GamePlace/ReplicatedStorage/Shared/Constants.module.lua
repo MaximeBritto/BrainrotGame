@@ -68,6 +68,7 @@ local Constants = {
         RequestShopPurchase = "RequestShopPurchase",   -- Phase 9: Achat shop Robux
         BuyLuckyBlock = "BuyLuckyBlock",               -- Lucky Block: Déclenche achat Robux
         OpenLuckyBlock = "OpenLuckyBlock",             -- Lucky Block: Ouvrir un Lucky Block
+        RequestDoorOpen = "RequestDoorOpen",           -- Ouvrir la porte d'un autre joueur (Robux)
 
         -- Serveur → Client
         SyncPlayerData = "SyncPlayerData",

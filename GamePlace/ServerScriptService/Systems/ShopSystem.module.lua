@@ -20,12 +20,17 @@ local Players = game:GetService("Players")
 local MarketplaceService = game:GetService("MarketplaceService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+-- Config
+local Config = ReplicatedStorage:WaitForChild("Config")
+local GameConfig = require(Config:WaitForChild("GameConfig.module"))
+
 -- Modules (chargés dans Init)
 local ShopProducts = nil
 local EconomySystem = nil
 local NetworkSetup = nil
 local DataService = nil
 local LuckyBlockSystem = nil
+local DoorSystem = nil
 
 -- Mapping: ProductId → { Cash = number, CategoryId = string, DisplayName = string }
 local _productMap = {}
@@ -50,6 +55,7 @@ function ShopSystem:Init(services)
     NetworkSetup = services.NetworkSetup
     DataService = services.DataService
     LuckyBlockSystem = services.LuckyBlockSystem
+    DoorSystem = services.DoorSystem
 
     if not EconomySystem then
         warn("[ShopSystem] EconomySystem requis! Le shop ne fonctionnera pas sans.")
@@ -153,6 +159,22 @@ function ShopSystem:_SetupProcessReceipt()
             -- Le joueur n'est plus connecté, Roblox réessaiera plus tard
             warn("[ShopSystem] Joueur " .. receiptInfo.PlayerId .. " non trouvé, réessai plus tard")
             return Enum.ProductPurchaseDecision.NotProcessedYet
+        end
+
+        -- 1.5. Vérifier si c'est un achat d'ouverture de porte
+        local doorProductId = GameConfig.Door.DoorOpenProductId
+        if doorProductId and doorProductId > 0 and receiptInfo.ProductId == doorProductId then
+            if DoorSystem then
+                local success, err = pcall(function()
+                    DoorSystem:ProcessDoorPurchase(player)
+                end)
+                if not success then
+                    warn("[ShopSystem] Erreur ProcessDoorPurchase: " .. tostring(err))
+                end
+            else
+                warn("[ShopSystem] DoorSystem non injecté pour achat de porte!")
+            end
+            return Enum.ProductPurchaseDecision.PurchaseGranted
         end
 
         -- 2. Trouver le produit
