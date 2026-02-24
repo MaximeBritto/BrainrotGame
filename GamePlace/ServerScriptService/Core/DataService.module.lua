@@ -393,6 +393,10 @@ function DataService:_SendCodexToClient(player)
             remotes.SyncCodex:FireClient(player, playerData.CodexUnlocked)
         end
     end
+    -- Recalculer le multiplicateur après changement de Codex
+    if self._economySystem then
+        self._economySystem:RefreshMultiplier(player)
+    end
 end
 
 --[[
@@ -401,6 +405,14 @@ end
 ]]
 function DataService:SetCodexService(codexService)
     self._codexService = codexService
+end
+
+--[[
+    Injecte EconomySystem pour recalculer le multiplicateur après changement de Codex
+    @param economySystem: EconomySystem module
+]]
+function DataService:SetEconomySystem(economySystem)
+    self._economySystem = economySystem
 end
 
 return DataService

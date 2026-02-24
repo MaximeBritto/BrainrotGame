@@ -140,6 +140,11 @@ function PlayerService:OnPlayerJoin(player)
     if remotes.SyncLuckyBlockData then
         remotes.SyncLuckyBlockData:FireClient(player, { Count = playerData.LuckyBlocks or 0 })
     end
+
+    -- Calculer et afficher le multiplicateur initial
+    if self.EconomySystem then
+        self.EconomySystem:RefreshMultiplier(player)
+    end
     
     -- print("[PlayerService] Joueur initialisé: " .. player.Name)
 end

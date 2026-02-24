@@ -14,6 +14,13 @@ local GameConfig = {
         RevenuePerBrainrot = 5,             -- $ par seconde par Brainrot placé
         RevenueTickRate = 1,                -- Intervalle en secondes
         SetCompletionBonus = 1000,          -- Bonus pour compléter un set
+
+        -- Multiplicateur de revenus (basé sur le Codex)
+        Multiplier = {
+            BaseMultiplier = 1.0,           -- Multiplicateur de départ
+            CodexRarityThreshold = 0.75,    -- 75% d'une rareté pour le bonus
+            CodexRarityBonus = 0.5,         -- +0.5x par rareté complétée à 75%
+        },
     },
     
     -- ═══════════════════════════════════════

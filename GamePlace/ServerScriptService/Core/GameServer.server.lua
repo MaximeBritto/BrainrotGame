@@ -256,6 +256,8 @@ if EconomySystem then
     })
     -- print("[GameServer] EconomySystem: OK")
     NetworkHandler:UpdateSystems({EconomySystem = EconomySystem})
+    DataService:SetEconomySystem(EconomySystem)
+    PlayerService.EconomySystem = EconomySystem
 else
     warn("[GameServer] EconomySystem non chargé (Phase 3 désactivée):", economyLoadErr or "inconnu")
 end

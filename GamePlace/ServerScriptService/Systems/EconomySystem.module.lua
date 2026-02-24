@@ -17,6 +17,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 -- Modules de configuration (chargés dans Init pour ne pas bloquer le require)
 local GameConfig = nil
 local SlotPrices = nil
+local BrainrotData = nil
 
 -- Services (seront injectés)
 local DataService = nil
@@ -45,6 +46,7 @@ function EconomySystem:Init(services)
     local Data = ReplicatedStorage:WaitForChild("Data")
     GameConfig = require(Config:WaitForChild("GameConfig.module"))
     SlotPrices = require(Data:WaitForChild("SlotPrices.module"))
+    BrainrotData = require(Data:WaitForChild("BrainrotData.module"))
     
     -- Récupérer les services injectés
     DataService = services.DataService
@@ -307,18 +309,18 @@ function EconomySystem:_ProcessPlayerRevenue(player)
         return
     end
     
-    -- Charger BrainrotData pour récupérer les prix des pièces
-    local BrainrotData = require(ReplicatedStorage:WaitForChild("Data"):WaitForChild("BrainrotData.module"))
-    
+    -- Calculer le multiplicateur du joueur (basé sur le Codex)
+    local multiplier = self:CalculatePlayerMultiplier(player)
+
     local totalRevenue = 0
-    
+
     for slotIndex, brainrotData in pairs(data.Brainrots) do
         if brainrotData and brainrotData.HeadSet and brainrotData.BodySet and brainrotData.LegsSet then
             -- Calculer le revenu basé sur les prix des pièces
             local headSetData = BrainrotData.Sets[brainrotData.HeadSet]
             local bodySetData = BrainrotData.Sets[brainrotData.BodySet]
             local legsSetData = BrainrotData.Sets[brainrotData.LegsSet]
-            
+
             local slotRevenue = 0
             if headSetData and headSetData.Head then
                 slotRevenue = slotRevenue + (headSetData.Head.Price or 0)
@@ -329,7 +331,10 @@ function EconomySystem:_ProcessPlayerRevenue(player)
             if legsSetData and legsSetData.Legs then
                 slotRevenue = slotRevenue + (legsSetData.Legs.Price or 0)
             end
-            
+
+            -- Appliquer le multiplicateur
+            slotRevenue = slotRevenue * multiplier
+
             -- Ajouter au slot correspondant
             if slotRevenue > 0 then
                 self:AddSlotCash(player, slotIndex, slotRevenue)
@@ -346,15 +351,85 @@ function EconomySystem:_ProcessPlayerRevenue(player)
     end
 end
 
+-- ═══════════════════════════════════════════════════════
+-- MULTIPLICATEUR DE REVENUS
+-- ═══════════════════════════════════════════════════════
+
 --[[
-    Calcule le multiplicateur de rareté pour un Brainrot
-    @param brainrotData: table
-    @return number
+    Calcule le multiplicateur du joueur basé sur sa progression du Codex.
+    Pour chaque rareté où le joueur a découvert >= 75% des sets, il gagne +0.5x.
+    @param player: Player
+    @return number - Multiplicateur (ex: 1.0, 1.5, 2.0)
 ]]
-function EconomySystem:_GetRarityMultiplier(brainrotData)
-    -- TODO: Récupérer la rareté depuis BrainrotData et appliquer le multiplicateur
-    -- Pour l'instant, retourne 1 (pas de bonus)
-    return 1
+function EconomySystem:CalculatePlayerMultiplier(player)
+    local data = DataService:GetPlayerData(player)
+    if not data or not data.CodexUnlocked then
+        return GameConfig.Economy.Multiplier.BaseMultiplier
+    end
+
+    local threshold = GameConfig.Economy.Multiplier.CodexRarityThreshold
+    local bonus = GameConfig.Economy.Multiplier.CodexRarityBonus
+    local multiplier = GameConfig.Economy.Multiplier.BaseMultiplier
+
+    -- Compter les sets par rareté
+    local rarityCounts = {} -- {[rarity] = {total = n, discovered = n}}
+    for setName, setData in pairs(BrainrotData.Sets) do
+        local rarity = setData.Rarity
+        if not rarityCounts[rarity] then
+            rarityCounts[rarity] = { total = 0, discovered = 0 }
+        end
+        rarityCounts[rarity].total = rarityCounts[rarity].total + 1
+
+        -- Vérifier si le joueur a découvert ce set (au moins 1 part)
+        local codexEntry = data.CodexUnlocked[setName]
+        if codexEntry then
+            local hasAnyPart = false
+            if type(codexEntry) == "boolean" and codexEntry then
+                hasAnyPart = true
+            elseif type(codexEntry) == "table" then
+                hasAnyPart = codexEntry.Head or codexEntry.Body or codexEntry.Legs
+            end
+            if hasAnyPart then
+                rarityCounts[rarity].discovered = rarityCounts[rarity].discovered + 1
+            end
+        end
+    end
+
+    -- Vérifier chaque rareté
+    for rarity, counts in pairs(rarityCounts) do
+        if counts.total > 0 and (counts.discovered / counts.total) >= threshold then
+            multiplier = multiplier + bonus
+        end
+    end
+
+    return multiplier
+end
+
+--[[
+    Recalcule et met à jour l'affichage du multiplicateur pour un joueur.
+    Appelé après chaque changement du Codex.
+    @param player: Player
+]]
+function EconomySystem:RefreshMultiplier(player)
+    local multiplier = self:CalculatePlayerMultiplier(player)
+
+    -- Mettre à jour le BillboardGui sur la base
+    if BaseSystem and BaseSystem.UpdateMultiplierDisplay then
+        local base = BaseSystem:GetPlayerBase(player)
+        if base then
+            BaseSystem:UpdateMultiplierDisplay(base, multiplier)
+        end
+    end
+
+    -- Sync vers le client
+    if NetworkSetup then
+        local remotes = NetworkSetup:GetAllRemotes()
+        if remotes and remotes.SyncPlayerData then
+            remotes.SyncPlayerData:FireClient(player, {
+                Multiplier = multiplier,
+            })
+        end
+    end
 end
 
 -- ═══════════════════════════════════════════════════════
