@@ -65,6 +65,7 @@ local Constants = {
         StealBrainrot = "StealBrainrot",            -- Phase 8: Vol de Brainrot (simplifié)
         PlaceStolenBrainrot = "PlaceStolenBrainrot", -- Phase 8: Placer brainrot volé sur un slot
         BatHit = "BatHit",                          -- Phase 8: Coup de batte
+        SellBrainrot = "SellBrainrot",                 -- Vente d'un Brainrot placé sur un slot
         RequestShopPurchase = "RequestShopPurchase",   -- Phase 9: Achat shop Robux
         BuyLuckyBlock = "BuyLuckyBlock",               -- Lucky Block: Déclenche achat Robux
         OpenLuckyBlock = "OpenLuckyBlock",             -- Lucky Block: Ouvrir un Lucky Block

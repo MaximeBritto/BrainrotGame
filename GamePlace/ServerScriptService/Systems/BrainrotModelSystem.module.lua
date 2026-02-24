@@ -14,6 +14,7 @@ local Workspace = game:GetService("Workspace")
 
 local BrainrotData = nil
 local BaseSystem = nil
+local GameConfig = nil
 
 local BrainrotModelSystem = {}
 BrainrotModelSystem._initialized = false
@@ -35,9 +36,11 @@ function BrainrotModelSystem:Init(services)
         error("[BrainrotModelSystem] BaseSystem manquant!")
     end
 
-    -- Charger BrainrotData
+    -- Charger BrainrotData et GameConfig
     local Data = ReplicatedStorage:WaitForChild("Data")
     BrainrotData = require(Data:WaitForChild("BrainrotData.module"))
+    local Config = ReplicatedStorage:WaitForChild("Config")
+    GameConfig = require(Config:WaitForChild("GameConfig.module"))
 
     self._initialized = true
 end
@@ -407,7 +410,22 @@ function BrainrotModelSystem:CreateBrainrotModel(player, slotIndex, brainrotData
         proximityPrompt:SetAttribute("OwnerId", player.UserId)
         proximityPrompt:SetAttribute("SlotId", slotIndex)
 
-        -- print(string.format("[BrainrotModelSystem] ProximityPrompt ajouté au Brainrot de %d (slot %d)", player.UserId, slotIndex))
+        -- SellPrompt (vente du Brainrot par le propriétaire)
+        local sellMultiplier = GameConfig.Sell and GameConfig.Sell.PriceMultiplier or 0.6
+        local sellPrice = math.floor(totalRevenue * sellMultiplier)
+        local sellPrompt = Instance.new("ProximityPrompt")
+        sellPrompt.Name = "SellPrompt"
+        sellPrompt.ActionText = "Sell"
+        sellPrompt.ObjectText = "$" .. sellPrice
+        sellPrompt.HoldDuration = GameConfig.Sell and GameConfig.Sell.HoldDuration or 1
+        sellPrompt.MaxActivationDistance = 10
+        sellPrompt.RequiresLineOfSight = false
+        sellPrompt.KeyboardKeyCode = Enum.KeyCode.E
+        sellPrompt.Parent = primaryPart
+
+        sellPrompt:SetAttribute("OwnerId", player.UserId)
+        sellPrompt:SetAttribute("SlotId", slotIndex)
+        sellPrompt:SetAttribute("SellPrice", sellPrice)
     end
 
     -- 9. Désactiver les collisions pour permettre de passer à travers

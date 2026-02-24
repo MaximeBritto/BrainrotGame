@@ -90,6 +90,14 @@ local GameConfig = {
     },
 
     -- ═══════════════════════════════════════
+    -- VENTE DE BRAINROT
+    -- ═══════════════════════════════════════
+    Sell = {
+        HoldDuration = 1,                      -- Secondes de hold pour vendre
+        PriceMultiplier = 0.6,                 -- 60% du prix d'achat des parties
+    },
+
+    -- ═══════════════════════════════════════
     -- VOL DE BRAINROT (Phase 8)
     -- ═══════════════════════════════════════
     StealDuration = 3,                      -- Secondes pour voler

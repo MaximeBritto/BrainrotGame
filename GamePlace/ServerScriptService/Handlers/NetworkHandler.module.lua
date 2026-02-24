@@ -150,6 +150,24 @@ function NetworkHandler:_ConnectHandlers()
         end)
     end
 
+    -- Vente de Brainrot (SellBrainrot)
+    if remotes.SellBrainrot then
+        remotes.SellBrainrot.OnServerEvent:Connect(function(player, slotIndex)
+            if type(slotIndex) == "string" then
+                slotIndex = tonumber(slotIndex)
+            end
+            if not slotIndex or type(slotIndex) ~= "number" then return end
+
+            local success, err = pcall(function()
+                self:_HandleSellBrainrot(player, slotIndex)
+            end)
+
+            if not success then
+                warn("[NetworkHandler] Erreur SellBrainrot: " .. tostring(err))
+            end
+        end)
+    end
+
     -- Vol de Brainrot (Phase 8 - Version simplifiée)
     if remotes.StealBrainrot then
         remotes.StealBrainrot.OnServerEvent:Connect(function(player, ownerId, slotId)
@@ -543,6 +561,76 @@ function NetworkHandler:_HandleGetFullPlayerData(player)
     }
     
     return fullData
+end
+
+-- ═══════════════════════════════════════════════════════
+-- SELL BRAINROT
+-- ═══════════════════════════════════════════════════════
+
+function NetworkHandler:_HandleSellBrainrot(player, slotIndex)
+    if not PlacementSystem or not EconomySystem then
+        self:_SendNotification(player, "Error", "System not initialized")
+        return
+    end
+
+    -- 1. Vérifier que le slot contient un Brainrot
+    local brainrotData = PlacementSystem:GetBrainrotInSlot(player, slotIndex)
+    if not brainrotData then
+        self:_SendNotification(player, "Error", "No Brainrot in this slot!", 2)
+        return
+    end
+
+    -- 2. Calculer le prix de vente (60% de la somme des prix des 3 parties)
+    local BrainrotData = require(ReplicatedStorage:WaitForChild("Data"):WaitForChild("BrainrotData.module"))
+    local Config = ReplicatedStorage:WaitForChild("Config")
+    local GameConfig = require(Config:WaitForChild("GameConfig.module"))
+    local sellMultiplier = GameConfig.Sell and GameConfig.Sell.PriceMultiplier or 0.6
+    local sellPrice = 0
+
+    local headSetData = BrainrotData.Sets[brainrotData.HeadSet]
+    local bodySetData = BrainrotData.Sets[brainrotData.BodySet]
+    local legsSetData = BrainrotData.Sets[brainrotData.LegsSet]
+
+    if headSetData and headSetData.Head then
+        sellPrice = sellPrice + (headSetData.Head.Price or 0)
+    end
+    if bodySetData and bodySetData.Body then
+        sellPrice = sellPrice + (bodySetData.Body.Price or 0)
+    end
+    if legsSetData and legsSetData.Legs then
+        sellPrice = sellPrice + (legsSetData.Legs.Price or 0)
+    end
+
+    sellPrice = math.floor(sellPrice * sellMultiplier)
+
+    if sellPrice <= 0 then
+        self:_SendNotification(player, "Error", "Cannot sell this Brainrot!", 2)
+        return
+    end
+
+    -- 3. Retirer le Brainrot du slot
+    PlacementSystem:RemoveBrainrot(player, slotIndex)
+
+    -- Aussi retirer de Brainrots (utilisé par EconomySystem pour les revenus)
+    local playerData = DataService:GetPlayerData(player)
+    if playerData and playerData.Brainrots then
+        playerData.Brainrots[slotIndex] = nil
+        DataService:UpdateValue(player, "Brainrots", playerData.Brainrots)
+    end
+
+    -- 4. Donner l'argent au joueur
+    EconomySystem:AddCash(player, sellPrice)
+
+    -- 5. Sync les données vers le client
+    if playerData then
+        self:SyncPlayerData(player, {
+            Cash = playerData.Cash,
+            PlacedBrainrots = playerData.PlacedBrainrots,
+        })
+    end
+
+    -- 6. Notification
+    self:_SendNotification(player, "Success", "Brainrot sold for $" .. sellPrice .. "!", 3)
 end
 
 -- ═══════════════════════════════════════════════════════

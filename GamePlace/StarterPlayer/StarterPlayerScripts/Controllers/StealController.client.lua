@@ -30,24 +30,28 @@ local _placePrompts = {} -- ProximityPrompts créés pour les slots vides
 
 ---
 -- Cache les StealPrompts sur les Brainrots du joueur local
+-- Cache les SellPrompts sur les Brainrots des AUTRES joueurs (seul le proprio peut vendre)
 ---
-local function hideOwnStealPrompt(prompt)
+local function adjustPromptVisibility(prompt)
 	if prompt.Name == "StealPrompt" and prompt:GetAttribute("OwnerId") == player.UserId then
+		prompt.Enabled = false
+	end
+	if prompt.Name == "SellPrompt" and prompt:GetAttribute("OwnerId") ~= player.UserId then
 		prompt.Enabled = false
 	end
 end
 
--- Cacher les prompts déjà existants
+-- Ajuster la visibilité des prompts déjà existants
 for _, desc in ipairs(Workspace:GetDescendants()) do
 	if desc:IsA("ProximityPrompt") then
-		hideOwnStealPrompt(desc)
+		adjustPromptVisibility(desc)
 	end
 end
 
--- Cacher les prompts ajoutés dynamiquement
+-- Ajuster la visibilité des prompts ajoutés dynamiquement
 Workspace.DescendantAdded:Connect(function(desc)
 	if desc:IsA("ProximityPrompt") then
-		hideOwnStealPrompt(desc)
+		adjustPromptVisibility(desc)
 	end
 end)
 
@@ -167,6 +171,18 @@ ProximityPromptService.PromptTriggered:Connect(function(promptObject, playerWhoT
 		if ownerId and slotId then
 			remotes.StealBrainrot:FireServer(ownerId, slotId)
 			-- print(string.format("[StealController] Vol envoyé au serveur (owner: %d, slot: %d)", ownerId, slotId))
+		end
+		return
+	end
+
+	-- Handle SellPrompt (vendre un brainrot de sa propre base)
+	if promptObject.Name == "SellPrompt" then
+		local ownerId = promptObject:GetAttribute("OwnerId")
+		if ownerId ~= player.UserId then return end
+
+		local slotId = promptObject:GetAttribute("SlotId")
+		if slotId then
+			remotes.SellBrainrot:FireServer(slotId)
 		end
 		return
 	end
