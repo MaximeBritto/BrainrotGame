@@ -109,6 +109,23 @@ local GameConfig = {
     StunDuration = 5,                       -- Secondes d'assommage
     BatCooldown = 1,                        -- Cooldown entre 2 coups (secondes)
     BatMaxDistance = 10,                    -- Distance max pour frapper (studs)
+
+    -- ═══════════════════════════════════════
+    -- ROUE DE LA CHANCE (Spin Wheel)
+    -- ═══════════════════════════════════════
+    SpinWheel = {
+        FreeCooldown = 86400,               -- 24h en secondes entre chaque tour gratuit
+        MultiplierBoost = 2.0,              -- Multiplicateur temporaire (x2)
+        MultiplierDuration = 900,           -- Durée du boost en secondes (15 min)
+        Rewards = {
+            { Type = "Cash",        Value = 25000,  Weight = 55.75, DisplayName = "$25K" },
+            { Type = "Cash",        Value = 100000, Weight = 34,    DisplayName = "$100K" },
+            { Type = "Cash",        Value = 1000000,Weight = 7.5,   DisplayName = "$1M" },
+            { Type = "Multiplier",  Value = 2,      Weight = 2,     DisplayName = "x2 (15 min)" },
+            { Type = "LuckyBlock",  Value = 1,      Weight = 0.5,   DisplayName = "1 Lucky Block" },
+            { Type = "LuckyBlock",  Value = 3,      Weight = 0.25,  DisplayName = "3 Lucky Blocks" },
+        },
+    },
 }
 
 return GameConfig

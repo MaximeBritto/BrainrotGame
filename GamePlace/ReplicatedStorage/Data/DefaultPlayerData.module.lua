@@ -12,7 +12,7 @@ local GameConfig = require(Config["GameConfig.module"])
 
 local DefaultPlayerData = {
     -- Version pour migrations futures
-    Version = 1,
+    Version = 2,
     
     -- ═══════════════════════════════════════
     -- ÉCONOMIE
@@ -71,6 +71,12 @@ local DefaultPlayerData = {
     -- LUCKY BLOCKS
     -- ═══════════════════════════════════════
     LuckyBlocks = 0,  -- Nombre de Lucky Blocks disponibles (achetés via Robux)
+
+    -- ═══════════════════════════════════════
+    -- SPIN WHEEL (Roue de la Chance)
+    -- ═══════════════════════════════════════
+    SpinWheelSpins = 0,       -- Nombre de spins achetés via Robux
+    LastFreeSpinTime = 0,     -- Timestamp du dernier tour gratuit
 
     -- ═══════════════════════════════════════
     -- RÉSERVÉ POUR FUTURES FEATURES

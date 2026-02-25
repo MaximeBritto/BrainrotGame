@@ -71,7 +71,29 @@ local ShopProducts = {
             },
         },
 
+        {
+            Id = "SpinWheel",
+            DisplayName = "SPIN WHEEL",
+            Icon = "rbxassetid://0",
+            Order = 3,
+            Products = {
+                {
+                    ProductId = 3545025840,        -- À renseigner après création sur Roblox
+                    Spins = 1,
+                    Robux = 99,
+                    DisplayName = "1 Spin",
+                },
+                {
+                    ProductId = 3545025989,        -- À renseigner après création sur Roblox
+                    Spins = 3,
+                    Robux = 199,
+                    DisplayName = "3 Spins",
+                },
+            },
+        },
+
         --[[
+        
         {
             Id = "GamePasses",
             DisplayName = "GAME PASSES",

@@ -70,6 +70,8 @@ local Constants = {
         BuyLuckyBlock = "BuyLuckyBlock",               -- Lucky Block: Déclenche achat Robux
         OpenLuckyBlock = "OpenLuckyBlock",             -- Lucky Block: Ouvrir un Lucky Block
         RequestDoorOpen = "RequestDoorOpen",           -- Ouvrir la porte d'un autre joueur (Robux)
+        BuySpinWheel = "BuySpinWheel",                 -- Spin Wheel: Déclenche achat Robux
+        SpinWheel = "SpinWheel",                       -- Spin Wheel: Tourner la roue
 
         -- Serveur → Client
         SyncPlayerData = "SyncPlayerData",
@@ -82,6 +84,8 @@ local Constants = {
         SyncStunState = "SyncStunState",            -- Phase 8: État d'assommage
         SyncLuckyBlockData = "SyncLuckyBlockData", -- Lucky Block: Sync compteur
         LuckyBlockReveal = "LuckyBlockReveal",     -- Lucky Block: Résultat pour animation
+        SyncSpinWheelData = "SyncSpinWheelData", -- Spin Wheel: Sync compteur + timer
+        SpinWheelResult = "SpinWheelResult",     -- Spin Wheel: Résultat pour animation
 
         -- RemoteFunctions
         GetFullPlayerData = "GetFullPlayerData",

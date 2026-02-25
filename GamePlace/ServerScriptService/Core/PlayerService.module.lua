@@ -141,6 +141,11 @@ function PlayerService:OnPlayerJoin(player)
         remotes.SyncLuckyBlockData:FireClient(player, { Count = playerData.LuckyBlocks or 0 })
     end
 
+    -- Envoyer les données Spin Wheel au client
+    if self.SpinWheelSystem then
+        self.SpinWheelSystem:_SyncSpinWheelData(player)
+    end
+
     -- Calculer et afficher le multiplicateur initial
     if self.EconomySystem then
         self.EconomySystem:RefreshMultiplier(player)

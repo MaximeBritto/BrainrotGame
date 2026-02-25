@@ -167,6 +167,19 @@ do
     end
 end
 
+-- Spin Wheel
+local SpinWheelSystem, spinWheelLoadErr
+do
+    local ok, mod = pcall(function()
+        return require(Systems["SpinWheelSystem.module"])
+    end)
+    if ok then
+        SpinWheelSystem = mod
+    else
+        spinWheelLoadErr = mod
+    end
+end
+
 -- Phase 9: Shop Robux
 local ShopSystem, shopLoadErr
 do
@@ -515,6 +528,28 @@ else
     end
 end
 
+-- 13.5. SpinWheelSystem (Spin Wheel)
+if SpinWheelSystem and EconomySystem then
+    SpinWheelSystem:Init({
+        PlayerService = PlayerService,
+        DataService = DataService,
+        EconomySystem = EconomySystem,
+        LuckyBlockSystem = LuckyBlockSystem,
+        NetworkSetup = NetworkSetup,
+    })
+    -- print("[GameServer] SpinWheelSystem: OK")
+
+    NetworkHandler:UpdateSystems({SpinWheelSystem = SpinWheelSystem})
+    PlayerService.SpinWheelSystem = SpinWheelSystem
+else
+    if not SpinWheelSystem then
+        warn("[GameServer] SpinWheelSystem non chargé:", spinWheelLoadErr or "inconnu")
+    end
+    if not EconomySystem then
+        warn("[GameServer] SpinWheelSystem nécessite EconomySystem!")
+    end
+end
+
 -- 14. ShopSystem (Phase 9)
 if ShopSystem and EconomySystem then
     ShopSystem:Init({
@@ -522,6 +557,7 @@ if ShopSystem and EconomySystem then
         NetworkSetup = NetworkSetup,
         DataService = DataService,
         LuckyBlockSystem = LuckyBlockSystem,
+        SpinWheelSystem = SpinWheelSystem,
         DoorSystem = DoorSystem,
     })
     -- print("[GameServer] ShopSystem: OK")

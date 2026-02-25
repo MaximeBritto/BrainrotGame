@@ -30,6 +30,7 @@ local EconomySystem = nil
 local NetworkSetup = nil
 local DataService = nil
 local LuckyBlockSystem = nil
+local SpinWheelSystem = nil
 local DoorSystem = nil
 
 -- Mapping: ProductId → { Cash = number, CategoryId = string, DisplayName = string }
@@ -55,6 +56,7 @@ function ShopSystem:Init(services)
     NetworkSetup = services.NetworkSetup
     DataService = services.DataService
     LuckyBlockSystem = services.LuckyBlockSystem
+    SpinWheelSystem = services.SpinWheelSystem
     DoorSystem = services.DoorSystem
 
     if not EconomySystem then
@@ -203,6 +205,16 @@ function ShopSystem:_SetupProcessReceipt()
                     warn("[ShopSystem] LuckyBlockSystem non injecté! Lucky Blocks non accordés.")
                 end
             end
+
+            if productInfo.Spins and productInfo.Spins > 0 then
+                if SpinWheelSystem then
+                    SpinWheelSystem:AddSpins(player, productInfo.Spins)
+                    print(string.format("[ShopSystem] +%d Spins accordé à %s (produit: %s)",
+                        productInfo.Spins, player.Name, productInfo.DisplayName))
+                else
+                    warn("[ShopSystem] SpinWheelSystem non injecté! Spins non accordés.")
+                end
+            end
         end)
 
         if not success then
@@ -238,6 +250,7 @@ function ShopSystem:_BuildProductMap()
                 _productMap[product.ProductId] = {
                     Cash = product.Cash,
                     LuckyBlocks = product.LuckyBlocks,
+                    Spins = product.Spins,
                     Robux = product.Robux,
                     DisplayName = product.DisplayName,
                     CategoryId = category.Id,

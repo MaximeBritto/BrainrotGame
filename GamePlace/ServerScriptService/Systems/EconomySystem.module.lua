@@ -312,6 +312,20 @@ function EconomySystem:_ProcessPlayerRevenue(player)
     -- Calculer le multiplicateur du joueur (basé sur le Codex)
     local multiplier = self:CalculatePlayerMultiplier(player)
 
+    -- Appliquer le multiplicateur temporaire (Spin Wheel) s'il est actif
+    if PlayerService then
+        local runtimeData = PlayerService:GetRuntimeData(player)
+        if runtimeData and runtimeData.TemporaryMultiplier and runtimeData.TemporaryMultiplierExpiry then
+            if os.time() < runtimeData.TemporaryMultiplierExpiry then
+                multiplier = multiplier * runtimeData.TemporaryMultiplier
+            else
+                -- Expiré, nettoyer
+                runtimeData.TemporaryMultiplier = nil
+                runtimeData.TemporaryMultiplierExpiry = nil
+            end
+        end
+    end
+
     local totalRevenue = 0
 
     for slotIndex, brainrotData in pairs(data.Brainrots) do

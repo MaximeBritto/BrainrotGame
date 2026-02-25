@@ -48,6 +48,9 @@ local ShopSystem = nil
 -- Systèmes (Lucky Block)
 local LuckyBlockSystem = nil
 
+-- Systèmes (Spin Wheel)
+local SpinWheelSystem = nil
+
 local NetworkHandler = {}
 NetworkHandler._initialized = false
 
@@ -90,6 +93,9 @@ function NetworkHandler:Init(services)
 
     -- Récupérer les systèmes (Lucky Block)
     LuckyBlockSystem = services.LuckyBlockSystem
+
+    -- Récupérer les systèmes (Spin Wheel)
+    SpinWheelSystem = services.SpinWheelSystem
 
     -- Connecter les handlers
     self:_ConnectHandlers()
@@ -308,6 +314,45 @@ function NetworkHandler:_ConnectHandlers()
 
             if not success then
                 warn("[NetworkHandler] Erreur OpenLuckyBlock: " .. tostring(err))
+            end
+        end)
+    end
+
+    -- Achat Spin Wheel (Spin Wheel)
+    if remotes.BuySpinWheel then
+        remotes.BuySpinWheel.OnServerEvent:Connect(function(player, amount)
+            if type(amount) == "string" then
+                amount = tonumber(amount)
+            end
+            if not amount or type(amount) ~= "number" then return end
+
+            local success, err = pcall(function()
+                if SpinWheelSystem then
+                    SpinWheelSystem:RequestBuy(player, amount)
+                else
+                    warn("[NetworkHandler] SpinWheelSystem non initialisé!")
+                end
+            end)
+
+            if not success then
+                warn("[NetworkHandler] Erreur BuySpinWheel: " .. tostring(err))
+            end
+        end)
+    end
+
+    -- Tourner la roue (Spin Wheel)
+    if remotes.SpinWheel then
+        remotes.SpinWheel.OnServerEvent:Connect(function(player)
+            local success, err = pcall(function()
+                if SpinWheelSystem then
+                    SpinWheelSystem:TrySpin(player)
+                else
+                    warn("[NetworkHandler] SpinWheelSystem non initialisé!")
+                end
+            end)
+
+            if not success then
+                warn("[NetworkHandler] Erreur SpinWheel: " .. tostring(err))
             end
         end)
     end
@@ -550,6 +595,8 @@ function NetworkHandler:_HandleGetFullPlayerData(player)
         PlacedBrainrots = playerData and playerData.PlacedBrainrots or {},
         SlotCash = playerData and playerData.SlotCash or {},
         LuckyBlocks = playerData and playerData.LuckyBlocks or 0,
+        SpinWheelSpins = playerData and playerData.SpinWheelSpins or 0,
+        LastFreeSpinTime = playerData and playerData.LastFreeSpinTime or 0,
         CodexUnlocked = playerData and playerData.CodexUnlocked or {},
         CompletedSets = playerData and playerData.CompletedSets or {},
         Stats = playerData and playerData.Stats or {},
@@ -719,6 +766,9 @@ function NetworkHandler:UpdateSystems(systems)
     end
     if systems.LuckyBlockSystem then
         LuckyBlockSystem = systems.LuckyBlockSystem
+    end
+    if systems.SpinWheelSystem then
+        SpinWheelSystem = systems.SpinWheelSystem
     end
 
     print("[NetworkHandler] Systèmes mis à jour")
