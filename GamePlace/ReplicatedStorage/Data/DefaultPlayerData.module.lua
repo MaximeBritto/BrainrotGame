@@ -68,15 +68,31 @@ local DefaultPlayerData = {
     },
     
     -- ═══════════════════════════════════════
+    -- MULTIPLIER PERMANENT
+    -- ═══════════════════════════════════════
+    PermanentMultiplierBonus = 0,  -- Bonus multiplicateur permanent (ex: 0.25 = +0.25x)
+
+    -- ═══════════════════════════════════════
     -- LUCKY BLOCKS
     -- ═══════════════════════════════════════
     LuckyBlocks = 0,  -- Nombre de Lucky Blocks disponibles (achetés via Robux)
+
+    -- ═══════════════════════════════════════
+    -- MULTIPLICATEUR TEMPORAIRE (persiste entre sessions)
+    -- ═══════════════════════════════════════
+    TemporaryMultiplier = nil,        -- Valeur du boost (ex: 2)
+    TemporaryMultiplierExpiry = nil,   -- Timestamp d'expiration (os.time())
 
     -- ═══════════════════════════════════════
     -- SPIN WHEEL (Roue de la Chance)
     -- ═══════════════════════════════════════
     SpinWheelSpins = 0,       -- Nombre de spins achetés via Robux
     LastFreeSpinTime = 0,     -- Timestamp du dernier tour gratuit
+
+    -- ═══════════════════════════════════════
+    -- ACHATS UNIQUES (one-time purchases)
+    -- ═══════════════════════════════════════
+    OwnedOneTimePurchases = {},  -- {["StarterPack"] = true, ...}
 
     -- ═══════════════════════════════════════
     -- RÉSERVÉ POUR FUTURES FEATURES

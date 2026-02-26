@@ -110,7 +110,19 @@ function PlayerService:OnPlayerJoin(player)
     
     -- 2. Créer les données runtime
     self._runtimeData[player.UserId] = CreateRuntimeData()
-    
+
+    -- 2b. Restaurer le multiplicateur temporaire depuis les données persistantes
+    if playerData.TemporaryMultiplier and playerData.TemporaryMultiplierExpiry then
+        if playerData.TemporaryMultiplierExpiry > os.time() then
+            self._runtimeData[player.UserId].TemporaryMultiplier = playerData.TemporaryMultiplier
+            self._runtimeData[player.UserId].TemporaryMultiplierExpiry = playerData.TemporaryMultiplierExpiry
+        else
+            -- Expiré, nettoyer les données persistantes
+            playerData.TemporaryMultiplier = nil
+            playerData.TemporaryMultiplierExpiry = nil
+        end
+    end
+
     -- 3. Configurer le respawn du personnage
     player.CharacterAdded:Connect(function(character)
         self:OnCharacterAdded(player, character)

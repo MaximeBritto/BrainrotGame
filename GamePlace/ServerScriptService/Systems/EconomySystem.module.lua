@@ -312,7 +312,7 @@ function EconomySystem:_ProcessPlayerRevenue(player)
     -- Calculer le multiplicateur du joueur (basé sur le Codex)
     local multiplier = self:CalculatePlayerMultiplier(player)
 
-    -- Appliquer le multiplicateur temporaire (Spin Wheel) s'il est actif
+    -- Appliquer le multiplicateur temporaire (Spin Wheel / Shop Boost) s'il est actif
     if PlayerService then
         local runtimeData = PlayerService:GetRuntimeData(player)
         if runtimeData and runtimeData.TemporaryMultiplier and runtimeData.TemporaryMultiplierExpiry then
@@ -322,6 +322,22 @@ function EconomySystem:_ProcessPlayerRevenue(player)
                 -- Expiré, nettoyer
                 runtimeData.TemporaryMultiplier = nil
                 runtimeData.TemporaryMultiplierExpiry = nil
+
+                -- Nettoyer aussi dans le DataStore
+                DataService:UpdateValue(player, "TemporaryMultiplier", nil)
+                DataService:UpdateValue(player, "TemporaryMultiplierExpiry", nil)
+
+                -- Notifier le client que le boost a expiré
+                if NetworkSetup then
+                    local remotes = NetworkSetup:GetAllRemotes()
+                    if remotes and remotes.SyncMultiplierBoost then
+                        remotes.SyncMultiplierBoost:FireClient(player, {
+                            Active = false,
+                            RemainingSeconds = 0,
+                            Multiplier = 1,
+                        })
+                    end
+                end
             end
         end
     end
@@ -414,6 +430,12 @@ function EconomySystem:CalculatePlayerMultiplier(player)
         if counts.total > 0 and (counts.discovered / counts.total) >= threshold then
             multiplier = multiplier + bonus
         end
+    end
+
+    -- Appliquer le bonus multiplicateur permanent (Starter Pack, etc.)
+    local permanentBonus = data.PermanentMultiplierBonus or 0
+    if permanentBonus > 0 then
+        multiplier = multiplier + permanentBonus
     end
 
     return multiplier

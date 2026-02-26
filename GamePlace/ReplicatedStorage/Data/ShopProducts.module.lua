@@ -51,49 +51,67 @@ local ShopProducts = {
         },
 
         {
-            Id = "LuckyBlocks",
-            DisplayName = "LUCKY BLOCKS",
+            Id = "Extras",
+            DisplayName = "EXTRAS",
             Icon = "rbxassetid://0",
             Order = 2,
             Products = {
                 {
-                    ProductId = 3543915022,        -- À renseigner après création sur Roblox
+                    Section = "BOOSTS",
+                    ProductId = 3545587138,
+                    MultiplierBoost = 2.0,
+                    MultiplierDuration = 900,        -- 15 minutes
+                    Robux = 249,
+                    DisplayName = "x2 (15 min)",
+                },
+                {
+                    Section = "LUCKY BLOCKS",
+                    ProductId = 3543915022,
                     LuckyBlocks = 1,
                     Robux = 49,
                     DisplayName = "1 Lucky Block",
                 },
                 {
-                    ProductId = 3543915185,        -- À renseigner après création sur Roblox
+                    ProductId = 3543915185,
                     LuckyBlocks = 3,
-                    Robux = 99,           -- ~33% discount vs x3
+                    Robux = 99,
                     DisplayName = "3 Lucky Blocks",
                 },
-            },
-        },
-
-        {
-            Id = "SpinWheel",
-            DisplayName = "SPIN WHEEL",
-            Icon = "rbxassetid://0",
-            Order = 3,
-            Products = {
                 {
-                    ProductId = 3545025840,        -- À renseigner après création sur Roblox
+                    Section = "SPIN WHEEL",
+                    ProductId = 3545025840,
                     Spins = 1,
                     Robux = 99,
                     DisplayName = "1 Spin",
                 },
                 {
-                    ProductId = 3545025989,        -- À renseigner après création sur Roblox
+                    ProductId = 3545025989,
                     Spins = 3,
                     Robux = 199,
                     DisplayName = "3 Spins",
+                },
+                {
+                    Section = "STARTER PACK",
+                    ProductId = 3545593788, -- TODO: Créer le Developer Product sur Roblox et mettre l'ID ici
+                    Cash = 1000,
+                    LuckyBlocks = 1,
+                    Spins = 1,
+                    PermanentMultiplierBonus = 0.25,
+                    Robux = 489,
+                    DisplayName = "Starter Pack",
+                    OneTimePurchaseKey = "StarterPack",
+                    Description = {
+                        "$1,000 Cash",
+                        "1 Lucky Block",
+                        "1 Spin",
+                        "+0.25x Multiplier (permanent)",
+                    },
                 },
             },
         },
 
         --[[
-        
+
         {
             Id = "GamePasses",
             DisplayName = "GAME PASSES",

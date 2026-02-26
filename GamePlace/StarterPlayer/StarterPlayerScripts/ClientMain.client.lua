@@ -11,6 +11,7 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
 
@@ -185,6 +186,141 @@ if mainHUD then
 end
 
 -- ═══════════════════════════════════════════════════════
+-- BOOST MULTIPLIER TIMER UI (X2)
+-- ═══════════════════════════════════════════════════════
+
+local boostTimerFrame = nil
+local boostTimerLabel = nil
+local boostRemainingSeconds = 0
+local boostTimerActive = false
+
+if mainHUD then
+    -- Conteneur du timer boost
+    boostTimerFrame = Instance.new("Frame")
+    boostTimerFrame.Name = "BoostTimerFrame"
+    boostTimerFrame.Size = UDim2.new(0, 160, 0, 40)
+    boostTimerFrame.Position = UDim2.new(0, 10, 1, -100)
+    boostTimerFrame.AnchorPoint = Vector2.new(0, 1)
+    boostTimerFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    boostTimerFrame.BackgroundTransparency = 0.3
+    boostTimerFrame.BorderSizePixel = 0
+    boostTimerFrame.Visible = false
+    boostTimerFrame.Parent = mainHUD
+
+    local boostCorner = Instance.new("UICorner")
+    boostCorner.CornerRadius = UDim.new(0, 8)
+    boostCorner.Parent = boostTimerFrame
+
+    local boostStroke = Instance.new("UIStroke")
+    boostStroke.Color = Color3.fromRGB(255, 215, 0)
+    boostStroke.Thickness = 2
+    boostStroke.Parent = boostTimerFrame
+
+    -- Label "X2" à gauche
+    local boostIcon = Instance.new("TextLabel")
+    boostIcon.Name = "BoostIcon"
+    boostIcon.Size = UDim2.new(0, 50, 1, 0)
+    boostIcon.Position = UDim2.new(0, 5, 0, 0)
+    boostIcon.BackgroundTransparency = 1
+    boostIcon.Text = "X2"
+    boostIcon.TextColor3 = Color3.fromRGB(255, 215, 0)
+    boostIcon.TextSize = 24
+    boostIcon.Font = Enum.Font.GothamBlack
+    boostIcon.TextXAlignment = Enum.TextXAlignment.Left
+    boostIcon.Parent = boostTimerFrame
+
+    -- Timer à droite
+    boostTimerLabel = Instance.new("TextLabel")
+    boostTimerLabel.Name = "BoostTimer"
+    boostTimerLabel.Size = UDim2.new(0, 95, 1, 0)
+    boostTimerLabel.Position = UDim2.new(1, -100, 0, 0)
+    boostTimerLabel.BackgroundTransparency = 1
+    boostTimerLabel.Text = "00:00"
+    boostTimerLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    boostTimerLabel.TextSize = 22
+    boostTimerLabel.Font = Enum.Font.GothamBold
+    boostTimerLabel.TextXAlignment = Enum.TextXAlignment.Right
+    boostTimerLabel.Parent = boostTimerFrame
+end
+
+-- Formate les secondes en MM:SS
+local function formatBoostTime(seconds)
+    local mins = math.floor(seconds / 60)
+    local secs = seconds % 60
+    return string.format("%02d:%02d", mins, secs)
+end
+
+-- Met à jour l'affichage du timer boost
+local function updateBoostTimerUI()
+    if not boostTimerFrame or not boostTimerLabel then return end
+
+    if boostTimerActive and boostRemainingSeconds > 0 then
+        boostTimerFrame.Visible = true
+        boostTimerLabel.Text = formatBoostTime(boostRemainingSeconds)
+    else
+        boostTimerFrame.Visible = false
+        boostTimerActive = false
+    end
+end
+
+-- Démarre le countdown local du boost
+local function startBoostCountdown(seconds)
+    boostRemainingSeconds = seconds
+    boostTimerActive = true
+    updateBoostTimerUI()
+
+    -- Animation d'apparition
+    if boostTimerFrame then
+        boostTimerFrame.Size = UDim2.new(0, 0, 0, 0)
+        boostTimerFrame.Visible = true
+        TweenService:Create(boostTimerFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+            Size = UDim2.new(0, 160, 0, 40),
+        }):Play()
+    end
+end
+
+-- Arrête le boost timer
+local function stopBoostTimer()
+    boostTimerActive = false
+    boostRemainingSeconds = 0
+    if boostTimerFrame then
+        local tweenOut = TweenService:Create(boostTimerFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+            Size = UDim2.new(0, 0, 0, 0),
+        })
+        tweenOut:Play()
+        tweenOut.Completed:Connect(function()
+            boostTimerFrame.Visible = false
+        end)
+    end
+end
+
+-- Boucle de countdown (chaque seconde)
+task.spawn(function()
+    while true do
+        task.wait(1)
+        if boostTimerActive and boostRemainingSeconds > 0 then
+            boostRemainingSeconds = boostRemainingSeconds - 1
+            updateBoostTimerUI()
+            if boostRemainingSeconds <= 0 then
+                stopBoostTimer()
+            end
+        end
+    end
+end)
+
+-- SyncMultiplierBoost: Reçoit les mises à jour du boost multiplicateur
+local syncMultiplierBoost = Remotes:FindFirstChild("SyncMultiplierBoost")
+if syncMultiplierBoost then
+    syncMultiplierBoost.OnClientEvent:Connect(function(data)
+        if data.Active and data.RemainingSeconds and data.RemainingSeconds > 0 then
+            startBoostCountdown(data.RemainingSeconds)
+        else
+            stopBoostTimer()
+        end
+    end)
+end
+
+-- ═══════════════════════════════════════════════════════
 -- FONCTIONS PUBLIQUES (pour les autres contrôleurs)
 -- ═══════════════════════════════════════════════════════
 
@@ -271,6 +407,10 @@ task.spawn(function()
         -- Initialiser le Codex avec les données sauvegardées
         if fullData.CodexUnlocked then
             CodexController:UpdateCodex(fullData.CodexUnlocked)
+        end
+        -- Initialiser le timer boost si un multiplicateur est actif
+        if fullData.MultiplierBoostActive and fullData.MultiplierBoostRemaining and fullData.MultiplierBoostRemaining > 0 then
+            startBoostCountdown(fullData.MultiplierBoostRemaining)
         end
     else
         warn("[ClientMain] No data received from server")

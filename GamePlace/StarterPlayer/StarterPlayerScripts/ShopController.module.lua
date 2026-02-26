@@ -30,6 +30,7 @@ local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 -- État
 local isOpen = false
 local currentTab = nil
+local ownedOneTimePurchases = {}
 
 -- Références UI (créées dans Init)
 local screenGui = nil
@@ -145,6 +146,35 @@ function ShopController:Init()
         table.sort(sorted, function(a, b) return (a.Order or 99) < (b.Order or 99) end)
         self:SwitchTab(sorted[1].Id)
     end
+
+    -- Écouter les mises à jour de SyncPlayerData pour OwnedOneTimePurchases
+    local syncPlayerData = Remotes:FindFirstChild("SyncPlayerData")
+    if syncPlayerData then
+        syncPlayerData.OnClientEvent:Connect(function(data)
+            if data.OwnedOneTimePurchases then
+                ownedOneTimePurchases = data.OwnedOneTimePurchases
+                -- Rafraîchir l'onglet courant pour mettre à jour les boutons
+                if currentTab then
+                    self:SwitchTab(currentTab)
+                end
+            end
+        end)
+    end
+
+    -- Charger les données initiales
+    task.spawn(function()
+        local getFullPlayerData = Remotes:FindFirstChild("GetFullPlayerData")
+        if getFullPlayerData then
+            local fullData = getFullPlayerData:InvokeServer()
+            if fullData and fullData.OwnedOneTimePurchases then
+                ownedOneTimePurchases = fullData.OwnedOneTimePurchases
+                -- Rafraîchir l'onglet courant pour mettre à jour les boutons "BOUGHT"
+                if currentTab then
+                    self:SwitchTab(currentTab)
+                end
+            end
+        end
+    end)
 
     -- print("[ShopController] Initialisé!")
 end
@@ -303,6 +333,33 @@ function ShopController:_BuildProductCards(category)
         end
     end
 
+    local scrollWidth = 680  -- largeur du ScrollingFrame (panel 700 - 20 padding)
+    local cols = GRID.Columns
+    local cardW = math.floor((scrollWidth - (cols - 1) * GRID.Spacing) / cols)
+    local cardH = GRID.CardHeight
+
+    -- Vérifier si la catégorie a des produits avec des Sections
+    local hasSections = false
+    for _, product in ipairs(category.Products) do
+        if product.Section then
+            hasSections = true
+            break
+        end
+    end
+
+    if not hasSections then
+        -- Rendu classique (une seule grille, pas de sous-sections)
+        self:_BuildSimpleGrid(category, scrollWidth, cols, cardW, cardH)
+    else
+        -- Rendu avec sous-sections (en-têtes + grilles séparées)
+        self:_BuildSectionedGrid(category, scrollWidth, cols, cardW, cardH)
+    end
+end
+
+--[[
+    Rendu classique: un titre + une grille de produits
+]]
+function ShopController:_BuildSimpleGrid(category, scrollWidth, cols, cardW, cardH)
     -- Titre de la section
     local sectionTitle = Instance.new("TextLabel")
     sectionTitle.Name = "SectionTitle"
@@ -323,25 +380,16 @@ function ShopController:_BuildProductCards(category)
     gridContainer.BorderSizePixel = 0
     gridContainer.Parent = contentScroll
 
-    -- Calculer la taille de la grille
     local products = category.Products
     local totalProducts = #products
-    local cols = GRID.Columns
     local rows = math.ceil(totalProducts / cols)
-
-    local scrollWidth = 680  -- largeur du ScrollingFrame (panel 700 - 20 padding)
-    local cardW = math.floor((scrollWidth - (cols - 1) * GRID.Spacing) / cols)
-    local cardH = GRID.CardHeight
-
     local totalGridHeight = rows * cardH + (rows - 1) * GRID.Spacing
     gridContainer.Size = UDim2.new(1, 0, 0, totalGridHeight)
 
-    -- Positionner chaque carte dans la grille (centrée)
     for index, product in ipairs(products) do
         local row = math.floor((index - 1) / cols)
         local col = (index - 1) % cols
 
-        -- Calculer combien d'items restent sur cette rangée
         local itemsOnThisRow = math.min(cols, totalProducts - row * cols)
         local thisCardW = cardW
         local rowTotalWidth = cols * cardW + (cols - 1) * GRID.Spacing
@@ -357,8 +405,86 @@ function ShopController:_BuildProductCards(category)
         self:_CreateGridCard(gridContainer, xPos, yPos, thisCardW, cardH, category.Id, index, product)
     end
 
-    -- Mettre à jour le canvas
     contentScroll.CanvasSize = UDim2.new(0, 0, 0, 55 + totalGridHeight + 20)
+end
+
+--[[
+    Rendu avec sous-sections: chaque Section a son en-tête + sa grille
+    Les productIndex restent globaux (position dans category.Products)
+]]
+function ShopController:_BuildSectionedGrid(category, scrollWidth, cols, cardW, cardH)
+    -- Grouper les produits par section (en conservant l'ordre)
+    local sections = {}      -- {{name = "BOOSTS", products = {{index=1, product=...}, ...}}, ...}
+    local currentSection = nil
+
+    for index, product in ipairs(category.Products) do
+        if product.Section then
+            currentSection = { name = product.Section, products = {} }
+            table.insert(sections, currentSection)
+        end
+        if currentSection then
+            table.insert(currentSection.products, { index = index, product = product })
+        end
+    end
+
+    local SECTION_HEADER_HEIGHT = 35
+    local SECTION_SPACING = 15
+    local yOffset = 5  -- position verticale courante
+
+    for sectionIdx, section in ipairs(sections) do
+        -- En-tête de la sous-section
+        local header = Instance.new("TextLabel")
+        header.Name = "SectionHeader_" .. sectionIdx
+        header.Size = UDim2.new(1, 0, 0, SECTION_HEADER_HEIGHT)
+        header.Position = UDim2.new(0, 0, 0, yOffset)
+        header.BackgroundTransparency = 1
+        header.Text = section.name
+        header.TextColor3 = COLORS.SectionTitle
+        header.TextSize = 22
+        header.Font = Enum.Font.GothamBold
+        header.TextXAlignment = Enum.TextXAlignment.Left
+        header.Parent = contentScroll
+
+        yOffset = yOffset + SECTION_HEADER_HEIGHT + 5
+
+        -- Container pour la grille de cette section
+        local gridContainer = Instance.new("Frame")
+        gridContainer.Name = "Grid_" .. sectionIdx
+        gridContainer.Position = UDim2.new(0, 0, 0, yOffset)
+        gridContainer.BackgroundTransparency = 1
+        gridContainer.BorderSizePixel = 0
+        gridContainer.Parent = contentScroll
+
+        local sectionProducts = section.products
+        local totalProducts = #sectionProducts
+        local rows = math.ceil(totalProducts / cols)
+        local totalGridHeight = rows * cardH + (rows - 1) * GRID.Spacing
+        gridContainer.Size = UDim2.new(1, 0, 0, totalGridHeight)
+
+        for localIdx, entry in ipairs(sectionProducts) do
+            local row = math.floor((localIdx - 1) / cols)
+            local col = (localIdx - 1) % cols
+
+            local itemsOnThisRow = math.min(cols, totalProducts - row * cols)
+            local thisCardW = cardW
+            local rowTotalWidth = cols * cardW + (cols - 1) * GRID.Spacing
+            if itemsOnThisRow < cols then
+                thisCardW = math.floor((scrollWidth - (itemsOnThisRow - 1) * GRID.Spacing) / itemsOnThisRow)
+                rowTotalWidth = itemsOnThisRow * thisCardW + (itemsOnThisRow - 1) * GRID.Spacing
+            end
+
+            local leftOffset = math.floor((scrollWidth - rowTotalWidth) / 2)
+            local xPos = leftOffset + col * (thisCardW + GRID.Spacing)
+            local yPos = row * (cardH + GRID.Spacing)
+
+            -- entry.index = index global dans category.Products (pour le serveur)
+            self:_CreateGridCard(gridContainer, xPos, yPos, thisCardW, cardH, category.Id, entry.index, entry.product)
+        end
+
+        yOffset = yOffset + totalGridHeight + SECTION_SPACING
+    end
+
+    contentScroll.CanvasSize = UDim2.new(0, 0, 0, yOffset + 20)
 end
 
 function ShopController:_CreateGridCard(parent, xPos, yPos, width, height, categoryId, productIndex, product)
@@ -390,44 +516,78 @@ function ShopController:_CreateGridCard(parent, xPos, yPos, width, height, categ
     gradient.Rotation = 90
     gradient.Parent = card
 
-    -- Icône de cash (TextLabel avec symbole $)
-    local iconFrame = Instance.new("Frame")
-    iconFrame.Name = "IconFrame"
-    iconFrame.Size = UDim2.new(0, 60, 0, 50)
-    iconFrame.Position = UDim2.new(0, 10, 0, 15)
-    iconFrame.BackgroundTransparency = 1
-    iconFrame.Parent = card
+    if product.Description then
+        -- Titre en haut pour les produits avec description
+        local titleLabel = Instance.new("TextLabel")
+        titleLabel.Name = "Title"
+        titleLabel.Size = UDim2.new(1, -10, 0, 28)
+        titleLabel.Position = UDim2.new(0, 5, 0, 8)
+        titleLabel.BackgroundTransparency = 1
+        titleLabel.Text = product.DisplayName
+        titleLabel.TextColor3 = Color3.fromRGB(255, 220, 80)
+        titleLabel.TextSize = 20
+        titleLabel.Font = Enum.Font.GothamBlack
+        titleLabel.TextStrokeTransparency = 0.6
+        titleLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+        titleLabel.Parent = card
 
-    local cashIcon = Instance.new("TextLabel")
-    cashIcon.Name = "CashIcon"
-    cashIcon.Size = UDim2.new(1, 0, 1, 0)
-    cashIcon.BackgroundTransparency = 1
-    cashIcon.Text = "$"
-    cashIcon.TextColor3 = Color3.fromRGB(100, 200, 100)
-    cashIcon.TextSize = 40
-    cashIcon.Font = Enum.Font.GothamBlack
-    cashIcon.Parent = iconFrame
+        -- Liste des éléments inclus
+        local descText = table.concat(product.Description, "\n")
+        local descLabel = Instance.new("TextLabel")
+        descLabel.Name = "Description"
+        descLabel.Size = UDim2.new(1, -16, 0, 80)
+        descLabel.Position = UDim2.new(0, 8, 0, 36)
+        descLabel.BackgroundTransparency = 1
+        descLabel.Text = descText
+        descLabel.TextColor3 = Color3.fromRGB(200, 220, 200)
+        descLabel.TextSize = 13
+        descLabel.Font = Enum.Font.GothamBold
+        descLabel.TextXAlignment = Enum.TextXAlignment.Left
+        descLabel.TextYAlignment = Enum.TextYAlignment.Top
+        descLabel.TextWrapped = true
+        descLabel.Parent = card
+    else
+        -- Icône de cash (TextLabel avec symbole $)
+        local iconFrame = Instance.new("Frame")
+        iconFrame.Name = "IconFrame"
+        iconFrame.Size = UDim2.new(0, 60, 0, 50)
+        iconFrame.Position = UDim2.new(0, 10, 0, 15)
+        iconFrame.BackgroundTransparency = 1
+        iconFrame.Parent = card
 
-    -- Montant en gros
-    local amountLabel = Instance.new("TextLabel")
-    amountLabel.Name = "Amount"
-    amountLabel.Size = UDim2.new(1, -10, 0, 40)
-    amountLabel.Position = UDim2.new(0, 5, 0, 15)
-    amountLabel.BackgroundTransparency = 1
-    amountLabel.Text = product.DisplayName
-    amountLabel.TextColor3 = COLORS.White
-    amountLabel.TextSize = 28
-    amountLabel.Font = Enum.Font.GothamBlack
-    amountLabel.TextStrokeTransparency = 0.6
-    amountLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-    amountLabel.Parent = card
+        local cashIcon = Instance.new("TextLabel")
+        cashIcon.Name = "CashIcon"
+        cashIcon.Size = UDim2.new(1, 0, 1, 0)
+        cashIcon.BackgroundTransparency = 1
+        cashIcon.Text = "$"
+        cashIcon.TextColor3 = Color3.fromRGB(100, 200, 100)
+        cashIcon.TextSize = 40
+        cashIcon.Font = Enum.Font.GothamBlack
+        cashIcon.Parent = iconFrame
+
+        -- Montant en gros
+        local amountLabel = Instance.new("TextLabel")
+        amountLabel.Name = "Amount"
+        amountLabel.Size = UDim2.new(1, -10, 0, 40)
+        amountLabel.Position = UDim2.new(0, 5, 0, 15)
+        amountLabel.BackgroundTransparency = 1
+        amountLabel.Text = product.DisplayName
+        amountLabel.TextColor3 = COLORS.White
+        amountLabel.TextSize = 28
+        amountLabel.Font = Enum.Font.GothamBlack
+        amountLabel.TextStrokeTransparency = 0.6
+        amountLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+        amountLabel.Parent = card
+    end
+
+    -- Vérifier si c'est un achat unique déjà possédé
+    local isOwned = product.OneTimePurchaseKey and ownedOneTimePurchases[product.OneTimePurchaseKey] == true
 
     -- Bouton Robux en bas
     local robuxBtn = Instance.new("TextButton")
     robuxBtn.Name = "RobuxButton"
     robuxBtn.Size = UDim2.new(0.7, 0, 0, 35)
     robuxBtn.Position = UDim2.new(0.15, 0, 1, -50)
-    robuxBtn.BackgroundColor3 = COLORS.RobuxBtnBg
     robuxBtn.BorderSizePixel = 0
     robuxBtn.Text = ""
     robuxBtn.AutoButtonColor = false
@@ -437,33 +597,51 @@ function ShopController:_CreateGridCard(parent, xPos, yPos, width, height, categ
     robuxCorner.CornerRadius = SIZES.TinyCorner
     robuxCorner.Parent = robuxBtn
 
-    -- Icône Robux (unicode) + prix
-    local robuxText = Instance.new("TextLabel")
-    robuxText.Name = "RobuxText"
-    robuxText.Size = UDim2.new(1, 0, 1, 0)
-    robuxText.BackgroundTransparency = 1
-    robuxText.Text = utf8.char(0xE002) .. self:_FormatNumber(product.Robux)
-    robuxText.TextColor3 = COLORS.White
-    robuxText.TextSize = 18
-    robuxText.Font = Enum.Font.GothamBold
-    robuxText.Parent = robuxBtn
+    if isOwned then
+        -- Bouton grisé "BOUGHT"
+        robuxBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+        robuxBtn.Active = false
 
-    -- Hover
-    robuxBtn.MouseEnter:Connect(function()
-        TweenService:Create(robuxBtn, TweenInfo.new(0.15), {
-            BackgroundColor3 = COLORS.RobuxBtnHover
-        }):Play()
-    end)
-    robuxBtn.MouseLeave:Connect(function()
-        TweenService:Create(robuxBtn, TweenInfo.new(0.15), {
-            BackgroundColor3 = COLORS.RobuxBtnBg
-        }):Play()
-    end)
+        local boughtText = Instance.new("TextLabel")
+        boughtText.Name = "BoughtText"
+        boughtText.Size = UDim2.new(1, 0, 1, 0)
+        boughtText.BackgroundTransparency = 1
+        boughtText.Text = "BOUGHT"
+        boughtText.TextColor3 = Color3.fromRGB(160, 160, 160)
+        boughtText.TextSize = 18
+        boughtText.Font = Enum.Font.GothamBold
+        boughtText.Parent = robuxBtn
+    else
+        -- Bouton normal avec prix Robux
+        robuxBtn.BackgroundColor3 = COLORS.RobuxBtnBg
 
-    -- Clic achat
-    robuxBtn.MouseButton1Click:Connect(function()
-        self:_OnBuyClicked(categoryId, productIndex, product)
-    end)
+        local robuxText = Instance.new("TextLabel")
+        robuxText.Name = "RobuxText"
+        robuxText.Size = UDim2.new(1, 0, 1, 0)
+        robuxText.BackgroundTransparency = 1
+        robuxText.Text = utf8.char(0xE002) .. self:_FormatNumber(product.Robux)
+        robuxText.TextColor3 = COLORS.White
+        robuxText.TextSize = 18
+        robuxText.Font = Enum.Font.GothamBold
+        robuxText.Parent = robuxBtn
+
+        -- Hover
+        robuxBtn.MouseEnter:Connect(function()
+            TweenService:Create(robuxBtn, TweenInfo.new(0.15), {
+                BackgroundColor3 = COLORS.RobuxBtnHover
+            }):Play()
+        end)
+        robuxBtn.MouseLeave:Connect(function()
+            TweenService:Create(robuxBtn, TweenInfo.new(0.15), {
+                BackgroundColor3 = COLORS.RobuxBtnBg
+            }):Play()
+        end)
+
+        -- Clic achat
+        robuxBtn.MouseButton1Click:Connect(function()
+            self:_OnBuyClicked(categoryId, productIndex, product)
+        end)
+    end
 
     -- Hover sur toute la carte (léger brighten)
     card.InputBegan:Connect(function(input)
@@ -508,6 +686,11 @@ function ShopController:Open()
 
     isOpen = true
     screenGui.Enabled = true
+
+    -- Rafraîchir l'onglet courant (pour mettre à jour les états owned)
+    if currentTab then
+        self:SwitchTab(currentTab)
+    end
 
     overlay.BackgroundTransparency = 1
     TweenService:Create(overlay, TweenInfo.new(0.25), {

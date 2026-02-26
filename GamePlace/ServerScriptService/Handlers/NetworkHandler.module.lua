@@ -595,6 +595,7 @@ function NetworkHandler:_HandleGetFullPlayerData(player)
         PlacedBrainrots = playerData and playerData.PlacedBrainrots or {},
         SlotCash = playerData and playerData.SlotCash or {},
         LuckyBlocks = playerData and playerData.LuckyBlocks or 0,
+        OwnedOneTimePurchases = playerData and playerData.OwnedOneTimePurchases or {},
         SpinWheelSpins = playerData and playerData.SpinWheelSpins or 0,
         LastFreeSpinTime = playerData and playerData.LastFreeSpinTime or 0,
         CodexUnlocked = playerData and playerData.CodexUnlocked or {},
@@ -605,6 +606,15 @@ function NetworkHandler:_HandleGetFullPlayerData(player)
         PiecesInHand = runtimeData and runtimeData.PiecesInHand or {},
         CarriedBrainrot = runtimeData and runtimeData.CarriedBrainrot or nil,
         DoorState = runtimeData and runtimeData.DoorState or Constants.DoorState.Open,
+
+        -- Multiplicateur temporaire (Boost)
+        MultiplierBoostActive = (runtimeData and runtimeData.TemporaryMultiplier ~= nil
+            and runtimeData.TemporaryMultiplierExpiry ~= nil
+            and runtimeData.TemporaryMultiplierExpiry > os.time()) or false,
+        MultiplierBoostRemaining = (runtimeData and runtimeData.TemporaryMultiplierExpiry
+            and runtimeData.TemporaryMultiplierExpiry > os.time())
+            and (runtimeData.TemporaryMultiplierExpiry - os.time()) or 0,
+        MultiplierBoostValue = (runtimeData and runtimeData.TemporaryMultiplier) or 1,
     }
     
     return fullData

@@ -29,6 +29,7 @@ local ShopProducts = nil
 local EconomySystem = nil
 local NetworkSetup = nil
 local DataService = nil
+local PlayerService = nil
 local LuckyBlockSystem = nil
 local SpinWheelSystem = nil
 local DoorSystem = nil
@@ -55,6 +56,7 @@ function ShopSystem:Init(services)
     EconomySystem = services.EconomySystem
     NetworkSetup = services.NetworkSetup
     DataService = services.DataService
+    PlayerService = services.PlayerService
     LuckyBlockSystem = services.LuckyBlockSystem
     SpinWheelSystem = services.SpinWheelSystem
     DoorSystem = services.DoorSystem
@@ -124,6 +126,15 @@ function ShopSystem:RequestPurchase(player, categoryId, productIndex)
         return
     end
 
+    -- Vérifier si c'est un achat unique déjà possédé
+    if product.OneTimePurchaseKey and DataService then
+        local data = DataService:GetPlayerData(player)
+        if data and data.OwnedOneTimePurchases and data.OwnedOneTimePurchases[product.OneTimePurchaseKey] then
+            self:_SendNotification(player, "Error", "You already own this!")
+            return
+        end
+    end
+
     -- Déclencher la fenêtre d'achat Roblox native
     local success, err = pcall(function()
         MarketplaceService:PromptProductPurchase(player, product.ProductId)
@@ -188,6 +199,21 @@ function ShopSystem:_SetupProcessReceipt()
             return Enum.ProductPurchaseDecision.PurchaseGranted
         end
 
+        -- 2.5. Vérifier si c'est un achat unique déjà possédé
+        if productInfo.OneTimePurchaseKey and DataService then
+            local data = DataService:GetPlayerData(player)
+            if data then
+                if not data.OwnedOneTimePurchases then
+                    data.OwnedOneTimePurchases = {}
+                end
+                if data.OwnedOneTimePurchases[productInfo.OneTimePurchaseKey] then
+                    warn("[ShopSystem] Achat unique déjà possédé: " .. productInfo.OneTimePurchaseKey)
+                    self:_SendNotification(player, "Error", "You already own this!")
+                    return Enum.ProductPurchaseDecision.PurchaseGranted
+                end
+            end
+        end
+
         -- 3. Accorder la récompense
         local success, err = pcall(function()
             if productInfo.Cash and productInfo.Cash > 0 then
@@ -215,12 +241,82 @@ function ShopSystem:_SetupProcessReceipt()
                     warn("[ShopSystem] SpinWheelSystem non injecté! Spins non accordés.")
                 end
             end
+
+            if productInfo.MultiplierBoost and productInfo.MultiplierBoost > 0 then
+                if PlayerService then
+                    local runtimeData = PlayerService:GetRuntimeData(player)
+                    if runtimeData then
+                        local duration = productInfo.MultiplierDuration or 900
+                        local now = os.time()
+
+                        -- Si un multiplicateur est déjà actif, prolonger la durée
+                        if runtimeData.TemporaryMultiplier and runtimeData.TemporaryMultiplierExpiry and runtimeData.TemporaryMultiplierExpiry > now then
+                            runtimeData.TemporaryMultiplierExpiry = runtimeData.TemporaryMultiplierExpiry + duration
+                        else
+                            runtimeData.TemporaryMultiplier = productInfo.MultiplierBoost
+                            runtimeData.TemporaryMultiplierExpiry = now + duration
+                        end
+
+                        -- Persister dans le DataStore pour survivre aux déconnexions
+                        DataService:UpdateValue(player, "TemporaryMultiplier", runtimeData.TemporaryMultiplier)
+                        DataService:UpdateValue(player, "TemporaryMultiplierExpiry", runtimeData.TemporaryMultiplierExpiry)
+
+                        print(string.format("[ShopSystem] x%s Multiplier activé pour %s (%ds)",
+                            tostring(productInfo.MultiplierBoost), player.Name, duration))
+
+                        -- Sync le timer vers le client
+                        self:_SyncMultiplierBoost(player)
+                    end
+                else
+                    warn("[ShopSystem] PlayerService non injecté! MultiplierBoost non accordé.")
+                end
+            end
+
+            if productInfo.PermanentMultiplierBonus and productInfo.PermanentMultiplierBonus > 0 then
+                if DataService then
+                    local data = DataService:GetPlayerData(player)
+                    if data then
+                        data.PermanentMultiplierBonus = (data.PermanentMultiplierBonus or 0) + productInfo.PermanentMultiplierBonus
+                        print(string.format("[ShopSystem] +%.2fx Permanent Multiplier accordé à %s (total: %.2fx)",
+                            productInfo.PermanentMultiplierBonus, player.Name, data.PermanentMultiplierBonus))
+                    end
+                else
+                    warn("[ShopSystem] DataService non injecté! PermanentMultiplierBonus non accordé.")
+                end
+
+                -- Rafraîchir l'affichage du multiplicateur immédiatement
+                if EconomySystem and EconomySystem.RefreshMultiplier then
+                    EconomySystem:RefreshMultiplier(player)
+                end
+            end
         end)
 
         if not success then
             warn("[ShopSystem] Erreur lors de l'accord de la récompense: " .. tostring(err))
             -- On retourne NotProcessedYet pour que Roblox réessaie
             return Enum.ProductPurchaseDecision.NotProcessedYet
+        end
+
+        -- 3.5. Marquer l'achat unique comme possédé
+        if productInfo.OneTimePurchaseKey and DataService then
+            local data = DataService:GetPlayerData(player)
+            if data then
+                if not data.OwnedOneTimePurchases then
+                    data.OwnedOneTimePurchases = {}
+                end
+                data.OwnedOneTimePurchases[productInfo.OneTimePurchaseKey] = true
+                print("[ShopSystem] Achat unique marqué: " .. productInfo.OneTimePurchaseKey)
+
+                -- Sync vers le client pour griser le bouton
+                if NetworkSetup then
+                    local remotes = NetworkSetup:GetAllRemotes()
+                    if remotes and remotes.SyncPlayerData then
+                        remotes.SyncPlayerData:FireClient(player, {
+                            OwnedOneTimePurchases = data.OwnedOneTimePurchases,
+                        })
+                    end
+                end
+            end
         end
 
         -- 4. Notification de succès
@@ -251,6 +347,10 @@ function ShopSystem:_BuildProductMap()
                     Cash = product.Cash,
                     LuckyBlocks = product.LuckyBlocks,
                     Spins = product.Spins,
+                    MultiplierBoost = product.MultiplierBoost,
+                    MultiplierDuration = product.MultiplierDuration,
+                    PermanentMultiplierBonus = product.PermanentMultiplierBonus,
+                    OneTimePurchaseKey = product.OneTimePurchaseKey,
                     Robux = product.Robux,
                     DisplayName = product.DisplayName,
                     CategoryId = category.Id,
@@ -284,6 +384,32 @@ function ShopSystem:_CountProducts()
         count = count + 1
     end
     return count
+end
+
+--[[
+    Sync le timer du multiplicateur temporaire vers le client
+    @param player: Player
+]]
+function ShopSystem:_SyncMultiplierBoost(player)
+    if not NetworkSetup or not PlayerService then return end
+
+    local remotes = NetworkSetup:GetAllRemotes()
+    if not remotes or not remotes.SyncMultiplierBoost then return end
+
+    local runtimeData = PlayerService:GetRuntimeData(player)
+    if not runtimeData then return end
+
+    local now = os.time()
+    local active = runtimeData.TemporaryMultiplier ~= nil
+        and runtimeData.TemporaryMultiplierExpiry ~= nil
+        and runtimeData.TemporaryMultiplierExpiry > now
+    local remaining = active and (runtimeData.TemporaryMultiplierExpiry - now) or 0
+
+    remotes.SyncMultiplierBoost:FireClient(player, {
+        Active = active,
+        RemainingSeconds = remaining,
+        Multiplier = active and runtimeData.TemporaryMultiplier or 1,
+    })
 end
 
 --[[

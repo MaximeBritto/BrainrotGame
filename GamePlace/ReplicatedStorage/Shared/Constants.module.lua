@@ -86,6 +86,7 @@ local Constants = {
         LuckyBlockReveal = "LuckyBlockReveal",     -- Lucky Block: Résultat pour animation
         SyncSpinWheelData = "SyncSpinWheelData", -- Spin Wheel: Sync compteur + timer
         SpinWheelResult = "SpinWheelResult",     -- Spin Wheel: Résultat pour animation
+        SyncMultiplierBoost = "SyncMultiplierBoost", -- Boost: Sync timer multiplicateur
 
         -- RemoteFunctions
         GetFullPlayerData = "GetFullPlayerData",

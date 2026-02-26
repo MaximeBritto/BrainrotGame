@@ -556,6 +556,7 @@ if ShopSystem and EconomySystem then
         EconomySystem = EconomySystem,
         NetworkSetup = NetworkSetup,
         DataService = DataService,
+        PlayerService = PlayerService,
         LuckyBlockSystem = LuckyBlockSystem,
         SpinWheelSystem = SpinWheelSystem,
         DoorSystem = DoorSystem,

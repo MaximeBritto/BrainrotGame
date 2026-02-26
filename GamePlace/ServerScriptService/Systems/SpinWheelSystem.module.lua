@@ -239,8 +239,22 @@ function SpinWheelSystem:_DistributeReward(player, reward)
         local runtimeData = PlayerService:GetRuntimeData(player)
         if runtimeData then
             local duration = GameConfig.SpinWheel.MultiplierDuration
-            runtimeData.TemporaryMultiplier = GameConfig.SpinWheel.MultiplierBoost
-            runtimeData.TemporaryMultiplierExpiry = os.time() + duration
+            local now = os.time()
+
+            -- Si un multiplicateur est déjà actif, prolonger la durée
+            if runtimeData.TemporaryMultiplier and runtimeData.TemporaryMultiplierExpiry and runtimeData.TemporaryMultiplierExpiry > now then
+                runtimeData.TemporaryMultiplierExpiry = runtimeData.TemporaryMultiplierExpiry + duration
+            else
+                runtimeData.TemporaryMultiplier = GameConfig.SpinWheel.MultiplierBoost
+                runtimeData.TemporaryMultiplierExpiry = now + duration
+            end
+
+            -- Persister dans le DataStore pour survivre aux déconnexions
+            DataService:UpdateValue(player, "TemporaryMultiplier", runtimeData.TemporaryMultiplier)
+            DataService:UpdateValue(player, "TemporaryMultiplierExpiry", runtimeData.TemporaryMultiplierExpiry)
+
+            -- Sync le timer vers le client
+            self:_SyncMultiplierBoost(player)
         end
         self:_SendNotification(player, "Success", "x2 Multiplier activated for 15 minutes!", 5)
     end
@@ -328,6 +342,32 @@ function SpinWheelSystem:_SyncSpinWheelData(player)
         FreeSpinAvailable = freeSpinAvailable,
         TimeUntilFreeSpin = timeUntilFree,
         LastFreeSpinTime = lastFreeTime,
+    })
+end
+
+--[[
+    Sync le timer du multiplicateur temporaire vers le client
+    @param player: Player
+]]
+function SpinWheelSystem:_SyncMultiplierBoost(player)
+    if not NetworkSetup or not PlayerService then return end
+
+    local remotes = NetworkSetup:GetAllRemotes()
+    if not remotes or not remotes.SyncMultiplierBoost then return end
+
+    local runtimeData = PlayerService:GetRuntimeData(player)
+    if not runtimeData then return end
+
+    local now = os.time()
+    local active = runtimeData.TemporaryMultiplier ~= nil
+        and runtimeData.TemporaryMultiplierExpiry ~= nil
+        and runtimeData.TemporaryMultiplierExpiry > now
+    local remaining = active and (runtimeData.TemporaryMultiplierExpiry - now) or 0
+
+    remotes.SyncMultiplierBoost:FireClient(player, {
+        Active = active,
+        RemainingSeconds = remaining,
+        Multiplier = active and runtimeData.TemporaryMultiplier or 1,
     })
 end
 
