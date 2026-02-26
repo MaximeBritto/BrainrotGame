@@ -222,7 +222,7 @@ if mainHUD then
     boostIcon.Size = UDim2.new(0, 50, 1, 0)
     boostIcon.Position = UDim2.new(0, 5, 0, 0)
     boostIcon.BackgroundTransparency = 1
-    boostIcon.Text = "X2"
+    boostIcon.Text = "$ X2"
     boostIcon.TextColor3 = Color3.fromRGB(255, 215, 0)
     boostIcon.TextSize = 24
     boostIcon.Font = Enum.Font.GothamBlack

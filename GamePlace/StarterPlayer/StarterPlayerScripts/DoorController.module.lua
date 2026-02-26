@@ -43,11 +43,18 @@ function DoorController:Init()
     doorTimerUI = playerGui:FindFirstChild("DoorTimerUI")
     
     if doorTimerUI then
+        -- Ignorer l'inset Roblox pour coller tout en haut
+        doorTimerUI.IgnoreGuiInset = true
+
         local container = doorTimerUI:FindFirstChild("Container")
         if container then
+            -- Positionner en haut au milieu de l'écran
+            container.AnchorPoint = Vector2.new(0.5, 0)
+            container.Position = UDim2.new(0.5, 0, 0, 0)
+
             statusLabel = container:FindFirstChild("StatusLabel")
             timerLabel = container:FindFirstChild("TimerLabel")
-            
+
             if statusLabel and timerLabel then
                 -- print("[DoorController] UI trouvée et connectée")
             else

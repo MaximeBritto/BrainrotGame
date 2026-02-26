@@ -30,6 +30,11 @@ local cashLabel = cashDisplay:WaitForChild("CashLabel")
 local slotCashDisplay = topBar:WaitForChild("SlotCashDisplay")
 local slotCashLabel = slotCashDisplay:WaitForChild("SlotCashLabel")
 
+-- Déplacer le CashDisplay en bas à gauche de l'écran
+cashDisplay.Parent = mainHUD
+cashDisplay.AnchorPoint = Vector2.new(0, 1)
+cashDisplay.Position = UDim2.new(0, 15, 1, -15)
+
 local inventoryDisplay = mainHUD:WaitForChild("InventoryDisplay")
 local inventoryTitle = inventoryDisplay:WaitForChild("Title")
 local craftButton = mainHUD:WaitForChild("CraftButton")
@@ -44,6 +49,10 @@ local inventorySlots = {
 -- NotificationUI Elements
 local notifContainer = notificationUI:WaitForChild("Container")
 local notifTemplate = notifContainer:WaitForChild("Template")
+
+-- Centrer les notifications au milieu, au-dessus de l'inventaire
+notifContainer.AnchorPoint = Vector2.new(0.5, 1)
+notifContainer.Position = UDim2.new(0.5, 0, 0.75, 0)
 
 -- État local
 local currentPlayerData = {
@@ -197,21 +206,21 @@ function UIController:ShowNotification(notifType, message, duration)
     local color = NOTIFICATION_COLORS[notifType] or NOTIFICATION_COLORS.Info
     notif.BackgroundColor3 = color
     
-    -- Positionner hors écran (pour animation)
-    notif.Position = UDim2.new(-1, 0, 0, 0)
+    -- Positionner hors écran (apparition par le bas)
+    notif.Position = UDim2.new(0, 0, 0, 20)
     notif.Parent = notifContainer
-    
-    -- Animation d'entrée
+
+    -- Animation d'entrée (fade in + slide up)
     local tweenIn = TweenService:Create(notif, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-        Position = UDim2.new(0, 0, 0, 0)
+        Position = UDim2.new(0, 0, 0, 0),
     })
     tweenIn:Play()
-    
+
     -- Attendre la durée
     task.delay(duration, function()
-        -- Animation de sortie
+        -- Animation de sortie (fade out + slide up)
         local tweenOut = TweenService:Create(notif, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-            Position = UDim2.new(1, 0, 0, 0),
+            Position = UDim2.new(0, 0, 0, -20),
             BackgroundTransparency = 1
         })
         tweenOut:Play()
