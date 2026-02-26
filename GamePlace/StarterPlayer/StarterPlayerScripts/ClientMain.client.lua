@@ -1,13 +1,9 @@
 --[[
     ClientMain.lua (LocalScript)
     Point d'entrée principal du client
-    
+
     Ce script initialise tous les contrôleurs et connecte les RemoteEvents
 ]]
-
--- print("═══════════════════════════════════════════════")
--- print("   BRAINROT GAME - Client starting")
--- print("═══════════════════════════════════════════════")
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -40,28 +36,32 @@ end
 -- Attendre les Remotes
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 
--- Phase 6 : CodexController (CodexUI, SyncCodex, bouton Fermer)
+-- ═══════════════════════════════════════════════════════
+-- INITIALISATION DU HUD (programmatique)
+-- ═══════════════════════════════════════════════════════
+
+-- Initialiser le HUD principal (crée le ScreenGui GameHUD)
+UIController:Init()
+
+-- Phase 6 : CodexController
 CodexController:Init()
 
--- Preview Brainrot 3D (modèle qui suit le joueur)
+-- Preview Brainrot 3D
 PreviewBrainrotController:Init()
 
 -- ═══════════════════════════════════════════════════════
 -- CONNEXION AUX REMOTES (Serveur → Client)
 -- ═══════════════════════════════════════════════════════
 
--- SyncPlayerData: Reçoit les mises à jour des données joueur
+-- SyncPlayerData
 local syncPlayerData = Remotes:WaitForChild("SyncPlayerData")
 syncPlayerData.OnClientEvent:Connect(function(data)
-    -- -- print("[ClientMain] SyncPlayerData received")
     UIController:UpdateAll(data)
-    
-    -- Mettre à jour EconomyController avec les données pertinentes
+
     if data.OwnedSlots or data.SlotCash or data.UnlockedFloor then
         EconomyController:UpdateData(data)
     end
-    
-    -- Animer les changements d'argent
+
     if data.Cash ~= nil then
         local oldCash = UIController:GetCurrentData().Cash
         if oldCash and oldCash ~= data.Cash then
@@ -70,21 +70,17 @@ syncPlayerData.OnClientEvent:Connect(function(data)
     end
 end)
 
--- SyncInventory: Reçoit les mises à jour de l'inventaire (pièces en main)
+-- SyncInventory
 local syncInventory = Remotes:WaitForChild("SyncInventory")
 syncInventory.OnClientEvent:Connect(function(pieces)
-    -- print("[ClientMain] SyncInventory received (" .. #pieces .. " pieces)")
     UIController:UpdateInventory(pieces)
-    -- Mettre à jour le preview 3D du brainrot qui suit le joueur
     PreviewBrainrotController:UpdatePreview(pieces)
 end)
 
--- Notification: Reçoit les notifications à afficher
+-- Notification
 local notification = Remotes:WaitForChild("Notification")
 notification.OnClientEvent:Connect(function(data)
-    -- print("[ClientMain] Notification received: " .. data.Type .. " - " .. data.Message)
     UIController:ShowNotification(data.Type, data.Message, data.Duration)
-    -- Sons économiques (Phase 3)
     if SoundHelper then
         local msg = data.Message or ""
         if data.Type == "Success" then
@@ -99,12 +95,9 @@ notification.OnClientEvent:Connect(function(data)
     end
 end)
 
--- SyncCodex: géré directement par CodexController:Init() (listener interne)
-
--- SyncDoorState: Reçoit les mises à jour de l'état de la porte (Phase 2)
+-- SyncDoorState
 local syncDoorState = Remotes:WaitForChild("SyncDoorState")
 syncDoorState.OnClientEvent:Connect(function(data)
-    -- print("[ClientMain] SyncDoorState received: " .. data.State)
     DoorController:UpdateDoorState(data.State, data.ReopenTime)
 end)
 
@@ -126,63 +119,155 @@ local collectSlotCash = Remotes:WaitForChild("CollectSlotCash")
 local craftButton = UIController:GetCraftButton()
 if craftButton then
     craftButton.MouseButton1Click:Connect(function()
-        -- print("[ClientMain] Craft button clicked")
         craft:FireServer()
     end)
 end
 
 -- ═══════════════════════════════════════════════════════
--- BOUTON CODEX (Phase 6) – CodexButton est enfant direct de MainHUD
+-- BOUTONS CODEX & SHOP (côté gauche, empilés)
 -- ═══════════════════════════════════════════════════════
 
-local playerGui = player:WaitForChild("PlayerGui")
-local mainHUD = playerGui:WaitForChild("MainHUD", 10)
-if mainHUD then
-    local codexButton = mainHUD:FindFirstChild("CodexButton") or mainHUD:FindFirstChild("Codex")
-    if codexButton and codexButton:IsA("TextButton") then
-        codexButton.MouseButton1Click:Connect(function()
-            CodexController:Open()
-        end)
-        -- print("[ClientMain] Codex button connected")
-    end
-end
+local hudGui = UIController:GetScreenGui()
+if hudGui then
+    -- Container pour les boutons latéraux
+    local sideButtonsContainer = Instance.new("Frame")
+    sideButtonsContainer.Name = "SideButtons"
+    sideButtonsContainer.Size = UDim2.new(0, 170, 0, 125)
+    sideButtonsContainer.Position = UDim2.new(0, 10, 0.5, -62)
+    sideButtonsContainer.BackgroundTransparency = 1
+    sideButtonsContainer.BorderSizePixel = 0
+    sideButtonsContainer.Parent = hudGui
 
--- ═══════════════════════════════════════════════════════
--- BOUTON SHOP (Phase 9) – Bouton pour ouvrir le Shop Robux
--- ═══════════════════════════════════════════════════════
+    local layout = Instance.new("UIListLayout")
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Padding = UDim.new(0, 10)
+    layout.Parent = sideButtonsContainer
 
-if mainHUD then
-    -- Créer le bouton SHOP carré à gauche de l'écran
+    -- ── BOUTON CODEX ──
+    local codexButton = Instance.new("TextButton")
+    codexButton.Name = "CodexButton"
+    codexButton.Size = UDim2.new(1, 0, 0, 55)
+    codexButton.LayoutOrder = 1
+    codexButton.BackgroundColor3 = Color3.fromRGB(35, 60, 140)
+    codexButton.BackgroundTransparency = 0.1
+    codexButton.BorderSizePixel = 0
+    codexButton.Text = ""
+    codexButton.AutoButtonColor = false
+    codexButton.Parent = sideButtonsContainer
+
+    local codexCorner = Instance.new("UICorner")
+    codexCorner.CornerRadius = UDim.new(0, 14)
+    codexCorner.Parent = codexButton
+
+    local codexStroke = Instance.new("UIStroke")
+    codexStroke.Color = Color3.fromRGB(55, 90, 180)
+    codexStroke.Thickness = 1.5
+    codexStroke.Transparency = 0.3
+    codexStroke.Parent = codexButton
+
+    -- Icône livre
+    local codexIcon = Instance.new("TextLabel")
+    codexIcon.Name = "Icon"
+    codexIcon.Size = UDim2.new(0, 35, 0, 35)
+    codexIcon.Position = UDim2.new(0, 12, 0.5, 0)
+    codexIcon.AnchorPoint = Vector2.new(0, 0.5)
+    codexIcon.BackgroundTransparency = 1
+    codexIcon.Text = "\xF0\x9F\x93\x96" -- 📖
+    codexIcon.TextSize = 24
+    codexIcon.Font = Enum.Font.GothamBold
+    codexIcon.Parent = codexButton
+
+    -- Texte "CODEX"
+    local codexText = Instance.new("TextLabel")
+    codexText.Name = "Label"
+    codexText.Size = UDim2.new(0, 100, 1, 0)
+    codexText.Position = UDim2.new(0, 48, 0, 0)
+    codexText.BackgroundTransparency = 1
+    codexText.Text = "CODEX"
+    codexText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    codexText.TextSize = 18
+    codexText.Font = Enum.Font.GothamBlack
+    codexText.TextXAlignment = Enum.TextXAlignment.Left
+    codexText.Parent = codexButton
+
+    -- Hover
+    codexButton.MouseEnter:Connect(function()
+        TweenService:Create(codexButton, TweenInfo.new(0.15), {
+            BackgroundColor3 = Color3.fromRGB(50, 80, 170)
+        }):Play()
+    end)
+    codexButton.MouseLeave:Connect(function()
+        TweenService:Create(codexButton, TweenInfo.new(0.15), {
+            BackgroundColor3 = Color3.fromRGB(35, 60, 140)
+        }):Play()
+    end)
+
+    codexButton.MouseButton1Click:Connect(function()
+        CodexController:Open()
+    end)
+
+    -- ── BOUTON SHOP ──
     local shopButton = Instance.new("TextButton")
     shopButton.Name = "ShopButton"
-    shopButton.Size = UDim2.new(0, 83, 0, 84)
-    shopButton.Position = UDim2.new(0.008, 0, 0.52, 0)
-    shopButton.AnchorPoint = Vector2.new(0, 0)
-    shopButton.BackgroundColor3 = Color3.fromRGB(30, 120, 30)
+    shopButton.Size = UDim2.new(1, 0, 0, 55)
+    shopButton.LayoutOrder = 2
+    shopButton.BackgroundColor3 = Color3.fromRGB(25, 120, 25)
+    shopButton.BackgroundTransparency = 0.1
     shopButton.BorderSizePixel = 0
-    shopButton.Text = "SHOP"
-    shopButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    shopButton.TextSize = 14
-    shopButton.Font = Enum.Font.GothamBold
-    shopButton.Parent = mainHUD
+    shopButton.Text = ""
+    shopButton.AutoButtonColor = false
+    shopButton.Parent = sideButtonsContainer
 
-    local shopBtnCorner = Instance.new("UICorner")
-    shopBtnCorner.CornerRadius = UDim.new(0, 8)
-    shopBtnCorner.Parent = shopButton
+    local shopCorner = Instance.new("UICorner")
+    shopCorner.CornerRadius = UDim.new(0, 14)
+    shopCorner.Parent = shopButton
+
+    local shopStroke = Instance.new("UIStroke")
+    shopStroke.Color = Color3.fromRGB(40, 160, 40)
+    shopStroke.Thickness = 1.5
+    shopStroke.Transparency = 0.3
+    shopStroke.Parent = shopButton
+
+    -- Icône panier
+    local shopIcon = Instance.new("TextLabel")
+    shopIcon.Name = "Icon"
+    shopIcon.Size = UDim2.new(0, 35, 0, 35)
+    shopIcon.Position = UDim2.new(0, 12, 0.5, 0)
+    shopIcon.AnchorPoint = Vector2.new(0, 0.5)
+    shopIcon.BackgroundTransparency = 1
+    shopIcon.Text = "\xF0\x9F\x9B\x92" -- 🛒
+    shopIcon.TextSize = 24
+    shopIcon.Font = Enum.Font.GothamBold
+    shopIcon.Parent = shopButton
+
+    -- Texte "SHOP"
+    local shopText = Instance.new("TextLabel")
+    shopText.Name = "Label"
+    shopText.Size = UDim2.new(0, 100, 1, 0)
+    shopText.Position = UDim2.new(0, 48, 0, 0)
+    shopText.BackgroundTransparency = 1
+    shopText.Text = "SHOP"
+    shopText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    shopText.TextSize = 18
+    shopText.Font = Enum.Font.GothamBlack
+    shopText.TextXAlignment = Enum.TextXAlignment.Left
+    shopText.Parent = shopButton
+
+    -- Hover
+    shopButton.MouseEnter:Connect(function()
+        TweenService:Create(shopButton, TweenInfo.new(0.15), {
+            BackgroundColor3 = Color3.fromRGB(35, 150, 35)
+        }):Play()
+    end)
+    shopButton.MouseLeave:Connect(function()
+        TweenService:Create(shopButton, TweenInfo.new(0.15), {
+            BackgroundColor3 = Color3.fromRGB(25, 120, 25)
+        }):Play()
+    end)
 
     shopButton.MouseButton1Click:Connect(function()
         ShopController:Toggle()
     end)
-
-    -- Hover effect
-    shopButton.MouseEnter:Connect(function()
-        shopButton.BackgroundColor3 = Color3.fromRGB(40, 150, 40)
-    end)
-    shopButton.MouseLeave:Connect(function()
-        shopButton.BackgroundColor3 = Color3.fromRGB(30, 120, 30)
-    end)
-
-    -- print("[ClientMain] Shop button créé")
 end
 
 -- ═══════════════════════════════════════════════════════
@@ -194,21 +279,21 @@ local boostTimerLabel = nil
 local boostRemainingSeconds = 0
 local boostTimerActive = false
 
-if mainHUD then
-    -- Conteneur du timer boost
+if hudGui then
+    -- Conteneur du timer boost (au-dessus du cash display)
     boostTimerFrame = Instance.new("Frame")
     boostTimerFrame.Name = "BoostTimerFrame"
-    boostTimerFrame.Size = UDim2.new(0, 160, 0, 40)
-    boostTimerFrame.Position = UDim2.new(0, 10, 1, -100)
+    boostTimerFrame.Size = UDim2.new(0, 170, 0, 40)
+    boostTimerFrame.Position = UDim2.new(0, 15, 1, -78)
     boostTimerFrame.AnchorPoint = Vector2.new(0, 1)
-    boostTimerFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    boostTimerFrame.BackgroundTransparency = 0.3
+    boostTimerFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+    boostTimerFrame.BackgroundTransparency = 0.2
     boostTimerFrame.BorderSizePixel = 0
     boostTimerFrame.Visible = false
-    boostTimerFrame.Parent = mainHUD
+    boostTimerFrame.Parent = hudGui
 
     local boostCorner = Instance.new("UICorner")
-    boostCorner.CornerRadius = UDim.new(0, 8)
+    boostCorner.CornerRadius = UDim.new(0, 10)
     boostCorner.Parent = boostTimerFrame
 
     local boostStroke = Instance.new("UIStroke")
@@ -219,12 +304,12 @@ if mainHUD then
     -- Label "X2" à gauche
     local boostIcon = Instance.new("TextLabel")
     boostIcon.Name = "BoostIcon"
-    boostIcon.Size = UDim2.new(0, 50, 1, 0)
-    boostIcon.Position = UDim2.new(0, 5, 0, 0)
+    boostIcon.Size = UDim2.new(0, 55, 1, 0)
+    boostIcon.Position = UDim2.new(0, 8, 0, 0)
     boostIcon.BackgroundTransparency = 1
     boostIcon.Text = "$ X2"
     boostIcon.TextColor3 = Color3.fromRGB(255, 215, 0)
-    boostIcon.TextSize = 24
+    boostIcon.TextSize = 22
     boostIcon.Font = Enum.Font.GothamBlack
     boostIcon.TextXAlignment = Enum.TextXAlignment.Left
     boostIcon.Parent = boostTimerFrame
@@ -232,25 +317,23 @@ if mainHUD then
     -- Timer à droite
     boostTimerLabel = Instance.new("TextLabel")
     boostTimerLabel.Name = "BoostTimer"
-    boostTimerLabel.Size = UDim2.new(0, 95, 1, 0)
-    boostTimerLabel.Position = UDim2.new(1, -100, 0, 0)
+    boostTimerLabel.Size = UDim2.new(0, 90, 1, 0)
+    boostTimerLabel.Position = UDim2.new(1, -95, 0, 0)
     boostTimerLabel.BackgroundTransparency = 1
     boostTimerLabel.Text = "00:00"
     boostTimerLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    boostTimerLabel.TextSize = 22
+    boostTimerLabel.TextSize = 20
     boostTimerLabel.Font = Enum.Font.GothamBold
     boostTimerLabel.TextXAlignment = Enum.TextXAlignment.Right
     boostTimerLabel.Parent = boostTimerFrame
 end
 
--- Formate les secondes en MM:SS
 local function formatBoostTime(seconds)
     local mins = math.floor(seconds / 60)
     local secs = seconds % 60
     return string.format("%02d:%02d", mins, secs)
 end
 
--- Met à jour l'affichage du timer boost
 local function updateBoostTimerUI()
     if not boostTimerFrame or not boostTimerLabel then return end
 
@@ -263,23 +346,20 @@ local function updateBoostTimerUI()
     end
 end
 
--- Démarre le countdown local du boost
 local function startBoostCountdown(seconds)
     boostRemainingSeconds = seconds
     boostTimerActive = true
     updateBoostTimerUI()
 
-    -- Animation d'apparition
     if boostTimerFrame then
         boostTimerFrame.Size = UDim2.new(0, 0, 0, 0)
         boostTimerFrame.Visible = true
         TweenService:Create(boostTimerFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-            Size = UDim2.new(0, 160, 0, 40),
+            Size = UDim2.new(0, 170, 0, 40),
         }):Play()
     end
 end
 
--- Arrête le boost timer
 local function stopBoostTimer()
     boostTimerActive = false
     boostRemainingSeconds = 0
@@ -294,7 +374,7 @@ local function stopBoostTimer()
     end
 end
 
--- Boucle de countdown (chaque seconde)
+-- Boucle de countdown
 task.spawn(function()
     while true do
         task.wait(1)
@@ -308,7 +388,7 @@ task.spawn(function()
     end
 end)
 
--- SyncMultiplierBoost: Reçoit les mises à jour du boost multiplicateur
+-- SyncMultiplierBoost
 local syncMultiplierBoost = Remotes:FindFirstChild("SyncMultiplierBoost")
 if syncMultiplierBoost then
     syncMultiplierBoost.OnClientEvent:Connect(function(data)
@@ -321,65 +401,35 @@ if syncMultiplierBoost then
 end
 
 -- ═══════════════════════════════════════════════════════
--- FONCTIONS PUBLIQUES (pour les autres contrôleurs)
+-- FONCTIONS PUBLIQUES
 -- ═══════════════════════════════════════════════════════
 
 local ClientMain = {}
 
---[[
-    Envoie une requête de pickup au serveur
-    @param pieceId: string - Nom unique de la pièce
-]]
 function ClientMain:RequestPickupPiece(pieceId)
-    -- print("[ClientMain] Request pickup: " .. pieceId)
     pickupPiece:FireServer(pieceId)
 end
 
---[[
-    Envoie une requête de craft au serveur
-]]
 function ClientMain:RequestCraft()
-    -- print("[ClientMain] Request craft")
     craft:FireServer()
 end
 
---[[
-    Envoie une requête d'achat de slot au serveur
-]]
 function ClientMain:RequestBuySlot()
-    -- print("[ClientMain] Request buy slot")
     buySlot:FireServer()
 end
 
---[[
-    Envoie une requête d'activation de porte au serveur
-]]
 function ClientMain:RequestActivateDoor()
-    -- print("[ClientMain] Request activate door")
     activateDoor:FireServer()
 end
 
---[[
-    Envoie une requête pour lâcher les pièces
-]]
 function ClientMain:RequestDropPieces()
-    -- print("[ClientMain] Request drop pieces")
     dropPieces:FireServer()
 end
 
---[[
-    Envoie une requête de collecte d'argent de slot
-    @param slotIndex: number
-]]
 function ClientMain:RequestCollectSlotCash(slotIndex)
-    -- print("[ClientMain] Request collect slot " .. slotIndex)
     collectSlotCash:FireServer(slotIndex)
 end
 
---[[
-    Demande les données complètes du joueur au serveur
-    @return table - PlayerData complet
-]]
 function ClientMain:GetFullPlayerData()
     local getFullPlayerData = Remotes:WaitForChild("GetFullPlayerData")
     return getFullPlayerData:InvokeServer()
@@ -391,24 +441,18 @@ end
 
 -- Demander les données initiales au serveur
 task.spawn(function()
-    -- Attendre un peu que le serveur soit prêt
     task.wait(1)
-    
-    -- print("[ClientMain] Requesting initial data...")
+
     local fullData = ClientMain:GetFullPlayerData()
-    
+
     if fullData then
-        -- print("[ClientMain] Data received, updating UI")
         UIController:UpdateAll(fullData)
-        -- Mettre à jour le preview avec les pièces initiales (si le joueur en avait)
         if fullData.PiecesInHand then
             PreviewBrainrotController:UpdatePreview(fullData.PiecesInHand)
         end
-        -- Initialiser le Codex avec les données sauvegardées
         if fullData.CodexUnlocked then
             CodexController:UpdateCodex(fullData.CodexUnlocked)
         end
-        -- Initialiser le timer boost si un multiplicateur est actif
         if fullData.MultiplierBoostActive and fullData.MultiplierBoostRemaining and fullData.MultiplierBoostRemaining > 0 then
             startBoostCountdown(fullData.MultiplierBoostRemaining)
         end
@@ -418,28 +462,20 @@ task.spawn(function()
 end)
 
 -- ═══════════════════════════════════════════════════════
--- TERMINÉ
+-- TERMINÉ - Initialiser les autres contrôleurs
 -- ═══════════════════════════════════════════════════════
 
--- Initialiser DoorController
 DoorController:Init()
-
--- Initialiser EconomyController
 EconomyController:Init(UIController)
-
--- Initialiser ArenaController (Phase 4)
 ArenaController:Init()
-
--- Initialiser ShopController (Phase 9)
 ShopController:Init()
 
 -- ═══════════════════════════════════════════════════════
--- PROXIMITÉ SHOP ET COLLECTPADS (Phase 3)
+-- PROXIMITÉ SHOP ET COLLECTPADS
 -- ═══════════════════════════════════════════════════════
 
 local ProximityPromptService = game:GetService("ProximityPromptService")
 
--- Vérifie si un objet appartient à la base du joueur local
 local function isOnPlayerBase(instance)
     local current = instance
     while current do
@@ -451,25 +487,20 @@ local function isOnPlayerBase(instance)
     return false
 end
 
--- Écouter tous les ProximityPrompts
 ProximityPromptService.PromptTriggered:Connect(function(prompt, playerWhoTriggered)
     if playerWhoTriggered ~= player then return end
 
-    -- Ignorer si le prompt n'est pas sur la base du joueur
     if not isOnPlayerBase(prompt) then return end
 
     local parent = prompt.Parent
 
-    -- Vérifier si c'est un SlotShop
     if parent and parent.Name == "Sign" then
         local grandParent = parent.Parent
         if grandParent and grandParent.Name == "SlotShop" then
-            -- print("[ClientMain] SlotShop ProximityPrompt déclenché")
             EconomyController:OpenShop()
         end
     end
 
-    -- Vérifier si c'est un CollectPad (pour collecter l'argent d'un slot)
     if parent and parent.Name == "CollectPad" then
         local slot = parent.Parent
         if slot then
@@ -478,16 +509,10 @@ ProximityPromptService.PromptTriggered:Connect(function(prompt, playerWhoTrigger
                 slotIndex = tonumber(slot.Name:match("^Slot_(%d+)$"))
             end
             if slotIndex then
-                -- print("[ClientMain] CollectPad ProximityPrompt déclenché pour slot " .. slotIndex)
                 EconomyController:RequestCollectSlot(slotIndex)
             end
         end
     end
 end)
 
--- print("═══════════════════════════════════════════════")
--- print("   BRAINROT GAME - Client ready!")
--- print("═══════════════════════════════════════════════")
-
--- Exporter le module (optionnel, pour les autres scripts qui auraient besoin)
 return ClientMain
