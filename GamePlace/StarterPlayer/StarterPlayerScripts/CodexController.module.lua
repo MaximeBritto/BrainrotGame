@@ -704,8 +704,8 @@ function CodexController:RefreshList()
             end
         end
 
-        -- isDiscovered based on actual template parts unlocked (consistent with counter)
-        local isDiscovered = unlockedParts > 0
+        -- isDiscovered only when ALL parts are unlocked (complete set)
+        local isDiscovered = totalParts > 0 and unlockedParts == totalParts
 
         totalSets = totalSets + 1
         if isDiscovered then discoveredSets = discoveredSets + 1 end
