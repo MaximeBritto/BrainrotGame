@@ -469,9 +469,21 @@ function UIController:UpdateInventory(pieces)
         self._inventoryTitle.Text = "PIECES IN HAND (" .. #pieces .. "/3)"
     end
 
+    -- Trier les pièces par type : Head → slot 1, Body → slot 2, Legs → slot 3
+    local sortedPieces = {nil, nil, nil}
+    for _, piece in ipairs(pieces) do
+        if piece.PieceType == Constants.PieceType.Head then
+            sortedPieces[1] = piece
+        elseif piece.PieceType == Constants.PieceType.Body then
+            sortedPieces[2] = piece
+        elseif piece.PieceType == Constants.PieceType.Legs then
+            sortedPieces[3] = piece
+        end
+    end
+
     -- Mettre à jour chaque slot
     for i, slotData in ipairs(self._inventorySlots) do
-        local piece = pieces[i]
+        local piece = sortedPieces[i]
 
         if piece then
             -- Slot occupé - fond sombre, couleur de rareté sur le contour et le type
