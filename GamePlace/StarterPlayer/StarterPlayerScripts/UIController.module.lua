@@ -36,6 +36,7 @@ local COLORS = {
     White = Color3.fromRGB(255, 255, 255),
     CraftGreen = Color3.fromRGB(0, 200, 0),
     CraftYellow = Color3.fromRGB(150, 150, 0),
+    DropRed = Color3.fromRGB(180, 40, 40),
 }
 
 local FONTS = {
@@ -64,6 +65,7 @@ UIController._slotCashLabel = nil
 UIController._inventoryTitle = nil
 UIController._inventorySlots = {}
 UIController._craftButton = nil
+UIController._dropButton = nil
 UIController._notifContainer = nil
 UIController._notifTemplate = nil
 UIController._initialized = false
@@ -283,6 +285,46 @@ function UIController:_CreateInventoryDisplay(parent)
     end)
 
     self._craftButton = craftButton
+
+    -- Bouton Drop (à gauche du Craft, visible dès 1 pièce)
+    local dropButton = Instance.new("TextButton")
+    dropButton.Name = "DropButton"
+    dropButton.Size = UDim2.new(0, 95, 0, 40)
+    dropButton.Position = UDim2.new(1, -260, 0, -48)
+    dropButton.AnchorPoint = Vector2.new(1, 0)
+    dropButton.BackgroundColor3 = COLORS.DropRed
+    dropButton.BorderSizePixel = 0
+    dropButton.Text = "DROP"
+    dropButton.TextColor3 = COLORS.White
+    dropButton.TextSize = 18
+    dropButton.Font = FONTS.Black
+    dropButton.Visible = false
+    dropButton.AutoButtonColor = false
+    dropButton.Parent = invContainer
+
+    local dropCorner = Instance.new("UICorner")
+    dropCorner.CornerRadius = UDim.new(0, 10)
+    dropCorner.Parent = dropButton
+
+    local dropStroke = Instance.new("UIStroke")
+    dropStroke.Color = Color3.fromRGB(220, 60, 60)
+    dropStroke.Thickness = 2
+    dropStroke.Transparency = 0.5
+    dropStroke.Parent = dropButton
+
+    -- Hover effect
+    dropButton.MouseEnter:Connect(function()
+        TweenService:Create(dropButton, TweenInfo.new(0.15), {
+            BackgroundColor3 = Color3.fromRGB(210, 50, 50)
+        }):Play()
+    end)
+    dropButton.MouseLeave:Connect(function()
+        TweenService:Create(dropButton, TweenInfo.new(0.15), {
+            BackgroundColor3 = COLORS.DropRed
+        }):Play()
+    end)
+
+    self._dropButton = dropButton
 end
 
 function UIController:_CreateInventorySlot(parent, index)
@@ -459,6 +501,11 @@ function UIController:UpdateInventory(pieces)
             slotData.Stroke.Transparency = 0.3
             slotData.TypeLabel.TextColor3 = Color3.fromRGB(180, 180, 190)
         end
+    end
+
+    -- Afficher/masquer le bouton Drop (dès 1 pièce)
+    if self._dropButton then
+        self._dropButton.Visible = (#pieces >= 1)
     end
 
     -- Afficher/masquer le bouton Craft
@@ -677,6 +724,10 @@ end
 
 function UIController:GetCraftButton()
     return self._craftButton
+end
+
+function UIController:GetDropButton()
+    return self._dropButton
 end
 
 function UIController:GetCurrentData()

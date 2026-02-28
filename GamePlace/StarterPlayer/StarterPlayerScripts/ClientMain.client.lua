@@ -124,6 +124,17 @@ if craftButton then
 end
 
 -- ═══════════════════════════════════════════════════════
+-- BOUTON DROP
+-- ═══════════════════════════════════════════════════════
+
+local dropButton = UIController:GetDropButton()
+if dropButton then
+    dropButton.MouseButton1Click:Connect(function()
+        dropPieces:FireServer()
+    end)
+end
+
+-- ═══════════════════════════════════════════════════════
 -- BOUTONS CODEX & SHOP (côté gauche, empilés)
 -- ═══════════════════════════════════════════════════════
 

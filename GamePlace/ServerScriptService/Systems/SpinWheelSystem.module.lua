@@ -309,11 +309,9 @@ function SpinWheelSystem:_FindProductId(amount)
     end
 
     for _, category in ipairs(ShopProducts.Categories) do
-        if category.Id == "SpinWheel" then
-            for _, product in ipairs(category.Products) do
-                if product.Spins == amount then
-                    return product.ProductId
-                end
+        for _, product in ipairs(category.Products) do
+            if product.Spins == amount and not product.LuckyBlocks and not product.PermanentMultiplierBonus then
+                return product.ProductId
             end
         end
     end

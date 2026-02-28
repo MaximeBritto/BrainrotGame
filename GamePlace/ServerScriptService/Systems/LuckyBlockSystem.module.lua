@@ -30,6 +30,7 @@ local DataService = nil
 local PlacementSystem = nil
 local BrainrotModelSystem = nil
 local NetworkSetup = nil
+local ArenaSystem = nil
 
 -- Data (loaded in Init)
 local BrainrotData = nil
@@ -40,6 +41,7 @@ local _weightCache = nil
 
 local LuckyBlockSystem = {}
 LuckyBlockSystem._initialized = false
+LuckyBlockSystem._pendingRolls = {} -- [userId] = {HeadSet, BodySet, LegsSet}
 
 --[[
     Initialize the Lucky Block system
@@ -58,6 +60,7 @@ function LuckyBlockSystem:Init(services)
     PlacementSystem = services.PlacementSystem
     BrainrotModelSystem = services.BrainrotModelSystem
     NetworkSetup = services.NetworkSetup
+    ArenaSystem = services.ArenaSystem
 
     if not PlayerService or not DataService then
         error("[LuckyBlockSystem] Missing services (PlayerService, DataService)!")
@@ -170,10 +173,9 @@ function LuckyBlockSystem:TryOpen(player)
         return
     end
 
-    -- 2. Check that a slot is available
-    local slotIndex = PlacementSystem:FindAvailableSlot(player)
-    if not slotIndex then
-        self:_SendNotification(player, "Error", "No slot available! Buy one.")
+    -- 2. Check that the player doesn't already have a pending roll
+    if self._pendingRolls[player.UserId] then
+        self:_SendNotification(player, "Error", "Choose Take or Throw first!")
         return
     end
 
@@ -198,57 +200,121 @@ function LuckyBlockSystem:TryOpen(player)
     local newCount = count - 1
     DataService:UpdateValue(player, "LuckyBlocks", newCount)
 
-    -- 6. Place the Brainrot in the slot
-    local brainrotData = {
-        HeadSet = rolled.HeadSet,
-        BodySet = rolled.BodySet,
-        LegsSet = rolled.LegsSet,
-        SetName = rolled.HeadSet .. "_" .. rolled.BodySet .. "_" .. rolled.LegsSet,
-        SlotIndex = slotIndex,
-        PlacedAt = os.time(),
-    }
+    -- 6. Store pending roll (player must choose Take or Throw)
+    self._pendingRolls[player.UserId] = rolled
 
-    local placed = PlacementSystem:PlaceBrainrot(player, slotIndex, brainrotData)
-    if not placed then
-        -- Refund the Lucky Block on error
-        DataService:UpdateValue(player, "LuckyBlocks", newCount + 1)
-        self:_SendNotification(player, "Error", "Placement error. Lucky Block refunded.")
-        return
-    end
+    print(string.format("[LuckyBlockSystem] %s opened a Lucky Block -> Head=%s, Body=%s, Legs=%s (pending)",
+        player.Name, rolled.HeadSet, rolled.BodySet, rolled.LegsSet))
 
-    print(string.format("[LuckyBlockSystem] %s opened a Lucky Block -> Head=%s, Body=%s, Legs=%s (slot %d)",
-        player.Name, rolled.HeadSet, rolled.BodySet, rolled.LegsSet, slotIndex))
-
-    -- 7. Fire events to the client
+    -- 7. Fire reveal animation to client
     local remotes = NetworkSetup:GetAllRemotes()
 
-    -- Slot machine animation
     if remotes.LuckyBlockReveal then
         remotes.LuckyBlockReveal:FireClient(player, {
             HeadSet = rolled.HeadSet,
             BodySet = rolled.BodySet,
             LegsSet = rolled.LegsSet,
-            SlotIndex = slotIndex,
         })
-    end
-
-    -- Sync placed Brainrots (all clients see the update)
-    if remotes.SyncPlacedBrainrots then
-        local updatedPlacedBrainrots = playerData.PlacedBrainrots or {}
-        remotes.SyncPlacedBrainrots:FireClient(player, updatedPlacedBrainrots)
     end
 
     -- Sync Lucky Blocks counter
     self:_SyncLuckyBlockData(player)
 
-    -- Sync player data
     if remotes.SyncPlayerData then
         remotes.SyncPlayerData:FireClient(player, {
             Cash = playerData.Cash,
             LuckyBlocks = newCount,
-            PlacedBrainrots = playerData.PlacedBrainrots,
         })
     end
+end
+
+--[[
+    Take the pending Lucky Block result: add pieces to inventory
+    If inventory has pieces, they are replaced and respawned in the arena
+    @param player: Player
+]]
+function LuckyBlockSystem:TakeResult(player)
+    local rolled = self._pendingRolls[player.UserId]
+    if not rolled then
+        self:_SendNotification(player, "Error", "No pending Lucky Block!")
+        return
+    end
+
+    -- Clear pending roll
+    self._pendingRolls[player.UserId] = nil
+
+    -- Clear existing pieces in hand and respawn them in the arena
+    local oldPieces = PlayerService:ClearPiecesInHand(player)
+
+    if ArenaSystem and #oldPieces > 0 then
+        local character = player.Character
+        local dropPos = nil
+        if character then
+            local rootPart = character:FindFirstChild("HumanoidRootPart")
+            if rootPart then
+                dropPos = rootPart.Position
+            end
+        end
+
+        for i, pieceData in ipairs(oldPieces) do
+            local offset = Vector3.new((i - 1) * 3 - (#oldPieces - 1) * 1.5, 0, -3)
+            local spawnPos = dropPos and (dropPos + offset) or nil
+            if spawnPos then
+                ArenaSystem:SpawnPieceFromData(pieceData, spawnPos)
+            end
+        end
+    end
+
+    -- Add the 3 new pieces from the lucky block roll
+    local partTypes = {"Head", "Body", "Legs"}
+    local setKeys = {"HeadSet", "BodySet", "LegsSet"}
+
+    for i, partType in ipairs(partTypes) do
+        local setName = rolled[setKeys[i]]
+        local setData = BrainrotData.Sets[setName]
+        if setData and setData[partType] then
+            local partData = setData[partType]
+            PlayerService:AddPieceToHand(player, {
+                SetName = setName,
+                PieceType = partType,
+                Price = partData.Price or 0,
+                DisplayName = partData.DisplayName or setName,
+            })
+        end
+    end
+
+    print(string.format("[LuckyBlockSystem] %s took Lucky Block pieces: Head=%s, Body=%s, Legs=%s",
+        player.Name, rolled.HeadSet, rolled.BodySet, rolled.LegsSet))
+
+    -- Sync inventory with client
+    local remotes = NetworkSetup:GetAllRemotes()
+    local newPieces = PlayerService:GetPiecesInHand(player)
+
+    if remotes.SyncInventory then
+        remotes.SyncInventory:FireClient(player, newPieces)
+    end
+
+    self:_SendNotification(player, "Success", "Pieces added to inventory!")
+end
+
+--[[
+    Throw the pending Lucky Block result: discard the pieces
+    @param player: Player
+]]
+function LuckyBlockSystem:ThrowResult(player)
+    local rolled = self._pendingRolls[player.UserId]
+    if not rolled then
+        self:_SendNotification(player, "Error", "No pending Lucky Block!")
+        return
+    end
+
+    -- Clear pending roll
+    self._pendingRolls[player.UserId] = nil
+
+    print(string.format("[LuckyBlockSystem] %s threw away Lucky Block pieces: Head=%s, Body=%s, Legs=%s",
+        player.Name, rolled.HeadSet, rolled.BodySet, rolled.LegsSet))
+
+    self:_SendNotification(player, "Info", "Brainrot discarded.")
 end
 
 -- ═══════════════════════════════════════════════════════
@@ -358,11 +424,9 @@ function LuckyBlockSystem:_FindProductId(amount)
     end
 
     for _, category in ipairs(ShopProducts.Categories) do
-        if category.Id == "LuckyBlocks" then
-            for _, product in ipairs(category.Products) do
-                if product.LuckyBlocks == amount then
-                    return product.ProductId
-                end
+        for _, product in ipairs(category.Products) do
+            if product.LuckyBlocks == amount and not product.Spins and not product.PermanentMultiplierBonus then
+                return product.ProductId
             end
         end
     end

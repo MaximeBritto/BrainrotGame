@@ -515,6 +515,7 @@ if LuckyBlockSystem and PlacementSystem and BrainrotModelSystem then
         PlacementSystem = PlacementSystem,
         BrainrotModelSystem = BrainrotModelSystem,
         NetworkSetup = NetworkSetup,
+        ArenaSystem = ArenaSystem,
     })
     -- print("[GameServer] LuckyBlockSystem: OK")
 

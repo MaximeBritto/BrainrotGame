@@ -318,6 +318,40 @@ function NetworkHandler:_ConnectHandlers()
         end)
     end
 
+    -- Lucky Block Take (prendre les pièces)
+    if remotes.LuckyBlockTake then
+        remotes.LuckyBlockTake.OnServerEvent:Connect(function(player)
+            local success, err = pcall(function()
+                if LuckyBlockSystem then
+                    LuckyBlockSystem:TakeResult(player)
+                else
+                    warn("[NetworkHandler] LuckyBlockSystem non initialisé!")
+                end
+            end)
+
+            if not success then
+                warn("[NetworkHandler] Erreur LuckyBlockTake: " .. tostring(err))
+            end
+        end)
+    end
+
+    -- Lucky Block Throw (jeter les pièces)
+    if remotes.LuckyBlockThrow then
+        remotes.LuckyBlockThrow.OnServerEvent:Connect(function(player)
+            local success, err = pcall(function()
+                if LuckyBlockSystem then
+                    LuckyBlockSystem:ThrowResult(player)
+                else
+                    warn("[NetworkHandler] LuckyBlockSystem non initialisé!")
+                end
+            end)
+
+            if not success then
+                warn("[NetworkHandler] Erreur LuckyBlockThrow: " .. tostring(err))
+            end
+        end)
+    end
+
     -- Achat Spin Wheel (Spin Wheel)
     if remotes.BuySpinWheel then
         remotes.BuySpinWheel.OnServerEvent:Connect(function(player, amount)
@@ -565,16 +599,37 @@ end
 function NetworkHandler:_HandleDropPieces(player)
     -- Phase 4: Vider les pièces en main volontairement
     print("[NetworkHandler] DropPieces reçu de " .. player.Name)
-    
+
     local pieces = PlayerService:ClearPiecesInHand(player)
     print("[NetworkHandler] " .. player.Name .. " a lâché " .. #pieces .. " pièces")
-    
+
+    -- Respawn les pièces dans l'arène (si sous la limite)
+    if ArenaSystem and #pieces > 0 then
+        local character = player.Character
+        local dropPos = nil
+        if character then
+            local rootPart = character:FindFirstChild("HumanoidRootPart")
+            if rootPart then
+                dropPos = rootPart.Position
+            end
+        end
+
+        for i, pieceData in ipairs(pieces) do
+            -- Décaler chaque pièce pour éviter le stack
+            local offset = Vector3.new((i - 1) * 3 - (#pieces - 1) * 1.5, 0, -3)
+            local spawnPos = dropPos and (dropPos + offset) or nil
+            if spawnPos then
+                ArenaSystem:SpawnPieceFromData(pieceData, spawnPos)
+            end
+        end
+    end
+
     -- Sync avec le client
     local remotes = NetworkSetup:GetAllRemotes()
     if remotes.SyncInventory then
         remotes.SyncInventory:FireClient(player, {})
     end
-    
+
     if #pieces > 0 then
         self:_SendNotification(player, "Info", #pieces .. " piece(s) dropped")
     end

@@ -25,6 +25,8 @@ local ShopProducts = require(Data:WaitForChild("ShopProducts.module"))
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 local buyLuckyBlockRemote = Remotes:WaitForChild("BuyLuckyBlock")
 local openLuckyBlockRemote = Remotes:WaitForChild("OpenLuckyBlock")
+local luckyBlockTakeRemote = Remotes:WaitForChild("LuckyBlockTake")
+local luckyBlockThrowRemote = Remotes:WaitForChild("LuckyBlockThrow")
 local syncLuckyBlockData = Remotes:WaitForChild("SyncLuckyBlockData")
 local luckyBlockReveal = Remotes:WaitForChild("LuckyBlockReveal")
 
@@ -54,8 +56,8 @@ end
 local robuxPrice1 = 49
 local robuxPrice3 = 99
 for _, category in ipairs(ShopProducts.Categories) do
-    if category.Id == "LuckyBlocks" then
-        for _, product in ipairs(category.Products) do
+    for _, product in ipairs(category.Products) do
+        if not product.Spins and not product.PermanentMultiplierBonus then
             if product.LuckyBlocks == 1 then
                 robuxPrice1 = product.Robux
             elseif product.LuckyBlocks == 3 then
@@ -66,27 +68,48 @@ for _, category in ipairs(ShopProducts.Categories) do
 end
 
 -- ═══════════════════════════════════════════════════════
--- VISUAL CONSTANTS
+-- VISUAL CONSTANTS (aligned with ShopController)
 -- ═══════════════════════════════════════════════════════
 
 local COLORS = {
     Overlay = Color3.fromRGB(0, 0, 0),
     OverlayTransparency = 0.4,
-    PanelBg = Color3.fromRGB(20, 15, 35),
-    HeaderBg = Color3.fromRGB(15, 10, 30),
-    CloseBtn = Color3.fromRGB(200, 40, 40),
-    CloseBtnHover = Color3.fromRGB(230, 60, 60),
-    BuyBtn = Color3.fromRGB(40, 120, 200),
-    BuyBtnHover = Color3.fromRGB(55, 145, 230),
-    OpenBtn = Color3.fromRGB(220, 160, 0),
-    OpenBtnHover = Color3.fromRGB(250, 185, 20),
-    OpenBtnDisabled = Color3.fromRGB(80, 80, 80),
+
+    PanelBg = Color3.fromRGB(30, 40, 50),
+    PanelStroke = Color3.fromRGB(50, 70, 90),
+    HeaderBg = Color3.fromRGB(25, 35, 45),
+
+    CloseBtn = Color3.fromRGB(220, 50, 50),
+    CloseBtnHover = Color3.fromRGB(240, 70, 70),
+
+    BuyBtn = Color3.fromRGB(40, 190, 170),
+    BuyBtnHover = Color3.fromRGB(50, 220, 195),
+
+    OpenBtn = Color3.fromRGB(255, 185, 0),
+    OpenBtnHover = Color3.fromRGB(255, 210, 50),
+    OpenBtnDisabled = Color3.fromRGB(60, 70, 80),
+
     White = Color3.fromRGB(255, 255, 255),
-    LightGray = Color3.fromRGB(180, 180, 180),
-    Gold = Color3.fromRGB(255, 215, 0),
-    SlotBg = Color3.fromRGB(30, 25, 50),
-    SlotColumnBg = Color3.fromRGB(15, 10, 30),
-    Divider = Color3.fromRGB(60, 50, 90),
+    LightGray = Color3.fromRGB(180, 190, 200),
+    SubText = Color3.fromRGB(140, 155, 170),
+    GoldText = Color3.fromRGB(255, 220, 80),
+
+    CounterBg = Color3.fromRGB(40, 52, 65),
+    CounterStroke = Color3.fromRGB(60, 80, 100),
+
+    SlotColumnBg = Color3.fromRGB(22, 30, 40),
+    SlotColumnStroke = Color3.fromRGB(50, 70, 90),
+    SlotColumnFlash = Color3.fromRGB(45, 65, 85),
+}
+
+local SIZES = {
+    Panel = UDim2.new(0, 460, 0, 340),
+    PanelSlot = UDim2.new(0, 480, 0, 400),
+    PanelClosed = UDim2.new(0, 0, 0, 0),
+    CornerRadius = UDim.new(0, 16),
+    SmallCorner = UDim.new(0, 12),
+    TinyCorner = UDim.new(0, 8),
+    PillCorner = UDim.new(0, 18),
 }
 
 -- Rarity colors (matching BrainrotData.Rarities)
@@ -108,6 +131,7 @@ local countLabel
 local openButton
 local openButtonText
 local slotMachineFrame
+local contentFrame
 
 -- ═══════════════════════════════════════════════════════
 -- UI CREATION
@@ -136,7 +160,7 @@ local function createUI()
     -- MainFrame
     mainFrame = Instance.new("Frame")
     mainFrame.Name = "MainFrame"
-    mainFrame.Size = UDim2.new(0, 0, 0, 0)
+    mainFrame.Size = SIZES.PanelClosed
     mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
     mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
     mainFrame.BackgroundColor3 = COLORS.PanelBg
@@ -145,151 +169,241 @@ local function createUI()
     mainFrame.Parent = overlay
 
     local mainCorner = Instance.new("UICorner")
-    mainCorner.CornerRadius = UDim.new(0, 12)
+    mainCorner.CornerRadius = SIZES.CornerRadius
     mainCorner.Parent = mainFrame
 
     local mainStroke = Instance.new("UIStroke")
-    mainStroke.Color = Color3.fromRGB(80, 60, 140)
+    mainStroke.Color = COLORS.PanelStroke
     mainStroke.Thickness = 2
+    mainStroke.Transparency = 0.3
     mainStroke.Parent = mainFrame
 
-    -- Header
+    -- ── HEADER ──────────────────────────────────────────
     local header = Instance.new("Frame")
     header.Name = "Header"
-    header.Size = UDim2.new(1, 0, 0, 50)
+    header.Size = UDim2.new(1, 0, 0, 60)
+    header.Position = UDim2.new(0, 0, 0, 0)
     header.BackgroundColor3 = COLORS.HeaderBg
     header.BorderSizePixel = 0
     header.Parent = mainFrame
 
+    local headerCorner = Instance.new("UICorner")
+    headerCorner.CornerRadius = SIZES.CornerRadius
+    headerCorner.Parent = header
+
+    -- Cover bottom corners of header
+    local bottomCover = Instance.new("Frame")
+    bottomCover.Name = "BottomCover"
+    bottomCover.Size = UDim2.new(1, 0, 0, 16)
+    bottomCover.Position = UDim2.new(0, 0, 1, -16)
+    bottomCover.BackgroundColor3 = COLORS.HeaderBg
+    bottomCover.BorderSizePixel = 0
+    bottomCover.Parent = header
+
     local title = Instance.new("TextLabel")
     title.Name = "Title"
-    title.Size = UDim2.new(1, -60, 1, 0)
-    title.Position = UDim2.new(0, 20, 0, 0)
+    title.Size = UDim2.new(1, -70, 1, 0)
+    title.Position = UDim2.new(0, 24, 0, 0)
     title.BackgroundTransparency = 1
     title.Text = "LUCKY BLOCK"
-    title.TextColor3 = COLORS.Gold
+    title.TextColor3 = COLORS.White
     title.TextSize = 28
     title.Font = Enum.Font.GothamBlack
     title.TextXAlignment = Enum.TextXAlignment.Left
     title.Parent = header
 
-    -- Close button
+    -- Close button (circle, like Shop)
     local closeBtn = Instance.new("TextButton")
     closeBtn.Name = "CloseButton"
-    closeBtn.Size = UDim2.new(0, 40, 0, 40)
-    closeBtn.Position = UDim2.new(1, -45, 0, 5)
+    closeBtn.Size = UDim2.new(0, 38, 0, 38)
+    closeBtn.Position = UDim2.new(1, -50, 0.5, 0)
+    closeBtn.AnchorPoint = Vector2.new(0, 0.5)
     closeBtn.BackgroundColor3 = COLORS.CloseBtn
     closeBtn.BorderSizePixel = 0
     closeBtn.Text = "X"
     closeBtn.TextColor3 = COLORS.White
-    closeBtn.TextSize = 22
-    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.TextSize = 20
+    closeBtn.Font = Enum.Font.GothamBlack
+    closeBtn.AutoButtonColor = false
     closeBtn.Parent = header
 
     local closeBtnCorner = Instance.new("UICorner")
-    closeBtnCorner.CornerRadius = UDim.new(0, 8)
+    closeBtnCorner.CornerRadius = UDim.new(1, 0)
     closeBtnCorner.Parent = closeBtn
 
-    -- Lucky Blocks counter
+    -- ── CONTENT AREA (below header) ─────────────────────
+    contentFrame = Instance.new("Frame")
+    contentFrame.Name = "ContentFrame"
+    contentFrame.Size = UDim2.new(1, 0, 1, -60)
+    contentFrame.Position = UDim2.new(0, 0, 0, 60)
+    contentFrame.BackgroundTransparency = 1
+    contentFrame.BorderSizePixel = 0
+    contentFrame.Parent = mainFrame
+
+    -- Counter pill badge
+    local counterFrame = Instance.new("Frame")
+    counterFrame.Name = "CounterFrame"
+    counterFrame.Size = UDim2.new(0, 220, 0, 36)
+    counterFrame.Position = UDim2.new(0.5, 0, 0, 16)
+    counterFrame.AnchorPoint = Vector2.new(0.5, 0)
+    counterFrame.BackgroundColor3 = COLORS.CounterBg
+    counterFrame.BorderSizePixel = 0
+    counterFrame.Parent = contentFrame
+
+    local counterCorner = Instance.new("UICorner")
+    counterCorner.CornerRadius = SIZES.PillCorner
+    counterCorner.Parent = counterFrame
+
+    local counterStroke = Instance.new("UIStroke")
+    counterStroke.Color = COLORS.CounterStroke
+    counterStroke.Thickness = 1.5
+    counterStroke.Transparency = 0.3
+    counterStroke.Parent = counterFrame
+
     countLabel = Instance.new("TextLabel")
     countLabel.Name = "CountLabel"
-    countLabel.Size = UDim2.new(1, -40, 0, 35)
-    countLabel.Position = UDim2.new(0, 20, 0, 60)
+    countLabel.Size = UDim2.new(1, 0, 1, 0)
     countLabel.BackgroundTransparency = 1
-    countLabel.Text = "You have: 0 Lucky Block(s)"
+    countLabel.Text = "x0 Lucky Blocks"
     countLabel.TextColor3 = COLORS.White
-    countLabel.TextSize = 20
+    countLabel.TextSize = 16
     countLabel.Font = Enum.Font.GothamBold
-    countLabel.TextXAlignment = Enum.TextXAlignment.Center
-    countLabel.Parent = mainFrame
+    countLabel.Parent = counterFrame
 
-    -- Buy section
+    -- ── BUY BUTTONS ─────────────────────────────────────
     local buySection = Instance.new("Frame")
     buySection.Name = "BuySection"
-    buySection.Size = UDim2.new(1, -40, 0, 50)
-    buySection.Position = UDim2.new(0, 20, 0, 105)
+    buySection.Size = UDim2.new(1, -48, 0, 48)
+    buySection.Position = UDim2.new(0, 24, 0, 68)
     buySection.BackgroundTransparency = 1
-    buySection.Parent = mainFrame
+    buySection.BorderSizePixel = 0
+    buySection.Parent = contentFrame
 
     -- Buy 1 button
     local buyOneBtn = Instance.new("TextButton")
     buyOneBtn.Name = "BuyOneButton"
-    buyOneBtn.Size = UDim2.new(0.48, 0, 0, 45)
+    buyOneBtn.Size = UDim2.new(0.48, 0, 1, 0)
     buyOneBtn.Position = UDim2.new(0, 0, 0, 0)
     buyOneBtn.BackgroundColor3 = COLORS.BuyBtn
     buyOneBtn.BorderSizePixel = 0
-    buyOneBtn.Text = "Buy 1 - " .. utf8.char(0xE002) .. robuxPrice1
-    buyOneBtn.TextColor3 = COLORS.White
-    buyOneBtn.TextSize = 16
-    buyOneBtn.Font = Enum.Font.GothamBold
+    buyOneBtn.Text = ""
     buyOneBtn.AutoButtonColor = false
     buyOneBtn.Parent = buySection
 
     local buyOneCorner = Instance.new("UICorner")
-    buyOneCorner.CornerRadius = UDim.new(0, 8)
+    buyOneCorner.CornerRadius = SIZES.SmallCorner
     buyOneCorner.Parent = buyOneBtn
+
+    local buyOneGradient = Instance.new("UIGradient")
+    buyOneGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 210, 200)),
+    })
+    buyOneGradient.Rotation = 90
+    buyOneGradient.Parent = buyOneBtn
+
+    local buyOneStroke = Instance.new("UIStroke")
+    buyOneStroke.Color = Color3.fromRGB(60, 210, 190)
+    buyOneStroke.Thickness = 1.5
+    buyOneStroke.Transparency = 0.3
+    buyOneStroke.Parent = buyOneBtn
+
+    local buyOneText = Instance.new("TextLabel")
+    buyOneText.Name = "Label"
+    buyOneText.Size = UDim2.new(1, 0, 1, 0)
+    buyOneText.BackgroundTransparency = 1
+    buyOneText.Text = "Buy 1  " .. utf8.char(0xE002) .. " " .. robuxPrice1
+    buyOneText.TextColor3 = COLORS.White
+    buyOneText.TextSize = 16
+    buyOneText.Font = Enum.Font.GothamBold
+    buyOneText.TextStrokeTransparency = 0.6
+    buyOneText.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    buyOneText.Parent = buyOneBtn
 
     -- Buy 3 button
     local buyThreeBtn = Instance.new("TextButton")
     buyThreeBtn.Name = "BuyThreeButton"
-    buyThreeBtn.Size = UDim2.new(0.48, 0, 0, 45)
+    buyThreeBtn.Size = UDim2.new(0.48, 0, 1, 0)
     buyThreeBtn.Position = UDim2.new(0.52, 0, 0, 0)
     buyThreeBtn.BackgroundColor3 = COLORS.BuyBtn
     buyThreeBtn.BorderSizePixel = 0
-    buyThreeBtn.Text = "Buy 3 - " .. utf8.char(0xE002) .. robuxPrice3
-    buyThreeBtn.TextColor3 = COLORS.White
-    buyThreeBtn.TextSize = 16
-    buyThreeBtn.Font = Enum.Font.GothamBold
+    buyThreeBtn.Text = ""
     buyThreeBtn.AutoButtonColor = false
     buyThreeBtn.Parent = buySection
 
     local buyThreeCorner = Instance.new("UICorner")
-    buyThreeCorner.CornerRadius = UDim.new(0, 8)
+    buyThreeCorner.CornerRadius = SIZES.SmallCorner
     buyThreeCorner.Parent = buyThreeBtn
 
-    -- Divider
-    local divider = Instance.new("Frame")
-    divider.Name = "Divider"
-    divider.Size = UDim2.new(1, -40, 0, 2)
-    divider.Position = UDim2.new(0, 20, 0, 170)
-    divider.BackgroundColor3 = COLORS.Divider
-    divider.BorderSizePixel = 0
-    divider.Parent = mainFrame
+    local buyThreeGradient = Instance.new("UIGradient")
+    buyThreeGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 210, 200)),
+    })
+    buyThreeGradient.Rotation = 90
+    buyThreeGradient.Parent = buyThreeBtn
 
-    -- Open button
+    local buyThreeStroke = Instance.new("UIStroke")
+    buyThreeStroke.Color = Color3.fromRGB(60, 210, 190)
+    buyThreeStroke.Thickness = 1.5
+    buyThreeStroke.Transparency = 0.3
+    buyThreeStroke.Parent = buyThreeBtn
+
+    local buyThreeText = Instance.new("TextLabel")
+    buyThreeText.Name = "Label"
+    buyThreeText.Size = UDim2.new(1, 0, 1, 0)
+    buyThreeText.BackgroundTransparency = 1
+    buyThreeText.Text = "Buy 3  " .. utf8.char(0xE002) .. " " .. robuxPrice3
+    buyThreeText.TextColor3 = COLORS.White
+    buyThreeText.TextSize = 16
+    buyThreeText.Font = Enum.Font.GothamBold
+    buyThreeText.TextStrokeTransparency = 0.6
+    buyThreeText.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    buyThreeText.Parent = buyThreeBtn
+
+    -- ── OPEN BUTTON ─────────────────────────────────────
     openButton = Instance.new("TextButton")
     openButton.Name = "OpenButton"
-    openButton.Size = UDim2.new(1, -40, 0, 55)
-    openButton.Position = UDim2.new(0, 20, 0, 185)
+    openButton.Size = UDim2.new(1, -48, 0, 56)
+    openButton.Position = UDim2.new(0, 24, 0, 132)
     openButton.BackgroundColor3 = COLORS.OpenBtnDisabled
     openButton.BorderSizePixel = 0
     openButton.Text = ""
     openButton.AutoButtonColor = false
-    openButton.Parent = mainFrame
+    openButton.Parent = contentFrame
 
     local openCorner = Instance.new("UICorner")
-    openCorner.CornerRadius = UDim.new(0, 10)
+    openCorner.CornerRadius = SIZES.SmallCorner
     openCorner.Parent = openButton
+
+    local openStroke = Instance.new("UIStroke")
+    openStroke.Name = "OpenStroke"
+    openStroke.Color = Color3.fromRGB(80, 90, 100)
+    openStroke.Thickness = 1.5
+    openStroke.Transparency = 0.3
+    openStroke.Parent = openButton
 
     openButtonText = Instance.new("TextLabel")
     openButtonText.Name = "ButtonText"
     openButtonText.Size = UDim2.new(1, 0, 1, 0)
     openButtonText.BackgroundTransparency = 1
-    openButtonText.Text = "Open a Lucky Block!"
-    openButtonText.TextColor3 = COLORS.LightGray
+    openButtonText.Text = "No Lucky Blocks"
+    openButtonText.TextColor3 = COLORS.SubText
     openButtonText.TextSize = 22
     openButtonText.Font = Enum.Font.GothamBlack
+    openButtonText.TextStrokeTransparency = 0.6
+    openButtonText.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
     openButtonText.Parent = openButton
 
-    -- Slot Machine Frame (hidden by default, overlaid on MainFrame)
+    -- ── SLOT MACHINE FRAME (hidden by default) ──────────
     slotMachineFrame = Instance.new("Frame")
     slotMachineFrame.Name = "SlotMachineFrame"
-    slotMachineFrame.Size = UDim2.new(1, 0, 1, -50) -- below the header
-    slotMachineFrame.Position = UDim2.new(0, 0, 0, 50)
-    slotMachineFrame.BackgroundColor3 = COLORS.SlotBg
+    slotMachineFrame.Size = UDim2.new(1, 0, 1, 0)
+    slotMachineFrame.Position = UDim2.new(0, 0, 0, 0)
+    slotMachineFrame.BackgroundColor3 = COLORS.PanelBg
     slotMachineFrame.BorderSizePixel = 0
     slotMachineFrame.Visible = false
-    slotMachineFrame.Parent = mainFrame
+    slotMachineFrame.Parent = contentFrame
 
     -- ═══════════════════════════════════════════════════════
     -- BUTTON CONNECTIONS
@@ -302,10 +416,14 @@ local function createUI()
     end)
 
     closeBtn.MouseEnter:Connect(function()
-        closeBtn.BackgroundColor3 = COLORS.CloseBtnHover
+        TweenService:Create(closeBtn, TweenInfo.new(0.15), {
+            BackgroundColor3 = COLORS.CloseBtnHover
+        }):Play()
     end)
     closeBtn.MouseLeave:Connect(function()
-        closeBtn.BackgroundColor3 = COLORS.CloseBtn
+        TweenService:Create(closeBtn, TweenInfo.new(0.15), {
+            BackgroundColor3 = COLORS.CloseBtn
+        }):Play()
     end)
     closeBtn.MouseButton1Click:Connect(function()
         if not isAnimating then
@@ -313,18 +431,39 @@ local function createUI()
         end
     end)
 
-    -- Buy hover
+    -- Buy hover effects (tweened like Shop)
     buyOneBtn.MouseEnter:Connect(function()
-        buyOneBtn.BackgroundColor3 = COLORS.BuyBtnHover
+        TweenService:Create(buyOneBtn, TweenInfo.new(0.15), {
+            BackgroundColor3 = COLORS.BuyBtnHover
+        }):Play()
+        TweenService:Create(buyOneStroke, TweenInfo.new(0.15), {
+            Transparency = 0
+        }):Play()
     end)
     buyOneBtn.MouseLeave:Connect(function()
-        buyOneBtn.BackgroundColor3 = COLORS.BuyBtn
+        TweenService:Create(buyOneBtn, TweenInfo.new(0.15), {
+            BackgroundColor3 = COLORS.BuyBtn
+        }):Play()
+        TweenService:Create(buyOneStroke, TweenInfo.new(0.15), {
+            Transparency = 0.3
+        }):Play()
     end)
+
     buyThreeBtn.MouseEnter:Connect(function()
-        buyThreeBtn.BackgroundColor3 = COLORS.BuyBtnHover
+        TweenService:Create(buyThreeBtn, TweenInfo.new(0.15), {
+            BackgroundColor3 = COLORS.BuyBtnHover
+        }):Play()
+        TweenService:Create(buyThreeStroke, TweenInfo.new(0.15), {
+            Transparency = 0
+        }):Play()
     end)
     buyThreeBtn.MouseLeave:Connect(function()
-        buyThreeBtn.BackgroundColor3 = COLORS.BuyBtn
+        TweenService:Create(buyThreeBtn, TweenInfo.new(0.15), {
+            BackgroundColor3 = COLORS.BuyBtn
+        }):Play()
+        TweenService:Create(buyThreeStroke, TweenInfo.new(0.15), {
+            Transparency = 0.3
+        }):Play()
     end)
 
     buyOneBtn.MouseButton1Click:Connect(function()
@@ -338,12 +477,16 @@ local function createUI()
     -- Open hover and click
     openButton.MouseEnter:Connect(function()
         if luckyBlockCount > 0 and not isAnimating then
-            openButton.BackgroundColor3 = COLORS.OpenBtnHover
+            TweenService:Create(openButton, TweenInfo.new(0.15), {
+                BackgroundColor3 = COLORS.OpenBtnHover
+            }):Play()
         end
     end)
     openButton.MouseLeave:Connect(function()
         if luckyBlockCount > 0 and not isAnimating then
-            openButton.BackgroundColor3 = COLORS.OpenBtn
+            TweenService:Create(openButton, TweenInfo.new(0.15), {
+                BackgroundColor3 = COLORS.OpenBtn
+            }):Play()
         end
     end)
     openButton.MouseButton1Click:Connect(function()
@@ -357,23 +500,21 @@ end
 -- OPEN / CLOSE UI
 -- ═══════════════════════════════════════════════════════
 
-local PANEL_SIZE = UDim2.new(0, 400, 0, 260)
-local PANEL_CLOSED = UDim2.new(0, 0, 0, 0)
-
 local function openUI()
     if isOpen then return end
     isOpen = true
     screenGui.Enabled = true
     slotMachineFrame.Visible = false
+    contentFrame.Visible = true
 
     overlay.BackgroundTransparency = 1
     TweenService:Create(overlay, TweenInfo.new(0.25), {
         BackgroundTransparency = COLORS.OverlayTransparency
     }):Play()
 
-    mainFrame.Size = PANEL_CLOSED
+    mainFrame.Size = SIZES.PanelClosed
     TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-        Size = PANEL_SIZE,
+        Size = SIZES.Panel,
     }):Play()
 end
 
@@ -385,7 +526,7 @@ function closeUI()
     }):Play()
 
     local tweenClose = TweenService:Create(mainFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-        Size = PANEL_CLOSED,
+        Size = SIZES.PanelClosed,
     })
     tweenClose:Play()
 
@@ -402,21 +543,32 @@ end
 -- ═══════════════════════════════════════════════════════
 
 local function updateOpenButton()
+    local openStroke = openButton:FindFirstChild("OpenStroke")
     if luckyBlockCount > 0 then
-        openButton.BackgroundColor3 = COLORS.OpenBtn
-        openButtonText.Text = "Open a Lucky Block!"
+        TweenService:Create(openButton, TweenInfo.new(0.2), {
+            BackgroundColor3 = COLORS.OpenBtn
+        }):Play()
+        openButtonText.Text = "OPEN!"
         openButtonText.TextColor3 = COLORS.White
+        if openStroke then
+            openStroke.Color = Color3.fromRGB(255, 210, 50)
+        end
     else
-        openButton.BackgroundColor3 = COLORS.OpenBtnDisabled
+        TweenService:Create(openButton, TweenInfo.new(0.2), {
+            BackgroundColor3 = COLORS.OpenBtnDisabled
+        }):Play()
         openButtonText.Text = "No Lucky Blocks"
-        openButtonText.TextColor3 = COLORS.LightGray
+        openButtonText.TextColor3 = COLORS.SubText
+        if openStroke then
+            openStroke.Color = Color3.fromRGB(80, 90, 100)
+        end
     end
 end
 
 local function updateCount(count)
     luckyBlockCount = count
     if countLabel then
-        countLabel.Text = "You have: " .. count .. " Lucky Block(s)"
+        countLabel.Text = "x" .. count .. " Lucky Block" .. (count ~= 1 and "s" or "")
     end
     updateOpenButton()
 end
@@ -430,12 +582,11 @@ local function playSlotMachineAnimation(revealData)
     isAnimating = true
 
     -- Expand panel for slot machine
-    local SLOT_PANEL_SIZE = UDim2.new(0, 420, 0, 350)
-    TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
-        Size = SLOT_PANEL_SIZE,
+    TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        Size = SIZES.PanelSlot,
     }):Play()
 
-    -- Clear slot machine frame
+    -- Clear and show slot machine frame
     for _, child in ipairs(slotMachineFrame:GetChildren()) do
         child:Destroy()
     end
@@ -445,82 +596,97 @@ local function playSlotMachineAnimation(revealData)
     local columnNames = {"HEAD", "BODY", "LEGS"}
     local resultSets = {revealData.HeadSet, revealData.BodySet, revealData.LegsSet}
     local partTypes = {"Head", "Body", "Legs"}
-    local stopDelays = {0, 0.5, 1.0} -- stop delay offset between columns
+    local stopDelays = {0, 0.5, 1.0}
 
-    local columnWidth = math.floor(380 / 3)
+    local contentWidth = 432  -- 480 - 48 padding
+    local spacing = 12
+    local columnWidth = math.floor((contentWidth - spacing * 2) / 3)
     local columns = {}
 
     for i = 1, 3 do
-        -- Column container
+        -- Column card
         local colFrame = Instance.new("Frame")
         colFrame.Name = "Col_" .. columnNames[i]
-        colFrame.Size = UDim2.new(0, columnWidth - 8, 0, 140)
-        colFrame.Position = UDim2.new(0, 10 + (i - 1) * columnWidth, 0, 15)
+        colFrame.Size = UDim2.new(0, columnWidth, 0, 180)
+        colFrame.Position = UDim2.new(0, 24 + (i - 1) * (columnWidth + spacing), 0, 16)
         colFrame.BackgroundColor3 = COLORS.SlotColumnBg
         colFrame.BorderSizePixel = 0
         colFrame.ClipsDescendants = true
         colFrame.Parent = slotMachineFrame
 
         local colCorner = Instance.new("UICorner")
-        colCorner.CornerRadius = UDim.new(0, 8)
+        colCorner.CornerRadius = SIZES.SmallCorner
         colCorner.Parent = colFrame
 
         local colStroke = Instance.new("UIStroke")
-        colStroke.Color = Color3.fromRGB(80, 60, 140)
-        colStroke.Thickness = 1
+        colStroke.Color = COLORS.SlotColumnStroke
+        colStroke.Thickness = 1.5
+        colStroke.Transparency = 0.3
         colStroke.Parent = colFrame
+
+        -- Column gradient
+        local colGradient = Instance.new("UIGradient")
+        colGradient.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(190, 200, 210)),
+        })
+        colGradient.Rotation = 90
+        colGradient.Parent = colFrame
 
         -- Title label (HEAD/BODY/LEGS)
         local colTitle = Instance.new("TextLabel")
         colTitle.Name = "Title"
-        colTitle.Size = UDim2.new(1, 0, 0, 25)
-        colTitle.Position = UDim2.new(0, 0, 0, 5)
+        colTitle.Size = UDim2.new(1, 0, 0, 28)
+        colTitle.Position = UDim2.new(0, 0, 0, 8)
         colTitle.BackgroundTransparency = 1
         colTitle.Text = columnNames[i]
-        colTitle.TextColor3 = COLORS.Gold
-        colTitle.TextSize = 14
+        colTitle.TextColor3 = COLORS.SubText
+        colTitle.TextSize = 13
         colTitle.Font = Enum.Font.GothamBold
         colTitle.Parent = colFrame
 
         -- Name label
         local nameLabel = Instance.new("TextLabel")
         nameLabel.Name = "NameLabel"
-        nameLabel.Size = UDim2.new(1, -10, 0, 40)
-        nameLabel.Position = UDim2.new(0, 5, 0, 35)
+        nameLabel.Size = UDim2.new(1, -16, 0, 50)
+        nameLabel.Position = UDim2.new(0, 8, 0, 40)
         nameLabel.BackgroundTransparency = 1
         nameLabel.Text = "..."
         nameLabel.TextColor3 = COLORS.White
-        nameLabel.TextSize = 15
+        nameLabel.TextSize = 16
         nameLabel.Font = Enum.Font.GothamBold
         nameLabel.TextWrapped = true
+        nameLabel.TextStrokeTransparency = 0.6
+        nameLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
         nameLabel.Parent = colFrame
 
         -- Rarity label
         local rarityLabel = Instance.new("TextLabel")
         rarityLabel.Name = "RarityLabel"
-        rarityLabel.Size = UDim2.new(1, -10, 0, 22)
-        rarityLabel.Position = UDim2.new(0, 5, 0, 80)
+        rarityLabel.Size = UDim2.new(1, -16, 0, 24)
+        rarityLabel.Position = UDim2.new(0, 8, 0, 100)
         rarityLabel.BackgroundTransparency = 1
         rarityLabel.Text = ""
-        rarityLabel.TextColor3 = COLORS.LightGray
-        rarityLabel.TextSize = 13
+        rarityLabel.TextColor3 = COLORS.SubText
+        rarityLabel.TextSize = 14
         rarityLabel.Font = Enum.Font.GothamBold
         rarityLabel.Parent = colFrame
 
         -- Price label
         local priceLabel = Instance.new("TextLabel")
         priceLabel.Name = "PriceLabel"
-        priceLabel.Size = UDim2.new(1, -10, 0, 22)
-        priceLabel.Position = UDim2.new(0, 5, 0, 105)
+        priceLabel.Size = UDim2.new(1, -16, 0, 24)
+        priceLabel.Position = UDim2.new(0, 8, 0, 130)
         priceLabel.BackgroundTransparency = 1
         priceLabel.Text = ""
-        priceLabel.TextColor3 = COLORS.Gold
-        priceLabel.TextSize = 13
-        priceLabel.Font = Enum.Font.GothamBold
+        priceLabel.TextColor3 = COLORS.GoldText
+        priceLabel.TextSize = 15
+        priceLabel.Font = Enum.Font.GothamBlack
         priceLabel.Parent = colFrame
 
         columns[i] = {
             frame = colFrame,
+            stroke = colStroke,
             nameLabel = nameLabel,
             rarityLabel = rarityLabel,
             priceLabel = priceLabel,
@@ -533,40 +699,141 @@ local function playSlotMachineAnimation(revealData)
     -- Result label (bottom)
     local resultLabel = Instance.new("TextLabel")
     resultLabel.Name = "ResultLabel"
-    resultLabel.Size = UDim2.new(1, -20, 0, 40)
-    resultLabel.Position = UDim2.new(0, 10, 0, 185)
+    resultLabel.Size = UDim2.new(1, -48, 0, 36)
+    resultLabel.Position = UDim2.new(0, 24, 0, 210)
     resultLabel.BackgroundTransparency = 1
     resultLabel.Text = ""
-    resultLabel.TextColor3 = COLORS.Gold
+    resultLabel.TextColor3 = COLORS.GoldText
     resultLabel.TextSize = 18
     resultLabel.Font = Enum.Font.GothamBlack
     resultLabel.TextWrapped = true
+    resultLabel.TextStrokeTransparency = 0.5
+    resultLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
     resultLabel.Parent = slotMachineFrame
 
-    -- OK button (appears at the end)
-    local okButton = Instance.new("TextButton")
-    okButton.Name = "OkButton"
-    okButton.Size = UDim2.new(0.5, 0, 0, 40)
-    okButton.Position = UDim2.new(0.25, 0, 0, 235)
-    okButton.BackgroundColor3 = COLORS.OpenBtn
-    okButton.BorderSizePixel = 0
-    okButton.Text = "OK"
-    okButton.TextColor3 = COLORS.White
-    okButton.TextSize = 20
-    okButton.Font = Enum.Font.GothamBold
-    okButton.Visible = false
-    okButton.Parent = slotMachineFrame
+    -- TAKE button (green)
+    local takeButton = Instance.new("TextButton")
+    takeButton.Name = "TakeButton"
+    takeButton.Size = UDim2.new(0, 180, 0, 44)
+    takeButton.Position = UDim2.new(0.5, -5, 0, 255)
+    takeButton.AnchorPoint = Vector2.new(1, 0)
+    takeButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+    takeButton.BorderSizePixel = 0
+    takeButton.Text = ""
+    takeButton.AutoButtonColor = false
+    takeButton.Visible = false
+    takeButton.Parent = slotMachineFrame
 
-    local okCorner = Instance.new("UICorner")
-    okCorner.CornerRadius = UDim.new(0, 8)
-    okCorner.Parent = okButton
+    local takeCorner = Instance.new("UICorner")
+    takeCorner.CornerRadius = SIZES.SmallCorner
+    takeCorner.Parent = takeButton
 
-    okButton.MouseButton1Click:Connect(function()
+    local takeGradient = Instance.new("UIGradient")
+    takeGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 220, 200)),
+    })
+    takeGradient.Rotation = 90
+    takeGradient.Parent = takeButton
+
+    local takeStroke = Instance.new("UIStroke")
+    takeStroke.Color = Color3.fromRGB(0, 220, 0)
+    takeStroke.Thickness = 1.5
+    takeStroke.Transparency = 0.3
+    takeStroke.Parent = takeButton
+
+    local takeText = Instance.new("TextLabel")
+    takeText.Name = "Label"
+    takeText.Size = UDim2.new(1, 0, 1, 0)
+    takeText.BackgroundTransparency = 1
+    takeText.Text = "TAKE"
+    takeText.TextColor3 = COLORS.White
+    takeText.TextSize = 18
+    takeText.Font = Enum.Font.GothamBlack
+    takeText.TextStrokeTransparency = 0.6
+    takeText.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    takeText.Parent = takeButton
+
+    takeButton.MouseEnter:Connect(function()
+        TweenService:Create(takeButton, TweenInfo.new(0.15), {
+            BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+        }):Play()
+    end)
+    takeButton.MouseLeave:Connect(function()
+        TweenService:Create(takeButton, TweenInfo.new(0.15), {
+            BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+        }):Play()
+    end)
+
+    takeButton.MouseButton1Click:Connect(function()
+        luckyBlockTakeRemote:FireServer()
         slotMachineFrame.Visible = false
         isAnimating = false
-        -- Return to normal size
-        TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
-            Size = PANEL_SIZE,
+        TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+            Size = SIZES.Panel,
+        }):Play()
+    end)
+
+    -- THROW button (red)
+    local throwButton = Instance.new("TextButton")
+    throwButton.Name = "ThrowButton"
+    throwButton.Size = UDim2.new(0, 180, 0, 44)
+    throwButton.Position = UDim2.new(0.5, 5, 0, 255)
+    throwButton.AnchorPoint = Vector2.new(0, 0)
+    throwButton.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+    throwButton.BorderSizePixel = 0
+    throwButton.Text = ""
+    throwButton.AutoButtonColor = false
+    throwButton.Visible = false
+    throwButton.Parent = slotMachineFrame
+
+    local throwCorner = Instance.new("UICorner")
+    throwCorner.CornerRadius = SIZES.SmallCorner
+    throwCorner.Parent = throwButton
+
+    local throwGradient = Instance.new("UIGradient")
+    throwGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(220, 200, 200)),
+    })
+    throwGradient.Rotation = 90
+    throwGradient.Parent = throwButton
+
+    local throwStroke = Instance.new("UIStroke")
+    throwStroke.Color = Color3.fromRGB(220, 60, 60)
+    throwStroke.Thickness = 1.5
+    throwStroke.Transparency = 0.3
+    throwStroke.Parent = throwButton
+
+    local throwText = Instance.new("TextLabel")
+    throwText.Name = "Label"
+    throwText.Size = UDim2.new(1, 0, 1, 0)
+    throwText.BackgroundTransparency = 1
+    throwText.Text = "THROW"
+    throwText.TextColor3 = COLORS.White
+    throwText.TextSize = 18
+    throwText.Font = Enum.Font.GothamBlack
+    throwText.TextStrokeTransparency = 0.6
+    throwText.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    throwText.Parent = throwButton
+
+    throwButton.MouseEnter:Connect(function()
+        TweenService:Create(throwButton, TweenInfo.new(0.15), {
+            BackgroundColor3 = Color3.fromRGB(210, 50, 50)
+        }):Play()
+    end)
+    throwButton.MouseLeave:Connect(function()
+        TweenService:Create(throwButton, TweenInfo.new(0.15), {
+            BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+        }):Play()
+    end)
+
+    throwButton.MouseButton1Click:Connect(function()
+        luckyBlockThrowRemote:FireServer()
+        slotMachineFrame.Visible = false
+        isAnimating = false
+        TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+            Size = SIZES.Panel,
         }):Play()
     end)
 
@@ -609,6 +876,7 @@ local function playSlotMachineAnimation(revealData)
                 -- Display a random entry with name, rarity, price
                 local randomEntry = availableInfo[math.random(1, #availableInfo)]
                 col.nameLabel.Text = randomEntry.Name
+                col.nameLabel.TextColor3 = COLORS.White
                 col.rarityLabel.Text = randomEntry.Rarity
                 col.rarityLabel.TextColor3 = RARITY_COLORS[randomEntry.Rarity] or COLORS.White
                 col.priceLabel.Text = "$" .. randomEntry.Price
@@ -617,20 +885,28 @@ local function playSlotMachineAnimation(revealData)
             end
 
             -- Final result
+            local rarityColor = RARITY_COLORS[resultRarity] or COLORS.GoldText
             col.nameLabel.Text = resultDisplayName
-            col.nameLabel.TextColor3 = RARITY_COLORS[resultRarity] or COLORS.Gold
+            col.nameLabel.TextColor3 = rarityColor
             col.rarityLabel.Text = resultRarity
-            col.rarityLabel.TextColor3 = RARITY_COLORS[resultRarity] or COLORS.White
+            col.rarityLabel.TextColor3 = rarityColor
             col.priceLabel.Text = "$" .. resultPrice
-            col.priceLabel.TextColor3 = COLORS.Gold
+            col.priceLabel.TextColor3 = COLORS.GoldText
 
-            -- Confirmation flash
+            -- Confirmation flash on column
             TweenService:Create(col.frame, TweenInfo.new(0.15), {
-                BackgroundColor3 = Color3.fromRGB(50, 40, 80),
+                BackgroundColor3 = COLORS.SlotColumnFlash,
             }):Play()
-            task.wait(0.15)
+            TweenService:Create(col.stroke, TweenInfo.new(0.15), {
+                Color = rarityColor,
+                Transparency = 0,
+            }):Play()
+            task.wait(0.2)
             TweenService:Create(col.frame, TweenInfo.new(0.3), {
                 BackgroundColor3 = COLORS.SlotColumnBg,
+            }):Play()
+            TweenService:Create(col.stroke, TweenInfo.new(0.3), {
+                Transparency = 0.3,
             }):Play()
         end)
     end
@@ -638,8 +914,9 @@ local function playSlotMachineAnimation(revealData)
     -- Show result after all columns stop
     task.spawn(function()
         task.wait(3.5)
-        resultLabel.Text = "Brainrot placed in Slot " .. revealData.SlotIndex .. "!"
-        okButton.Visible = true
+        resultLabel.Text = "Take or throw?"
+        takeButton.Visible = true
+        throwButton.Visible = true
     end)
 end
 
