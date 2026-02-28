@@ -57,6 +57,23 @@ local ShopProducts = {
             Order = 2,
             Products = {
                 {
+                    Section = "STARTER PACK",
+                    ProductId = 3545593788, -- TODO: Créer le Developer Product sur Roblox et mettre l'ID ici
+                    Cash = 1000,
+                    LuckyBlocks = 1,
+                    Spins = 1,
+                    PermanentMultiplierBonus = 0.25,
+                    Robux = 489,
+                    DisplayName = "Starter Pack",
+                    OneTimePurchaseKey = "StarterPack",
+                    Description = {
+                        "$1,000 Cash",
+                        "1 Lucky Block",
+                        "1 Spin",
+                        "+0.25x Multiplier (permanent)",
+                    },
+                },
+                {
                     Section = "BOOSTS",
                     ProductId = 3545587138,
                     MultiplierBoost = 2.0,
@@ -89,23 +106,6 @@ local ShopProducts = {
                     Spins = 3,
                     Robux = 199,
                     DisplayName = "3 Spins",
-                },
-                {
-                    Section = "STARTER PACK",
-                    ProductId = 3545593788, -- TODO: Créer le Developer Product sur Roblox et mettre l'ID ici
-                    Cash = 1000,
-                    LuckyBlocks = 1,
-                    Spins = 1,
-                    PermanentMultiplierBonus = 0.25,
-                    Robux = 489,
-                    DisplayName = "Starter Pack",
-                    OneTimePurchaseKey = "StarterPack",
-                    Description = {
-                        "$1,000 Cash",
-                        "1 Lucky Block",
-                        "1 Spin",
-                        "+0.25x Multiplier (permanent)",
-                    },
                 },
             },
         },
