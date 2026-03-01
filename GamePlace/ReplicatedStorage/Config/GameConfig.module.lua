@@ -126,6 +126,23 @@ local GameConfig = {
             { Type = "LuckyBlock",  Value = 3,      Weight = 0.25,  DisplayName = "3 Lucky Blocks" },
         },
     },
+    -- ═══════════════════════════════════════
+    -- FUSION (Codex Fusion Tab)
+    -- ═══════════════════════════════════════
+    Fusion = {
+        Milestones = {
+            { Required = 3,   Type = "Cash",       Value = 500,     DisplayName = "$500" },
+            { Required = 5,   Type = "Cash",       Value = 2000,    DisplayName = "$2K" },
+            { Required = 10,  Type = "Cash",       Value = 10000,   DisplayName = "$10K" },
+            { Required = 15,  Type = "Cash",       Value = 25000,   DisplayName = "$25K" },
+            { Required = 25,  Type = "Cash",       Value = 50000,   DisplayName = "$50K" },
+            { Required = 40,  Type = "Multiplier", Value = 0.1,     DisplayName = "+0.1x" },
+            { Required = 60,  Type = "Cash",       Value = 250000,  DisplayName = "$250K" },
+            { Required = 80,  Type = "Cash",       Value = 500000,  DisplayName = "$500K" },
+            { Required = 100, Type = "Multiplier", Value = 0.25,    DisplayName = "+0.25x" },
+            { Required = 130, Type = "Cash",       Value = 1000000, DisplayName = "$1M" },
+        },
+    },
 }
 
 return GameConfig

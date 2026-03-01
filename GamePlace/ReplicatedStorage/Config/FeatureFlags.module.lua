@@ -17,6 +17,7 @@ local FeatureFlags = {
     REVENUE_SYSTEM = true,           -- Revenus passifs des Brainrots
     DEATH_ON_SPINNER = true,         -- Mort au contact du spinner
     ROBUX_SHOP = true,               -- Phase 9: Shop Robux
+    FUSION_SYSTEM = true,            -- Système de fusion (Codex Fusion Tab)
 
     -- ═══════════════════════════════════════
     -- FEATURES DÉSACTIVÉES (FUTURES)

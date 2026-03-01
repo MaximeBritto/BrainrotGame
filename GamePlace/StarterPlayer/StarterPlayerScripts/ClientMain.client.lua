@@ -464,6 +464,16 @@ task.spawn(function()
         if fullData.CodexUnlocked then
             CodexController:UpdateCodex(fullData.CodexUnlocked)
         end
+        -- Fusion data
+        if fullData.DiscoveredFusions then
+            local count = 0
+            for _ in pairs(fullData.DiscoveredFusions) do count = count + 1 end
+            CodexController._fusionData = {
+                DiscoveredFusions = fullData.DiscoveredFusions,
+                ClaimedFusionRewards = fullData.ClaimedFusionRewards or {},
+                FusionCount = count,
+            }
+        end
         if fullData.MultiplierBoostActive and fullData.MultiplierBoostRemaining and fullData.MultiplierBoostRemaining > 0 then
             startBoostCountdown(fullData.MultiplierBoostRemaining)
         end

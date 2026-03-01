@@ -10,12 +10,13 @@ local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
 local BrainrotData = require(ReplicatedStorage:WaitForChild("Data"):WaitForChild("BrainrotData.module"))
+local GameConfig = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("GameConfig.module"))
 
 local CodexController = {}
 CodexController._codexUnlocked = {}
 CodexController._codexUI = nil
 CodexController._initialized = false
-CodexController._activeFilter = nil -- nil = all, or rarity string
+CodexController._activeFilter = nil -- nil = all, or rarity string, or "_fusion"
 CodexController._gridContainer = nil
 CodexController._counterLabel = nil
 CodexController._tabs = {}
@@ -25,6 +26,12 @@ CodexController._progressCount = nil
 CodexController._isOpen = false
 CodexController._mainFrame = nil
 CodexController._overlay = nil
+-- Fusion tab state
+CodexController._fusionData = {}
+CodexController._activeFusionTab = false
+CodexController._rewardTrackContainer = nil
+CodexController._fusionBottomBar = nil
+CodexController._codexBottomBar = nil
 
 -- ══════════════════════════════════════════
 -- Visual constants (matching Shop style)
@@ -59,6 +66,15 @@ local COLORS = {
     White = Color3.fromRGB(255, 255, 255),
     SubText = Color3.fromRGB(160, 175, 190),
     ScrollBar = Color3.fromRGB(80, 100, 120),
+
+    -- Fusion reward track
+    RewardNodeLocked = Color3.fromRGB(45, 55, 65),
+    RewardNodeReady = Color3.fromRGB(0, 190, 170),
+    RewardNodeClaimed = Color3.fromRGB(0, 160, 80),
+    RewardLine = Color3.fromRGB(40, 50, 60),
+    RewardLineFilled = Color3.fromRGB(0, 190, 170),
+    MultiplierGold = Color3.fromRGB(255, 200, 50),
+    FusionTabColor = Color3.fromRGB(200, 120, 0),
 }
 
 local SIZES = {
@@ -141,6 +157,17 @@ function CodexController:Init()
         self:UpdateCodex(codexUnlocked or {})
     end)
 
+    -- Connect SyncFusionData
+    local syncFusion = Remotes:FindFirstChild("SyncFusionData")
+    if syncFusion then
+        syncFusion.OnClientEvent:Connect(function(data)
+            self._fusionData = data or {}
+            if self._activeFusionTab then
+                self:RefreshFusionList()
+            end
+        end)
+    end
+
     self._initialized = true
 end
 
@@ -198,6 +225,9 @@ function CodexController:_BuildUI()
 
     -- ═══ BOTTOM BAR ═══
     self:_BuildBottomBar(mainFrame)
+
+    -- ═══ FUSION BOTTOM BAR (battle pass) ═══
+    self:_BuildFusionBottomBar(mainFrame)
 end
 
 -- ══════════════════════════════════════════
@@ -298,7 +328,7 @@ function CodexController:_BuildTabBar(mainFrame)
     -- Pill container
     local pillContainer = Instance.new("Frame")
     pillContainer.Name = "PillContainer"
-    pillContainer.Size = UDim2.new(0, 460, 0, 38)
+    pillContainer.Size = UDim2.new(0, 550, 0, 38)
     pillContainer.Position = UDim2.new(0.5, 0, 0.5, 0)
     pillContainer.AnchorPoint = Vector2.new(0.5, 0.5)
     pillContainer.BackgroundColor3 = COLORS.TabPill
@@ -311,6 +341,7 @@ function CodexController:_BuildTabBar(mainFrame)
     layout.FillDirection = Enum.FillDirection.Horizontal
     layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
     layout.VerticalAlignment = Enum.VerticalAlignment.Center
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
     layout.Padding = UDim.new(0, 4)
     layout.Parent = pillContainer
 
@@ -332,7 +363,8 @@ function CodexController:_BuildTabBar(mainFrame)
         table.insert(allTabs, { name = r.name, display = RARITY_DISPLAY[r.name] or r.name, color = r.color })
     end
 
-    local tabWidth = math.floor(454 / #allTabs)
+    local totalTabCount = #allTabs + 1 -- +1 for Fusion tab
+    local tabWidth = math.floor(544 / totalTabCount)
     self._tabs = {}
 
     for i, tabInfo in ipairs(allTabs) do
@@ -380,6 +412,46 @@ function CodexController:_BuildTabBar(mainFrame)
 
         self._tabs[rarity or "_all"] = { button = tabBtn, fill = tabFill }
     end
+
+    -- Fusion tab (special)
+    local fusionTabBtn = Instance.new("TextButton")
+    fusionTabBtn.Name = "Tab_Fusion"
+    fusionTabBtn.Size = UDim2.new(0, tabWidth, 0, 32)
+    fusionTabBtn.BackgroundTransparency = 1
+    fusionTabBtn.BorderSizePixel = 0
+    fusionTabBtn.Text = ""
+    fusionTabBtn.AutoButtonColor = false
+    fusionTabBtn.LayoutOrder = 0
+    fusionTabBtn.Parent = pillContainer
+
+    Instance.new("UICorner", fusionTabBtn).CornerRadius = SIZES.PillCorner
+
+    local fusionFill = Instance.new("Frame")
+    fusionFill.Name = "Fill"
+    fusionFill.Size = UDim2.new(1, 0, 1, 0)
+    fusionFill.BackgroundColor3 = COLORS.FusionTabColor
+    fusionFill.BackgroundTransparency = 1
+    fusionFill.BorderSizePixel = 0
+    fusionFill.Parent = fusionTabBtn
+
+    Instance.new("UICorner", fusionFill).CornerRadius = SIZES.PillCorner
+
+    local fusionLabel = Instance.new("TextLabel")
+    fusionLabel.Name = "Label"
+    fusionLabel.Size = UDim2.new(1, 0, 1, 0)
+    fusionLabel.BackgroundTransparency = 1
+    fusionLabel.Text = "Fusion"
+    fusionLabel.TextColor3 = COLORS.White
+    fusionLabel.TextSize = 14
+    fusionLabel.Font = Enum.Font.GothamBold
+    fusionLabel.ZIndex = 2
+    fusionLabel.Parent = fusionTabBtn
+
+    fusionTabBtn.MouseButton1Click:Connect(function()
+        self:SetFilter("_fusion")
+    end)
+
+    self._tabs["_fusion"] = { button = fusionTabBtn, fill = fusionFill }
 end
 
 -- ══════════════════════════════════════════
@@ -427,6 +499,7 @@ function CodexController:_BuildBottomBar(mainFrame)
     bottomBar.BackgroundColor3 = COLORS.BottomBg
     bottomBar.BorderSizePixel = 0
     bottomBar.Parent = mainFrame
+    self._codexBottomBar = bottomBar
 
     Instance.new("UICorner", bottomBar).CornerRadius = SIZES.SmallCorner
 
@@ -488,6 +561,7 @@ end
 
 function CodexController:SetFilter(rarity)
     self._activeFilter = rarity
+    self._activeFusionTab = (rarity == "_fusion")
 
     for key, tabData in pairs(self._tabs) do
         local isActive = (key == "_all" and rarity == nil) or (key == rarity)
@@ -496,7 +570,28 @@ function CodexController:SetFilter(rarity)
         }):Play()
     end
 
-    self:RefreshList()
+    -- Toggle bottom bars
+    if self._codexBottomBar then
+        self._codexBottomBar.Visible = not self._activeFusionTab
+    end
+    if self._fusionBottomBar then
+        self._fusionBottomBar.Visible = self._activeFusionTab
+    end
+
+    -- Adjust grid size for fusion (taller bottom bar)
+    if self._gridContainer then
+        if self._activeFusionTab then
+            self._gridContainer.Size = UDim2.new(1, -40, 1, -240)
+        else
+            self._gridContainer.Size = UDim2.new(1, -40, 1, -175)
+        end
+    end
+
+    if self._activeFusionTab then
+        self:RefreshFusionList()
+    else
+        self:RefreshList()
+    end
 end
 
 -- ══════════════════════════════════════════
@@ -897,9 +992,9 @@ function CodexController:RefreshList()
     local grid = self._gridContainer
     if not grid then return end
 
-    -- Clear old cards
+    -- Clear old cards (both codex and fusion)
     for _, child in ipairs(grid:GetChildren()) do
-        if child:IsA("Frame") and child.Name:match("^Card_") then
+        if child:IsA("Frame") and (child.Name:match("^Card_") or child.Name:match("^Fusion_")) then
             child:Destroy()
         end
     end
@@ -1006,7 +1101,11 @@ function CodexController:Open()
     self._codexUI.Enabled = true
 
     -- Refresh content
-    self:RefreshList()
+    if self._activeFusionTab then
+        self:RefreshFusionList()
+    else
+        self:RefreshList()
+    end
 
     -- Animate overlay fade in
     self._overlay.BackgroundTransparency = 1
@@ -1044,6 +1143,572 @@ end
 
 function CodexController:IsOpen()
     return self._isOpen
+end
+
+-- ══════════════════════════════════════════
+-- Fusion: 3D Assembly (mixed sets)
+-- ══════════════════════════════════════════
+
+function CodexController:_AssembleFusionPreviewModel(headSet, bodySet, legsSet)
+    local headSetData = BrainrotData.Sets[headSet]
+    local bodySetData = BrainrotData.Sets[bodySet]
+    local legsSetData = BrainrotData.Sets[legsSet]
+
+    local assetsFolder = ReplicatedStorage:FindFirstChild("Assets")
+    if not assetsFolder then return nil end
+    local templatesFolder = assetsFolder:FindFirstChild("BodyPartTemplates")
+    if not templatesFolder then return nil end
+
+    local headFolder = templatesFolder:FindFirstChild("HeadTemplate")
+    local bodyFolder = templatesFolder:FindFirstChild("BodyTemplate")
+    local legsFolder = templatesFolder:FindFirstChild("LegsTemplate")
+
+    local headTN = headSetData and headSetData.Head and headSetData.Head.TemplateName or ""
+    local bodyTN = bodySetData and bodySetData.Body and bodySetData.Body.TemplateName or ""
+    local legsTN = legsSetData and legsSetData.Legs and legsSetData.Legs.TemplateName or ""
+
+    local headSrc = (headTN ~= "" and headFolder) and headFolder:FindFirstChild(headTN) or nil
+    local bodySrc = (bodyTN ~= "" and bodyFolder) and bodyFolder:FindFirstChild(bodyTN) or nil
+    local legsSrc = (legsTN ~= "" and legsFolder) and legsFolder:FindFirstChild(legsTN) or nil
+
+    if not headSrc and not bodySrc and not legsSrc then return nil end
+
+    local headModel = headSrc and headSrc:Clone() or nil
+    local bodyModel = bodySrc and bodySrc:Clone() or nil
+    local legsModel = legsSrc and legsSrc:Clone() or nil
+
+    local headPart = headModel and headModel.PrimaryPart
+    local bodyPart = bodyModel and bodyModel.PrimaryPart
+    local legsPart = legsModel and legsModel.PrimaryPart
+
+    local function cleanModel(m)
+        if not m then return end
+        for _, desc in ipairs(m:GetDescendants()) do
+            if desc:IsA("BillboardGui") then
+                desc:Destroy()
+            elseif desc:IsA("BasePart") then
+                desc.Anchored = true
+                desc.CanCollide = false
+            end
+        end
+    end
+
+    cleanModel(headModel)
+    cleanModel(bodyModel)
+    cleanModel(legsModel)
+
+    local function repositionModel(subModel, primaryPart, targetCFrame)
+        if not subModel or not primaryPart then return end
+        local delta = targetCFrame * primaryPart.CFrame:Inverse()
+        for _, desc in ipairs(subModel:GetDescendants()) do
+            if desc:IsA("BasePart") then
+                desc.CFrame = delta * desc.CFrame
+            end
+        end
+    end
+
+    -- Position Legs at origin
+    if legsModel and legsPart then
+        local legsTopAtt = legsPart:FindFirstChild("TopAttachment")
+        local legsOrientation = legsTopAtt and legsTopAtt.CFrame.Rotation or CFrame.new()
+        repositionModel(legsModel, legsPart, CFrame.new(0, legsPart.Size.Y / 2, 0) * legsOrientation)
+    end
+
+    -- Body -> Legs via Attachments
+    if bodyModel and bodyPart then
+        if legsPart then
+            local bba = bodyPart:FindFirstChild("BottomAttachment")
+            local lta = legsPart:FindFirstChild("TopAttachment")
+            if bba and lta then
+                local targetCF = legsPart.CFrame * lta.CFrame * bba.CFrame:Inverse()
+                repositionModel(bodyModel, bodyPart, targetCF)
+            else
+                repositionModel(bodyModel, bodyPart, CFrame.new(0, legsPart.Size.Y + bodyPart.Size.Y / 2, 0))
+            end
+        else
+            local bba = bodyPart:FindFirstChild("BottomAttachment")
+            local bodyOrientation = bba and bba.CFrame.Rotation or CFrame.new()
+            repositionModel(bodyModel, bodyPart, CFrame.new(0, bodyPart.Size.Y / 2, 0) * bodyOrientation)
+        end
+    end
+
+    -- Head -> Body via Attachments (or Head -> Legs if no Body)
+    if headModel and headPart then
+        if bodyPart then
+            local hba = headPart:FindFirstChild("BottomAttachment")
+            local bta = bodyPart:FindFirstChild("TopAttachment")
+            if hba and bta then
+                local targetCF = bodyPart.CFrame * bta.CFrame * hba.CFrame:Inverse()
+                repositionModel(headModel, headPart, targetCF)
+            else
+                repositionModel(headModel, headPart, bodyPart.CFrame * CFrame.new(0, bodyPart.Size.Y / 2 + headPart.Size.Y / 2, 0))
+            end
+        elseif legsPart then
+            local lta = legsPart:FindFirstChild("TopAttachment")
+            if lta then
+                local topWorldPos = (legsPart.CFrame * lta.CFrame).Position
+                repositionModel(headModel, headPart, CFrame.new(topWorldPos.X, topWorldPos.Y + headPart.Size.Y / 2, topWorldPos.Z) * legsPart.CFrame.Rotation)
+            else
+                repositionModel(headModel, headPart, CFrame.new(0, legsPart.Size.Y + headPart.Size.Y / 2, 0))
+            end
+        else
+            repositionModel(headModel, headPart, CFrame.new(0, headPart.Size.Y / 2, 0))
+        end
+    end
+
+    local model = Instance.new("Model")
+    model.Name = "FusionPreview"
+
+    if legsModel then legsModel.Parent = model end
+    if bodyModel then bodyModel.Parent = model end
+    if headModel then headModel.Parent = model end
+
+    model.PrimaryPart = bodyPart or headPart or legsPart
+
+    return model
+end
+
+-- ══════════════════════════════════════════
+-- Fusion: Card creation
+-- ══════════════════════════════════════════
+
+function CodexController:_CreateFusionCard(headSet, bodySet, legsSet, layoutOrder)
+    local isSameSet = (headSet == bodySet and bodySet == legsSet)
+
+    -- Get display names
+    local headSetData = BrainrotData.Sets[headSet]
+    local bodySetData = BrainrotData.Sets[bodySet]
+    local legsSetData = BrainrotData.Sets[legsSet]
+    local headName = headSetData and headSetData.Head and headSetData.Head.DisplayName or "?"
+    local bodyName = bodySetData and bodySetData.Body and bodySetData.Body.DisplayName or "?"
+    local legsName = legsSetData and legsSetData.Legs and legsSetData.Legs.DisplayName or "?"
+
+    local card = Instance.new("Frame")
+    card.Name = "Fusion_" .. headSet .. "_" .. bodySet .. "_" .. legsSet
+    card.LayoutOrder = layoutOrder
+    card.BackgroundColor3 = COLORS.CardBg
+    card.BorderSizePixel = 0
+    Instance.new("UICorner", card).CornerRadius = SIZES.SmallCorner
+
+    -- Card stroke
+    local cardStroke = Instance.new("UIStroke")
+    cardStroke.Color = COLORS.CardStroke
+    cardStroke.Thickness = 1.5
+    cardStroke.Transparency = 0.3
+    cardStroke.Parent = card
+
+    -- Subtle gradient
+    local gradient = Instance.new("UIGradient")
+    gradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 210, 220)),
+    })
+    gradient.Rotation = 90
+    gradient.Parent = card
+
+    -- Hover effect
+    card.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            TweenService:Create(cardStroke, TweenInfo.new(0.2), {
+                Color = COLORS.CardStrokeHover,
+                Transparency = 0
+            }):Play()
+        end
+    end)
+    card.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            TweenService:Create(cardStroke, TweenInfo.new(0.2), {
+                Color = COLORS.CardStroke,
+                Transparency = 0.3
+            }):Play()
+        end
+    end)
+
+    -- 3D preview area
+    local previewFrame = Instance.new("Frame")
+    previewFrame.Name = "PreviewFrame"
+    previewFrame.Size = UDim2.new(1, -16, 0, 130)
+    previewFrame.Position = UDim2.new(0, 8, 0, 8)
+    previewFrame.BackgroundColor3 = COLORS.PreviewBg
+    previewFrame.BorderSizePixel = 0
+    previewFrame.ClipsDescendants = true
+    previewFrame.Parent = card
+    Instance.new("UICorner", previewFrame).CornerRadius = SIZES.TinyCorner
+
+    -- ViewportFrame
+    local viewport = Instance.new("ViewportFrame")
+    viewport.Size = UDim2.new(1, 0, 1, 0)
+    viewport.BackgroundTransparency = 1
+    viewport.Ambient = Color3.fromRGB(200, 200, 200)
+    viewport.LightColor = Color3.fromRGB(255, 255, 255)
+    viewport.LightDirection = Vector3.new(-1, -1, -1)
+    viewport.Parent = previewFrame
+
+    local previewModel = self:_AssembleFusionPreviewModel(headSet, bodySet, legsSet)
+    if previewModel then
+        previewModel.Parent = viewport
+
+        local camera = Instance.new("Camera")
+        viewport.CurrentCamera = camera
+        camera.Parent = viewport
+        camera.FieldOfView = 50
+
+        -- Compute bounding box
+        local minX, minY, minZ = math.huge, math.huge, math.huge
+        local maxX, maxY, maxZ = -math.huge, -math.huge, -math.huge
+        local partCount = 0
+        for _, desc in ipairs(previewModel:GetDescendants()) do
+            if desc:IsA("BasePart") and desc.Transparency < 1 then
+                local pos = desc.CFrame.Position
+                local half = desc.Size / 2
+                minX = math.min(minX, pos.X - half.X)
+                maxX = math.max(maxX, pos.X + half.X)
+                minY = math.min(minY, pos.Y - half.Y)
+                maxY = math.max(maxY, pos.Y + half.Y)
+                minZ = math.min(minZ, pos.Z - half.Z)
+                maxZ = math.max(maxZ, pos.Z + half.Z)
+                partCount = partCount + 1
+            end
+        end
+        if partCount > 0 then
+            local center = Vector3.new((minX + maxX) / 2, (minY + maxY) / 2, (minZ + maxZ) / 2)
+            local sizeX, sizeY, sizeZ = maxX - minX, maxY - minY, maxZ - minZ
+            local maxDim = math.max(sizeX, sizeY, sizeZ)
+            local dist = maxDim * 1.2
+            camera.CFrame = CFrame.new(
+                center + Vector3.new(dist * 0.3, dist * 0.2, dist),
+                center
+            )
+        end
+    else
+        local ph = Instance.new("TextLabel")
+        ph.Size = UDim2.new(1, 0, 1, 0)
+        ph.BackgroundTransparency = 1
+        ph.Text = "?"
+        ph.TextColor3 = Color3.fromRGB(60, 75, 90)
+        ph.TextSize = 40
+        ph.Font = Enum.Font.GothamBlack
+        ph.Parent = previewFrame
+    end
+
+    -- Fusion name (truncated)
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Name = "NameLabel"
+    nameLabel.Size = UDim2.new(1, -16, 0, 20)
+    nameLabel.Position = UDim2.new(0, 8, 0, 142)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Text = headName .. " + " .. bodyName .. " + " .. legsName
+    nameLabel.TextColor3 = COLORS.White
+    nameLabel.TextSize = 11
+    nameLabel.Font = Enum.Font.GothamBold
+    nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+    nameLabel.TextTruncate = Enum.TextTruncate.AtEnd
+    nameLabel.TextStrokeTransparency = 0.7
+    nameLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    nameLabel.Parent = card
+
+    -- Badge: PURE or MIX
+    local badgePill = Instance.new("Frame")
+    badgePill.Name = "BadgePill"
+    badgePill.Size = UDim2.new(0, 0, 0, 20)
+    badgePill.Position = UDim2.new(0, 8, 0, 166)
+    badgePill.BackgroundColor3 = isSameSet and Color3.fromRGB(0, 170, 100) or COLORS.FusionTabColor
+    badgePill.BackgroundTransparency = 0.6
+    badgePill.BorderSizePixel = 0
+    badgePill.AutomaticSize = Enum.AutomaticSize.X
+    badgePill.Parent = card
+
+    Instance.new("UICorner", badgePill).CornerRadius = UDim.new(0, 10)
+
+    local badgePad = Instance.new("UIPadding")
+    badgePad.PaddingLeft = UDim.new(0, 8)
+    badgePad.PaddingRight = UDim.new(0, 8)
+    badgePad.Parent = badgePill
+
+    local badgeLabel = Instance.new("TextLabel")
+    badgeLabel.Name = "BadgeLabel"
+    badgeLabel.Size = UDim2.new(0, 0, 1, 0)
+    badgeLabel.AutomaticSize = Enum.AutomaticSize.X
+    badgeLabel.BackgroundTransparency = 1
+    badgeLabel.Text = isSameSet and "PURE" or "MIX"
+    badgeLabel.TextColor3 = isSameSet and Color3.fromRGB(100, 255, 130) or COLORS.MultiplierGold
+    badgeLabel.TextSize = 11
+    badgeLabel.Font = Enum.Font.GothamBold
+    badgeLabel.Parent = badgePill
+
+    return card
+end
+
+-- ══════════════════════════════════════════
+-- Fusion: Bottom bar (battle pass reward track)
+-- ══════════════════════════════════════════
+
+function CodexController:_BuildFusionBottomBar(mainFrame)
+    local milestones = GameConfig.Fusion and GameConfig.Fusion.Milestones or {}
+
+    local fusionBar = Instance.new("Frame")
+    fusionBar.Name = "FusionBottomBar"
+    fusionBar.Size = UDim2.new(1, -40, 0, 110)
+    fusionBar.Position = UDim2.new(0, 20, 1, -120)
+    fusionBar.BackgroundColor3 = COLORS.BottomBg
+    fusionBar.BorderSizePixel = 0
+    fusionBar.Visible = false
+    fusionBar.ClipsDescendants = true
+    fusionBar.Parent = mainFrame
+
+    Instance.new("UICorner", fusionBar).CornerRadius = SIZES.SmallCorner
+
+    local fusionStroke = Instance.new("UIStroke")
+    fusionStroke.Color = COLORS.BottomStroke
+    fusionStroke.Thickness = 1.5
+    fusionStroke.Transparency = 0.3
+    fusionStroke.Parent = fusionBar
+
+    -- Title row
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Name = "FusionTitle"
+    titleLabel.Size = UDim2.new(1, -16, 0, 18)
+    titleLabel.Position = UDim2.new(0, 8, 0, 3)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Text = "FUSION REWARDS"
+    titleLabel.TextColor3 = COLORS.SubText
+    titleLabel.TextSize = 11
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.Parent = fusionBar
+
+    -- Scrolling track
+    local trackScroll = Instance.new("ScrollingFrame")
+    trackScroll.Name = "TrackScroll"
+    trackScroll.Size = UDim2.new(1, -16, 0, 82)
+    trackScroll.Position = UDim2.new(0, 8, 0, 22)
+    trackScroll.BackgroundTransparency = 1
+    trackScroll.BorderSizePixel = 0
+    trackScroll.ScrollBarThickness = 3
+    trackScroll.ScrollBarImageColor3 = COLORS.ScrollBar
+    trackScroll.CanvasSize = UDim2.new(0, math.max(#milestones * 80 + 20, 100), 0, 0)
+    trackScroll.ScrollingDirection = Enum.ScrollingDirection.X
+    trackScroll.Parent = fusionBar
+
+    self._fusionBottomBar = fusionBar
+    self._rewardTrackContainer = trackScroll
+end
+
+-- ══════════════════════════════════════════
+-- Fusion: Refresh grid
+-- ══════════════════════════════════════════
+
+function CodexController:RefreshFusionList()
+    local grid = self._gridContainer
+    if not grid then return end
+
+    -- Clear old cards
+    for _, child in ipairs(grid:GetChildren()) do
+        if child:IsA("Frame") and (child.Name:match("^Card_") or child.Name:match("^Fusion_")) then
+            child:Destroy()
+        end
+    end
+
+    local fusionData = self._fusionData or {}
+    local discovered = fusionData.DiscoveredFusions or {}
+    local fusionCount = 0
+    local layoutOrder = 0
+
+    -- Sort fusion keys for consistent display
+    local fusionKeys = {}
+    for key in pairs(discovered) do
+        table.insert(fusionKeys, key)
+    end
+    table.sort(fusionKeys)
+
+    for _, key in ipairs(fusionKeys) do
+        fusionCount = fusionCount + 1
+        layoutOrder = layoutOrder + 1
+
+        -- Parse key: "HeadSet_BodySet_LegsSet"
+        local parts = string.split(key, "_")
+        if #parts >= 3 then
+            local headSet = parts[1]
+            local bodySet = parts[2]
+            local legsSet = parts[3]
+
+            local card = self:_CreateFusionCard(headSet, bodySet, legsSet, layoutOrder)
+            card.Parent = grid
+        end
+    end
+
+    -- Update counter
+    if self._counterLabel then
+        self._counterLabel.Text = fusionCount .. " fusions"
+    end
+
+    -- Refresh reward track
+    self:_RefreshRewardTrack()
+end
+
+-- ══════════════════════════════════════════
+-- Fusion: Reward track (battle pass)
+-- ══════════════════════════════════════════
+
+function CodexController:_RefreshRewardTrack()
+    local container = self._rewardTrackContainer
+    if not container then return end
+
+    -- Clear old nodes
+    for _, child in ipairs(container:GetChildren()) do
+        child:Destroy()
+    end
+
+    local milestones = GameConfig.Fusion and GameConfig.Fusion.Milestones or {}
+    local fusionData = self._fusionData or {}
+    local fusionCount = fusionData.FusionCount or 0
+    local claimed = fusionData.ClaimedFusionRewards or {}
+
+    local nodeSize = 36
+    local spacing = 80
+    local nodeY = 16 -- vertical offset for node (leaves room for required label above)
+
+    for i, milestone in ipairs(milestones) do
+        local x = (i - 1) * spacing + 10
+        local isReached = fusionCount >= milestone.Required
+        local isClaimed = claimed[i] == true or claimed[tostring(i)] == true
+
+        -- Connecting line to next node
+        if i < #milestones then
+            local line = Instance.new("Frame")
+            line.Name = "Line_" .. i
+            line.Size = UDim2.new(0, spacing - nodeSize, 0, 4)
+            line.Position = UDim2.new(0, x + nodeSize, 0, nodeY + nodeSize / 2 - 2)
+            line.BackgroundColor3 = isReached and COLORS.RewardLineFilled or COLORS.RewardLine
+            line.BorderSizePixel = 0
+            line.Parent = container
+            Instance.new("UICorner", line).CornerRadius = UDim.new(0, 2)
+        end
+
+        -- Required count label above the node
+        local reqAbove = Instance.new("TextLabel")
+        reqAbove.Name = "Req_" .. i
+        reqAbove.Size = UDim2.new(0, spacing - 4, 0, 14)
+        reqAbove.Position = UDim2.new(0, x + nodeSize / 2, 0, nodeY - 14)
+        reqAbove.AnchorPoint = Vector2.new(0.5, 0)
+        reqAbove.BackgroundTransparency = 1
+        reqAbove.Text = tostring(milestone.Required) .. " fusions"
+        reqAbove.TextColor3 = isReached and COLORS.White or COLORS.SubText
+        reqAbove.TextSize = 9
+        reqAbove.Font = Enum.Font.GothamBold
+        reqAbove.Parent = container
+
+        -- Node circle
+        local node = Instance.new("TextButton")
+        node.Name = "Node_" .. i
+        node.Size = UDim2.new(0, nodeSize, 0, nodeSize)
+        node.Position = UDim2.new(0, x, 0, nodeY)
+        node.BorderSizePixel = 0
+        node.AutoButtonColor = false
+        node.Text = ""
+        node.Parent = container
+
+        Instance.new("UICorner", node).CornerRadius = UDim.new(1, 0)
+
+        if isClaimed then
+            -- Claimed: green with checkmark
+            node.BackgroundColor3 = COLORS.RewardNodeClaimed
+
+            local check = Instance.new("TextLabel")
+            check.Size = UDim2.new(1, 0, 1, 0)
+            check.BackgroundTransparency = 1
+            check.Text = "\xE2\x9C\x93"
+            check.TextColor3 = COLORS.White
+            check.TextSize = 18
+            check.Font = Enum.Font.GothamBlack
+            check.Parent = node
+
+        elseif isReached then
+            -- Ready to claim: cyan with glow
+            node.BackgroundColor3 = COLORS.RewardNodeReady
+
+            local glowStroke = Instance.new("UIStroke")
+            glowStroke.Color = COLORS.RewardNodeReady
+            glowStroke.Thickness = 3
+            glowStroke.Transparency = 0.3
+            glowStroke.Parent = node
+
+            -- Pulse animation
+            local pulseIn = TweenService:Create(glowStroke, TweenInfo.new(0.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
+                Transparency = 0.8
+            })
+            pulseIn:Play()
+
+            -- Reward icon
+            local rewardIcon = Instance.new("TextLabel")
+            rewardIcon.Size = UDim2.new(1, 0, 1, 0)
+            rewardIcon.BackgroundTransparency = 1
+            rewardIcon.Text = milestone.Type == "Multiplier" and "x" or "$"
+            rewardIcon.TextColor3 = COLORS.White
+            rewardIcon.TextSize = 18
+            rewardIcon.Font = Enum.Font.GothamBlack
+            rewardIcon.Parent = node
+
+            -- Click to claim
+            local milestoneIdx = i
+            node.MouseButton1Click:Connect(function()
+                local Remotes = ReplicatedStorage:WaitForChild("Remotes")
+                local claimRemote = Remotes:FindFirstChild("ClaimFusionReward")
+                if claimRemote then
+                    claimRemote:FireServer(milestoneIdx)
+                end
+            end)
+
+        else
+            -- Locked: grey with reward type icon
+            node.BackgroundColor3 = COLORS.RewardNodeLocked
+
+            local lockIcon = Instance.new("TextLabel")
+            lockIcon.Size = UDim2.new(1, 0, 1, 0)
+            lockIcon.BackgroundTransparency = 1
+            lockIcon.Text = milestone.Type == "Multiplier" and "x" or "$"
+            lockIcon.TextColor3 = COLORS.SubText
+            lockIcon.TextSize = 16
+            lockIcon.Font = Enum.Font.GothamBold
+            lockIcon.Parent = node
+        end
+
+        -- Reward label below node (DisplayName)
+        local rewardLabel = Instance.new("TextLabel")
+        rewardLabel.Name = "Reward_" .. i
+        rewardLabel.Size = UDim2.new(0, spacing - 4, 0, 16)
+        rewardLabel.Position = UDim2.new(0, x + nodeSize / 2, 0, nodeY + nodeSize + 2)
+        rewardLabel.AnchorPoint = Vector2.new(0.5, 0)
+        rewardLabel.BackgroundTransparency = 1
+        rewardLabel.Text = milestone.DisplayName
+        rewardLabel.TextSize = 11
+        rewardLabel.Font = Enum.Font.GothamBold
+        rewardLabel.Parent = container
+
+        if isClaimed then
+            rewardLabel.TextColor3 = COLORS.RewardNodeClaimed
+        elseif isReached then
+            rewardLabel.TextColor3 = COLORS.White
+        elseif milestone.Type == "Multiplier" then
+            rewardLabel.TextColor3 = COLORS.MultiplierGold
+        else
+            rewardLabel.TextColor3 = COLORS.SubText
+        end
+    end
+
+    -- Update canvas size
+    container.CanvasSize = UDim2.new(0, #milestones * spacing + 20, 0, 0)
+
+    -- Auto-scroll to first unclaimed reachable node
+    for i, milestone in ipairs(milestones) do
+        local isReached = fusionCount >= milestone.Required
+        local isClaimed = claimed[i] == true or claimed[tostring(i)] == true
+        if isReached and not isClaimed then
+            local targetX = math.max(0, (i - 1) * spacing - 100)
+            container.CanvasPosition = Vector2.new(targetX, 0)
+            break
+        end
+    end
 end
 
 return CodexController

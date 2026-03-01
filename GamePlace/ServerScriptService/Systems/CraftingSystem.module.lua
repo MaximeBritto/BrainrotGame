@@ -20,6 +20,8 @@ local PlayerService = nil
 local InventorySystem = nil
 local PlacementSystem = nil
 
+local FusionSystem = nil
+
 local CraftingSystem = {}
 CraftingSystem._initialized = false
 
@@ -40,6 +42,7 @@ function CraftingSystem:Init(services)
     PlayerService = services.PlayerService
     InventorySystem = services.InventorySystem
     PlacementSystem = services.PlacementSystem
+    FusionSystem = services.FusionSystem
     
     if not DataService or not PlayerService or not InventorySystem or not PlacementSystem then
         error("[CraftingSystem] Services manquants!")
@@ -198,7 +201,13 @@ function CraftingSystem:TryCraft(player)
     
     -- 7. Débloquer dans le Codex
     DataService:UnlockCodexEntry(player, setName)
-    
+
+    -- 7.5. Enregistrer la fusion unique
+    local fs = FusionSystem or self.FusionSystem
+    if fs then
+        fs:RecordFusion(player, headPiece.SetName, bodyPiece.SetName, legsPiece.SetName)
+    end
+
     -- 8. Bonus si set complet
     local bonus = 0
     if isCompleteSet then

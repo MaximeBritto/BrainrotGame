@@ -89,6 +89,8 @@ local Constants = {
         SyncSpinWheelData = "SyncSpinWheelData", -- Spin Wheel: Sync compteur + timer
         SpinWheelResult = "SpinWheelResult",     -- Spin Wheel: Résultat pour animation
         SyncMultiplierBoost = "SyncMultiplierBoost", -- Boost: Sync timer multiplicateur
+        SyncFusionData = "SyncFusionData",             -- Fusion: Sync fusions découvertes + rewards
+        ClaimFusionReward = "ClaimFusionReward",       -- Fusion: Réclamer récompense palier
 
         -- RemoteFunctions
         GetFullPlayerData = "GetFullPlayerData",

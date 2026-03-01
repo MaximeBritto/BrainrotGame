@@ -51,6 +51,9 @@ local LuckyBlockSystem = nil
 -- Systèmes (Spin Wheel)
 local SpinWheelSystem = nil
 
+-- Systèmes (Fusion)
+local FusionSystem = nil
+
 local NetworkHandler = {}
 NetworkHandler._initialized = false
 
@@ -391,10 +394,39 @@ function NetworkHandler:_ConnectHandlers()
         end)
     end
 
+    -- Réclamer récompense fusion (Fusion System)
+    if remotes.ClaimFusionReward then
+        remotes.ClaimFusionReward.OnServerEvent:Connect(function(player, milestoneIndex)
+            if type(milestoneIndex) == "string" then
+                milestoneIndex = tonumber(milestoneIndex)
+            end
+            if not milestoneIndex or type(milestoneIndex) ~= "number" then return end
+
+            local success, err = pcall(function()
+                if FusionSystem then
+                    local claimed = FusionSystem:ClaimReward(player, milestoneIndex)
+                    if claimed then
+                        local playerData = DataService:GetPlayerData(player)
+                        if playerData then
+                            self:SyncPlayerData(player, { Cash = playerData.Cash })
+                        end
+                        self:_SendNotification(player, "Success", "Fusion reward claimed!", 3)
+                    end
+                else
+                    warn("[NetworkHandler] FusionSystem non initialisé!")
+                end
+            end)
+
+            if not success then
+                warn("[NetworkHandler] Erreur ClaimFusionReward: " .. tostring(err))
+            end
+        end)
+    end
+
     -- ═══════════════════════════════════════
     -- REMOTE FUNCTIONS
     -- ═══════════════════════════════════════
-    
+
     -- GetFullPlayerData
     if remotes.GetFullPlayerData then
         remotes.GetFullPlayerData.OnServerInvoke = function(player)
@@ -656,6 +688,8 @@ function NetworkHandler:_HandleGetFullPlayerData(player)
         CodexUnlocked = playerData and playerData.CodexUnlocked or {},
         CompletedSets = playerData and playerData.CompletedSets or {},
         Stats = playerData and playerData.Stats or {},
+        DiscoveredFusions = playerData and playerData.DiscoveredFusions or {},
+        ClaimedFusionRewards = playerData and playerData.ClaimedFusionRewards or {},
         
         -- Données runtime
         PiecesInHand = runtimeData and runtimeData.PiecesInHand or {},
@@ -834,6 +868,9 @@ function NetworkHandler:UpdateSystems(systems)
     end
     if systems.SpinWheelSystem then
         SpinWheelSystem = systems.SpinWheelSystem
+    end
+    if systems.FusionSystem then
+        FusionSystem = systems.FusionSystem
     end
 
     print("[NetworkHandler] Systèmes mis à jour")

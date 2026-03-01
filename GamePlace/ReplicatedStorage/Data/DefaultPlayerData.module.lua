@@ -55,6 +55,14 @@ local DefaultPlayerData = {
     
     -- Sets complétés (pour éviter de donner la récompense 2 fois)
     CompletedSets = {},
+
+    -- Fusions uniques découvertes
+    -- Format: { ["HeadSet_BodySet_LegsSet"] = true, ... }
+    DiscoveredFusions = {},
+
+    -- Récompenses fusion déjà réclamées
+    -- Format: { [milestoneIndex] = true, ... }
+    ClaimedFusionRewards = {},
     
     -- ═══════════════════════════════════════
     -- STATISTIQUES

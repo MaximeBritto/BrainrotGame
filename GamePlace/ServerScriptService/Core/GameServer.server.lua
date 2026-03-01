@@ -180,6 +180,19 @@ do
     end
 end
 
+-- Fusion System
+local FusionSystem, fusionLoadErr
+do
+    local ok, mod = pcall(function()
+        return require(Systems["FusionSystem.module"])
+    end)
+    if ok then
+        FusionSystem = mod
+    else
+        fusionLoadErr = mod
+    end
+end
+
 -- Phase 9: Shop Robux
 local ShopSystem, shopLoadErr
 do
@@ -466,6 +479,21 @@ if CraftingSystem and PlacementSystem then
         CraftingSystem = CraftingSystem,
         PlacementSystem = PlacementSystem,
     })
+
+    -- Fusion System (après CraftingSystem)
+    if FusionSystem and EconomySystem then
+        FusionSystem:Init({
+            DataService = DataService,
+            NetworkSetup = NetworkSetup,
+            EconomySystem = EconomySystem,
+        })
+        CraftingSystem.FusionSystem = FusionSystem
+        NetworkHandler:UpdateSystems({FusionSystem = FusionSystem})
+    else
+        if not FusionSystem then
+            warn("[GameServer] FusionSystem non chargé:", fusionLoadErr or "inconnu")
+        end
+    end
 else
     if not CraftingSystem then
         warn("[GameServer] CraftingSystem non chargé:", craftingLoadErr or "inconnu")
