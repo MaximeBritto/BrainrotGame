@@ -136,7 +136,7 @@ local BrainrotData = {
 		},
 		
 		["LiriliLarila"] = {
-			Rarity = "Common",
+			Rarity = "Rare",
 			Head = {
 				Price = 85,
 				DisplayName = "Liri",
@@ -161,7 +161,7 @@ local BrainrotData = {
 		},
 		
 		["TripiTropiTropaTripa"] = {
-			Rarity = "Common",
+			Rarity = "Rare",
 			Head = {
 				Price = 90,
 				DisplayName = "tripi",
@@ -331,6 +331,306 @@ local BrainrotData = {
 				DisplayName = "frutini",
 				ModelName = "TorrtuginniDragonfrutini_Legs",
 				TemplateName = "frutini",  -- Template dans LegsTemplate folder
+				SpawnWeight = 10,
+			},
+		},
+		
+		["BananitaDolphinita"] = {
+			Rarity = "Common",
+			Head = {
+				Price = 110,
+				DisplayName = "Bananita",
+				ModelName = "BananitaDolphinita_Head",
+				TemplateName = "Bananita",  -- Template dans HeadTemplate folder
+				SpawnWeight = 10,
+			},
+			Body = {
+				Price = 0,
+				DisplayName = "",
+				ModelName = "",
+				TemplateName = "",  -- Pas de body
+				SpawnWeight = 0,
+			},
+			Legs = {
+				Price = 105,
+				DisplayName = "Dolphinita",
+				ModelName = "BananitaDolphinita_Legs",
+				TemplateName = "Dolphinita",  -- Template dans LegsTemplate folder
+				SpawnWeight = 10,
+			},
+		},
+		
+		["ChimpanziniSpiderini"] = {
+			Rarity = "Common",
+			Head = {
+				Price = 115,
+				DisplayName = "Chimpan",
+				ModelName = "ChimpanziniSpiderini_Head",
+				TemplateName = "Chimpan",  -- Template dans HeadTemplate folder
+				SpawnWeight = 10,
+			},
+			Body = {
+				Price = 125,
+				DisplayName = "zini",
+				ModelName = "ChimpanziniSpiderini_Body",
+				TemplateName = "zini",  -- Template dans BodyTemplate folder
+				SpawnWeight = 10,
+			},
+			Legs = {
+				Price = 110,
+				DisplayName = "Spiderini",
+				ModelName = "ChimpanziniSpiderini_Legs",
+				TemplateName = "Spiderini",  -- Template dans LegsTemplate folder
+				SpawnWeight = 10,
+			},
+		},
+		
+		["DragonCannelloni"] = {
+			Rarity = "Legendary",
+			Head = {
+				Price = 120,
+				DisplayName = "dragon",
+				ModelName = "DragonCannelloni_Head",
+				TemplateName = "dragon",  -- Template dans HeadTemplate folder
+				SpawnWeight = 10,
+			},
+			Body = {
+				Price = 130,
+				DisplayName = "cannel",
+				ModelName = "DragonCannelloni_Body",
+				TemplateName = "cannel",  -- Template dans BodyTemplate folder
+				SpawnWeight = 10,
+			},
+			Legs = {
+				Price = 115,
+				DisplayName = "loni",
+				ModelName = "DragonCannelloni_Legs",
+				TemplateName = "loni",  -- Template dans LegsTemplate folder
+				SpawnWeight = 10,
+			},
+		},
+		
+		["FrigoFrigoCamelo"] = {
+			Rarity = "Common",
+			Head = {
+				Price = 125,
+				DisplayName = "Frigo",
+				ModelName = "FrigoFrigoCamelo_Head",
+				TemplateName = "Frigo",  -- Template dans HeadTemplate folder
+				SpawnWeight = 10,
+			},
+			Body = {
+				Price = 135,
+				DisplayName = "Frigo",
+				ModelName = "FrigoFrigoCamelo_Body",
+				TemplateName = "Frigo",  -- Template dans BodyTemplate folder
+				SpawnWeight = 10,
+			},
+			Legs = {
+				Price = 120,
+				DisplayName = "Camelo",
+				ModelName = "FrigoFrigoCamelo_Legs",
+				TemplateName = "Camelo",  -- Template dans LegsTemplate folder (Frigo2 pour différencier)
+				SpawnWeight = 10,
+			},
+		},
+		
+		["GattatinoNyanino"] = {
+			Rarity = "Epic",
+			Head = {
+				Price = 130,
+				DisplayName = "Gattatino",
+				ModelName = "GattatinoNyanino_Head",
+				TemplateName = "Gattatino",  -- Template dans HeadTemplate folder
+				SpawnWeight = 10,
+			},
+			Body = {
+				Price = 140,
+				DisplayName = "Nya",
+				ModelName = "GattatinoNyanino_Body",
+				TemplateName = "Nya",  -- Template dans BodyTemplate folder
+				SpawnWeight = 10,
+			},
+			Legs = {
+				Price = 125,
+				DisplayName = "nino",
+				ModelName = "GattatinoNyanino_Legs",
+				TemplateName = "nino",  -- Template dans LegsTemplate folder
+				SpawnWeight = 10,
+			},
+		},
+		
+		["TrenostruzzoTurbo3000"] = {
+			Rarity = "Common",
+			Head = {
+				Price = 135,
+				DisplayName = "Trenostruzzo",
+				ModelName = "TrenostruzzoTurbo3000_Head",
+				TemplateName = "Trenostruzzo",  -- Template dans HeadTemplate folder
+				SpawnWeight = 10,
+			},
+			Body = {
+				Price = 145,
+				DisplayName = "Turbo",
+				ModelName = "TrenostruzzoTurbo3000_Body",
+				TemplateName = "Turbo",  -- Template dans BodyTemplate folder
+				SpawnWeight = 10,
+			},
+			Legs = {
+				Price = 130,
+				DisplayName = "3000",
+				ModelName = "TrenostruzzoTurbo3000_Legs",
+				TemplateName = "3000",  -- Template dans LegsTemplate folder
+				SpawnWeight = 10,
+			},
+		},
+		
+		["CocoCocosiniMama"] = {
+			Rarity = "Common",
+			Head = {
+				Price = 140,
+				DisplayName = "Coco",
+				ModelName = "CocoCocosiniMama_Head",
+				TemplateName = "Coco",  -- Template dans HeadTemplate folder
+				SpawnWeight = 10,
+			},
+			Body = {
+				Price = 150,
+				DisplayName = "Cocosini",
+				ModelName = "CocoCocosiniMama_Body",
+				TemplateName = "Cocosini",  -- Template dans BodyTemplate folder
+				SpawnWeight = 10,
+			},
+			Legs = {
+				Price = 135,
+				DisplayName = "Mama",
+				ModelName = "CocoCocosiniMama_Legs",
+				TemplateName = "Mama",  -- Template dans LegsTemplate folder
+				SpawnWeight = 10,
+			},
+		},
+		
+		["BlueberrinniOctopusini"] = {
+			Rarity = "Common",
+			Head = {
+				Price = 145,
+				DisplayName = "Blueberrinni",
+				ModelName = "BlueberrinniOctopusini_Head",
+				TemplateName = "Blueberrinni",  -- Template dans HeadTemplate folder
+				SpawnWeight = 10,
+			},
+			Body = {
+				Price = 0,
+				DisplayName = "",
+				ModelName = "",
+				TemplateName = "",  -- Pas de body
+				SpawnWeight = 0,
+			},
+			Legs = {
+				Price = 140,
+				DisplayName = "Octopusini",
+				ModelName = "BlueberrinniOctopusini_Legs",
+				TemplateName = "Octopusini",  -- Template dans LegsTemplate folder
+				SpawnWeight = 10,
+			},
+		},
+		
+		["LaVaccaSaturnoSaturnita"] = {
+			Rarity = "Common",
+			Head = {
+				Price = 150,
+				DisplayName = "LaVacca",
+				ModelName = "LaVaccaSaturnoSaturnita_Head",
+				TemplateName = "LaVacca",  -- Template dans HeadTemplate folder
+				SpawnWeight = 10,
+			},
+			Body = {
+				Price = 160,
+				DisplayName = "Saturno",
+				ModelName = "LaVaccaSaturnoSaturnita_Body",
+				TemplateName = "Saturno",  -- Template dans BodyTemplate folder
+				SpawnWeight = 10,
+			},
+			Legs = {
+				Price = 145,
+				DisplayName = "Saturnita",
+				ModelName = "LaVaccaSaturnoSaturnita_Legs",
+				TemplateName = "Saturnita",  -- Template dans LegsTemplate folder
+				SpawnWeight = 10,
+			},
+		},
+		
+		["StrawberrelliFlamingelli"] = {
+			Rarity = "Common",
+			Head = {
+				Price = 155,
+				DisplayName = "Strawberrelli",
+				ModelName = "StrawberrelliFlamingelli_Head",
+				TemplateName = "Strawberrelli",  -- Template dans HeadTemplate folder
+				SpawnWeight = 10,
+			},
+			Body = {
+				Price = 165,
+				DisplayName = "Flamin",
+				ModelName = "StrawberrelliFlamingelli_Body",
+				TemplateName = "Flamin",  -- Template dans BodyTemplate folder
+				SpawnWeight = 10,
+			},
+			Legs = {
+				Price = 150,
+				DisplayName = "gelli",
+				ModelName = "StrawberrelliFlamingelli_Legs",
+				TemplateName = "gelli",  -- Template dans LegsTemplate folder
+				SpawnWeight = 10,
+			},
+		},
+		
+		["SalamiSalaminoPenguino"] = {
+			Rarity = "Common",
+			Head = {
+				Price = 160,
+				DisplayName = "Salami",
+				ModelName = "SalamiSalaminoPenguino_Head",
+				TemplateName = "Salami",  -- Template dans HeadTemplate folder
+				SpawnWeight = 10,
+			},
+			Body = {
+				Price = 170,
+				DisplayName = "Salamino",
+				ModelName = "SalamiSalaminoPenguino_Body",
+				TemplateName = "Salamino",  -- Template dans BodyTemplate folder
+				SpawnWeight = 10,
+			},
+			Legs = {
+				Price = 155,
+				DisplayName = "Penguino",
+				ModelName = "SalamiSalaminoPenguino_Legs",
+				TemplateName = "Penguino",  -- Template dans LegsTemplate folder
+				SpawnWeight = 10,
+			},
+		},
+		
+		["TigreTigroligreFrutonni"] = {
+			Rarity = "Common",
+			Head = {
+				Price = 165,
+				DisplayName = "Tigré",
+				ModelName = "TigreTigroligreFrutonni_Head",
+				TemplateName = "Tigré",  -- Template dans HeadTemplate folder
+				SpawnWeight = 10,
+			},
+			Body = {
+				Price = 175,
+				DisplayName = "Tigroligre",
+				ModelName = "TigreTigroligreFrutonni_Body",
+				TemplateName = "Tigroligre",  -- Template dans BodyTemplate folder
+				SpawnWeight = 10,
+			},
+			Legs = {
+				Price = 160,
+				DisplayName = "Frutonni",
+				ModelName = "TigreTigroligreFrutonni_Legs",
+				TemplateName = "Frutonni",  -- Template dans LegsTemplate folder
 				SpawnWeight = 10,
 			},
 		},
