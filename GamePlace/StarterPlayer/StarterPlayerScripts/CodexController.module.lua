@@ -579,11 +579,14 @@ function CodexController:_AssemblePreviewModel(setName)
                 repositionModel(bodyModel, bodyPart, CFrame.new(0, legsPart.Size.Y + bodyPart.Size.Y / 2, 0))
             end
         else
-            repositionModel(bodyModel, bodyPart, CFrame.new(0, bodyPart.Size.Y / 2, 0))
+            -- No legs: place body at origin with its own orientation
+            local bba = bodyPart:FindFirstChild("BottomAttachment")
+            local bodyOrientation = bba and bba.CFrame.Rotation or CFrame.new()
+            repositionModel(bodyModel, bodyPart, CFrame.new(0, bodyPart.Size.Y / 2, 0) * bodyOrientation)
         end
     end
 
-    -- Head -> Body via Attachments
+    -- Head -> Body via Attachments (or Head -> Legs if no Body)
     if headModel and headPart then
         if bodyPart then
             local hba = headPart:FindFirstChild("BottomAttachment")
@@ -595,7 +598,14 @@ function CodexController:_AssemblePreviewModel(setName)
                 repositionModel(headModel, headPart, bodyPart.CFrame * CFrame.new(0, bodyPart.Size.Y / 2 + headPart.Size.Y / 2, 0))
             end
         elseif legsPart then
-            repositionModel(headModel, headPart, CFrame.new(0, legsPart.Size.Y + headPart.Size.Y / 2, 0))
+            -- No body: stack head on top of legs using TopAttachment position
+            local lta = legsPart:FindFirstChild("TopAttachment")
+            if lta then
+                local topWorldPos = (legsPart.CFrame * lta.CFrame).Position
+                repositionModel(headModel, headPart, CFrame.new(topWorldPos.X, topWorldPos.Y + headPart.Size.Y / 2, topWorldPos.Z) * legsPart.CFrame.Rotation)
+            else
+                repositionModel(headModel, headPart, CFrame.new(0, legsPart.Size.Y + headPart.Size.Y / 2, 0))
+            end
         else
             repositionModel(headModel, headPart, CFrame.new(0, headPart.Size.Y / 2, 0))
         end
@@ -736,14 +746,31 @@ function CodexController:_CreateCard(setName, setData, isDiscovered, layoutOrder
         camera.Parent = viewport
         camera.FieldOfView = 50
 
-        local primary = previewModel.PrimaryPart
-        if primary then
-            local cf, size = previewModel:GetBoundingBox()
-            local maxDim = math.max(size.X, size.Y, size.Z)
+        -- Compute tight bounding box from visible parts only
+        local minX, minY, minZ = math.huge, math.huge, math.huge
+        local maxX, maxY, maxZ = -math.huge, -math.huge, -math.huge
+        local partCount = 0
+        for _, desc in ipairs(previewModel:GetDescendants()) do
+            if desc:IsA("BasePart") and desc.Transparency < 1 then
+                local pos = desc.CFrame.Position
+                local half = desc.Size / 2
+                minX = math.min(minX, pos.X - half.X)
+                maxX = math.max(maxX, pos.X + half.X)
+                minY = math.min(minY, pos.Y - half.Y)
+                maxY = math.max(maxY, pos.Y + half.Y)
+                minZ = math.min(minZ, pos.Z - half.Z)
+                maxZ = math.max(maxZ, pos.Z + half.Z)
+                partCount = partCount + 1
+            end
+        end
+        if partCount > 0 then
+            local center = Vector3.new((minX + maxX) / 2, (minY + maxY) / 2, (minZ + maxZ) / 2)
+            local sizeX, sizeY, sizeZ = maxX - minX, maxY - minY, maxZ - minZ
+            local maxDim = math.max(sizeX, sizeY, sizeZ)
             local dist = maxDim * 1.2
             camera.CFrame = CFrame.new(
-                cf.Position + Vector3.new(dist * 0.3, dist * 0.2, dist),
-                cf.Position
+                center + Vector3.new(dist * 0.3, dist * 0.2, dist),
+                center
             )
         end
     else
