@@ -105,51 +105,51 @@ function ArenaSystem:Init(services)
 end
 
 --[[
-    Ajoute un Highlight coloré à une pièce selon son type
+    Ajoute un Highlight coloré à une pièce selon sa RARETÉ, et affiche le type sobrement
     @param piece: Model
     @param pieceType: string
+    @param setName: string
 ]]
-function ArenaSystem:_AddHighlightToPiece(piece, pieceType)
+function ArenaSystem:_AddHighlightToPiece(piece, pieceType, setName)
     local primaryPart = piece.PrimaryPart
     if not primaryPart then return end
-    
+
+    -- Couleur de rareté
+    local rarityColor = Color3.fromRGB(255, 255, 255) -- Blanc par défaut (Common)
+    if setName and BrainrotData.Sets[setName] then
+        local rarity = BrainrotData.Sets[setName].Rarity or "Common"
+        if BrainrotData.Rarities[rarity] then
+            rarityColor = BrainrotData.Rarities[rarity].Color
+        end
+    end
+
+    -- Highlight dont le contour est basé sur la RARETÉ
     local highlight = Instance.new("Highlight")
     highlight.Name = "PieceHighlight"
-    
-    local textLabel = ""
-    local textColor = Color3.new(1, 1, 1)
-    
-    -- Couleurs selon le type de pièce
-    if pieceType == Constants.PieceType.Head then
-        -- Rouge pour Head
-        highlight.FillColor = Color3.fromRGB(255, 0, 0)
-        highlight.OutlineColor = Color3.fromRGB(255, 100, 100)
-        textLabel = "HEAD"
-        textColor = Color3.fromRGB(255, 0, 0)
-    elseif pieceType == Constants.PieceType.Body then
-        -- Vert pour Body
-        highlight.FillColor = Color3.fromRGB(0, 255, 0)
-        highlight.OutlineColor = Color3.fromRGB(100, 255, 100)
-        textLabel = "BODY"
-        textColor = Color3.fromRGB(0, 255, 0)
-    elseif pieceType == Constants.PieceType.Legs then
-        -- Bleu-Violet pour Legs
-        highlight.FillColor = Color3.fromRGB(138, 43, 226)
-        highlight.OutlineColor = Color3.fromRGB(180, 100, 255)
-        textLabel = "LEGS"
-        textColor = Color3.fromRGB(138, 43, 226)
-    end
-    
-    -- Seulement le contour, pas de remplissage
     highlight.FillTransparency = 1
+    highlight.OutlineColor = rarityColor
     highlight.OutlineTransparency = 0
     highlight.Enabled = false -- Désactivé par défaut, activé par le client selon la distance
     highlight.Adornee = piece
     highlight.Parent = piece
-    
+
+    -- Icône et couleur nude selon le type (mêmes valeurs que l'inventaire client)
+    local typeIcon = ""
+    local typeColor = Color3.fromRGB(165, 155, 135) -- taupe par défaut
+    if pieceType == Constants.PieceType.Head then
+        typeIcon = "▲ Head"
+        typeColor = Color3.fromRGB(195, 150, 130) -- terracotta rosé
+    elseif pieceType == Constants.PieceType.Body then
+        typeIcon = "■ Body"
+        typeColor = Color3.fromRGB(165, 155, 135) -- pierre/taupe
+    elseif pieceType == Constants.PieceType.Legs then
+        typeIcon = "● Legs"
+        typeColor = Color3.fromRGB(140, 155, 160) -- ardoise gris-bleu
+    end
+
     -- Trouver le BillboardGui existant avec le nom/prix et ajouter le TypeLabel dedans
     local existingBillboard = primaryPart:FindFirstChildOfClass("BillboardGui")
-    
+
     if existingBillboard then
         -- Augmenter la taille du BillboardGui pour faire de la place pour le TypeLabel
         local originalSize = existingBillboard.Size
@@ -160,31 +160,32 @@ function ArenaSystem:_AddHighlightToPiece(piece, pieceType)
         local originalOffset = existingBillboard.StudsOffset
         existingBillboard.StudsOffset = Vector3.new(originalOffset.X, originalOffset.Y + 1, originalOffset.Z)
 
-        -- Ajouter le TypeLabel en haut du BillboardGui
+        -- TypeLabel : couleur nude par type, sobre (ne ressemble pas aux raretés)
         local typeLabel = Instance.new("TextLabel")
         typeLabel.Name = "TypeLabel"
-        typeLabel.Size = UDim2.new(1, 0, 0, 25) -- 25 pixels de hauteur
-        typeLabel.Position = UDim2.new(0, 0, 0, 0) -- Tout en haut
+        typeLabel.Size = UDim2.new(1, 0, 0, 22)
+        typeLabel.Position = UDim2.new(0, 0, 0, 0)
         typeLabel.BackgroundTransparency = 1
-        typeLabel.Text = textLabel
-        typeLabel.TextColor3 = textColor
+        typeLabel.Text = typeIcon
+        typeLabel.TextColor3 = typeColor
         typeLabel.TextScaled = true
-        typeLabel.Font = Enum.Font.Bangers
-        typeLabel.TextStrokeTransparency = 0.5
+        typeLabel.Font = Enum.Font.GothamMedium
+        typeLabel.TextStrokeTransparency = 0.4
         typeLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
-        typeLabel.Visible = false -- Désactivé par défaut
+        typeLabel.Visible = true
         typeLabel.Parent = existingBillboard
 
-        -- Décaler les autres labels vers le bas
+        -- NameLabel : couleur selon la RARETÉ
         local nameLabel = existingBillboard:FindFirstChild("NameLabel")
         if nameLabel and nameLabel:IsA("TextLabel") then
-            nameLabel.Position = UDim2.new(0, 0, 0, 25)
+            nameLabel.Position = UDim2.new(0, 0, 0, 22)
             nameLabel.Size = UDim2.new(1, 0, 0, 32)
+            nameLabel.TextColor3 = rarityColor
         end
 
         local priceLabel = existingBillboard:FindFirstChild("PriceLabel")
         if priceLabel and priceLabel:IsA("TextLabel") then
-            priceLabel.Position = UDim2.new(0, 0, 0, 57)
+            priceLabel.Position = UDim2.new(0, 0, 0, 54)
             priceLabel.Size = UDim2.new(1, 0, 0, 40)
         end
     end
@@ -460,23 +461,25 @@ end
 --[[
     Crée un projectile visuel (Anchored, animé manuellement)
     @param firePosition: Vector3
+    @param rarityColor: Color3 (optionnel, blanc par défaut)
     @return Part (le projectile)
 ]]
-function ArenaSystem:_CreateProjectile(firePosition)
+function ArenaSystem:_CreateProjectile(firePosition, rarityColor)
     local size = GameConfig.Cannon.ProjectileSize
-    
+    local color = rarityColor or Color3.fromRGB(255, 255, 255)
+
     local projectile = Instance.new("Part")
     projectile.Name = "CannonProjectile"
     projectile.Shape = Enum.PartType.Ball
     projectile.Size = Vector3.new(size, size, size)
     projectile.Position = firePosition
-    projectile.BrickColor = BrickColor.new("Really red")
+    projectile.Color = color
     projectile.Material = Enum.Material.Neon
     projectile.Anchored = true
     projectile.CanCollide = false
     projectile.Transparency = 0.2
     projectile.Parent = Workspace
-    
+
     -- Émetteur de particules pour trainée de fumée
     local particles = Instance.new("ParticleEmitter")
     particles.Texture = "rbxasset://textures/particles/smoke_main.dds"
@@ -484,26 +487,28 @@ function ArenaSystem:_CreateProjectile(firePosition)
     particles.Lifetime = NumberRange.new(0.5, 1.5)
     particles.Speed = NumberRange.new(2, 4)
     particles.SpreadAngle = Vector2.new(20, 20)
-    particles.Color = ColorSequence.new(Color3.fromRGB(255, 150, 50), Color3.fromRGB(100, 100, 100))
+    particles.Color = ColorSequence.new(color, Color3.fromRGB(100, 100, 100))
     particles.Transparency = NumberSequence.new(0.3, 1)
     particles.Size = NumberSequence.new(1.5, 3)
     particles.Parent = projectile
-    
+
     -- Light pour rendre le projectile lumineux
     local light = Instance.new("PointLight")
-    light.Color = Color3.fromRGB(255, 100, 0)
+    light.Color = color
     light.Brightness = 2
     light.Range = 12
     light.Parent = projectile
-    
+
     return projectile
 end
 
 --[[
     Crée l'effet d'impact à l'atterrissage
     @param position: Vector3
+    @param rarityColor: Color3 (optionnel, blanc par défaut)
 ]]
-function ArenaSystem:_CreateLandingEffect(position)
+function ArenaSystem:_CreateLandingEffect(position, rarityColor)
+    local color = rarityColor or Color3.fromRGB(255, 255, 255)
     -- Cercle d'impact lumineux
     local impact = Instance.new("Part")
     impact.Name = "LandingImpact"
@@ -511,7 +516,7 @@ function ArenaSystem:_CreateLandingEffect(position)
     impact.Size = Vector3.new(0.5, 5, 5)
     impact.Position = position
     impact.Orientation = Vector3.new(0, 0, 90)
-    impact.BrickColor = BrickColor.new("Bright yellow")
+    impact.Color = color
     impact.Material = Enum.Material.Neon
     impact.Anchored = true
     impact.CanCollide = false
@@ -540,6 +545,16 @@ end
     @param targetPosition: Vector3
 ]]
 function ArenaSystem:_LaunchPieceFromCannon(cannon, piece, targetPosition)
+    -- Récupérer la couleur de rareté de la pièce
+    local rarityColor = Color3.fromRGB(255, 255, 255)
+    local setName = piece:GetAttribute("SetName")
+    if setName and BrainrotData.Sets[setName] then
+        local rarity = BrainrotData.Sets[setName].Rarity or "Common"
+        if BrainrotData.Rarities[rarity] then
+            rarityColor = BrainrotData.Rarities[rarity].Color
+        end
+    end
+
     -- Récupérer la position de tir actuelle du canon
     local firePosition = self:_GetCannonFirePosition(cannon)
     
@@ -547,7 +562,7 @@ function ArenaSystem:_LaunchPieceFromCannon(cannon, piece, targetPosition)
     self:_CreateFireEffect(cannon, firePosition)
     
     -- Créer le projectile visuel (Anchored, on le déplace manuellement)
-    local projectile = self:_CreateProjectile(firePosition)
+    local projectile = self:_CreateProjectile(firePosition, rarityColor)
     
     -- Sauvegarder les propriétés originales de la pièce puis la cacher
     local savedTransparencies = {}
@@ -620,7 +635,7 @@ function ArenaSystem:_LaunchPieceFromCannon(cannon, piece, targetPosition)
         end
         
         -- Effet d'impact
-        self:_CreateLandingEffect(endPos)
+        self:_CreateLandingEffect(endPos, rarityColor)
         
         -- Révéler la pièce à la position d'atterrissage
         self:_RevealPieceAtPosition(piece, endPos, savedTransparencies, savedCanCollide, savedAnchored)
@@ -803,8 +818,8 @@ function ArenaSystem:SpawnRandomPiece()
             local modelTopY = boundingCF.Position.Y + boundingSize.Y / 2
             local offsetY = (modelTopY - primaryPart.Position.Y) + 2
             billboard.StudsOffset = Vector3.new(0, offsetY, 0)
-            billboard.MaxDistance = 50
-            billboard.AlwaysOnTop = false
+            billboard.MaxDistance = 120
+            billboard.AlwaysOnTop = true
 
             -- Chercher NameLabel pour afficher le nom du template
             local nameLabel = billboard:FindFirstChild("NameLabel")
@@ -854,9 +869,9 @@ function ArenaSystem:SpawnRandomPiece()
     prompt.Enabled = true
     prompt.Parent = pickupZone
     
-    -- Ajouter le Highlight coloré selon le type de pièce
-    self:_AddHighlightToPiece(piece, pieceType)
-    
+    -- Ajouter le Highlight coloré selon la rareté du set
+    self:_AddHighlightToPiece(piece, pieceType, setName)
+
     -- Stocker la pièce dans le tracker
     self._pieces[pieceId] = {
         Model = piece,
@@ -929,6 +944,7 @@ function ArenaSystem:_SpawnSpecificPiece(setName, pieceType, pieceInfo, template
             local modelTopY = boundingCF.Position.Y + boundingSize.Y / 2
             local offsetY = (modelTopY - primaryPart.Position.Y) + 2
             billboard.StudsOffset = Vector3.new(0, offsetY, 0)
+            billboard.AlwaysOnTop = true
 
             -- Chercher NameLabel pour afficher le nom du template
             local nameLabel = billboard:FindFirstChild("NameLabel")
@@ -983,9 +999,9 @@ function ArenaSystem:_SpawnSpecificPiece(setName, pieceType, pieceInfo, template
     
     -- print("[ArenaSystem] PickupZone et ProximityPrompt créés pour:", pieceId)
     
-    -- Ajouter le Highlight coloré selon le type de pièce
-    self:_AddHighlightToPiece(piece, pieceType)
-    
+    -- Ajouter le Highlight coloré selon la rareté du set
+    self:_AddHighlightToPiece(piece, pieceType, setName)
+
     -- Parent et stockage
     piece.Parent = self._piecesFolder
     self._pieces[pieceId] = {

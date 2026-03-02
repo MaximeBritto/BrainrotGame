@@ -45,6 +45,14 @@ local FONTS = {
     Regular = Enum.Font.Gotham,
 }
 
+-- Icônes de type par slot (slot 1=Head, 2=Body, 3=Legs)
+-- Couleurs nude/neutres, distinctes des raretés (blanc, bleu, violet, or)
+local SLOT_TYPE_INFO = {
+    [1] = { Symbol = "▲", Color = Color3.fromRGB(195, 150, 130), Label = "HEAD" },  -- terracotta rosé
+    [2] = { Symbol = "■", Color = Color3.fromRGB(165, 155, 135), Label = "BODY" },  -- pierre/taupe
+    [3] = { Symbol = "●", Color = Color3.fromRGB(140, 155, 160), Label = "LEGS" },  -- ardoise gris-bleu (très désaturé)
+}
+
 -- ═══════════════════════════════════════════════════════
 -- ÉTAT LOCAL
 -- ═══════════════════════════════════════════════════════
@@ -346,17 +354,24 @@ function UIController:_CreateInventorySlot(parent, index)
     stroke.Transparency = 0.3
     stroke.Parent = slot
 
-    -- Icône "?" (visible quand vide)
+    -- Icône de type (▲/■/●) visible quand vide
+    local typeInfo = SLOT_TYPE_INFO[index] or { Symbol = "?", Color = Color3.fromRGB(75, 75, 85), Label = "EMPTY" }
+    local dimColor = Color3.fromRGB(
+        math.floor(typeInfo.Color.R * 255 * 0.35),
+        math.floor(typeInfo.Color.G * 255 * 0.35),
+        math.floor(typeInfo.Color.B * 255 * 0.35)
+    )
+
     local questionIcon = Instance.new("TextLabel")
     questionIcon.Name = "QuestionIcon"
-    questionIcon.Size = UDim2.new(0, 40, 0, 40)
-    questionIcon.Position = UDim2.new(0.5, 0, 0.35, 0)
+    questionIcon.Size = UDim2.new(0, 44, 0, 44)
+    questionIcon.Position = UDim2.new(0.5, 0, 0.38, 0)
     questionIcon.AnchorPoint = Vector2.new(0.5, 0.5)
-    questionIcon.BackgroundColor3 = Color3.fromRGB(75, 75, 85)
-    questionIcon.BackgroundTransparency = 0.3
-    questionIcon.Text = "?"
-    questionIcon.TextColor3 = Color3.fromRGB(140, 140, 150)
-    questionIcon.TextSize = 26
+    questionIcon.BackgroundColor3 = dimColor
+    questionIcon.BackgroundTransparency = 0.2
+    questionIcon.Text = typeInfo.Symbol
+    questionIcon.TextColor3 = typeInfo.Color
+    questionIcon.TextSize = 22
     questionIcon.Font = FONTS.Black
     questionIcon.BorderSizePixel = 0
     questionIcon.Parent = slot
@@ -365,14 +380,14 @@ function UIController:_CreateInventorySlot(parent, index)
     qCorner.CornerRadius = UDim.new(0, 10)
     qCorner.Parent = questionIcon
 
-    -- Label "EMPTY" (visible quand vide)
+    -- Label du type (HEAD/BODY/LEGS) visible quand vide
     local emptyLabel = Instance.new("TextLabel")
     emptyLabel.Name = "EmptyLabel"
     emptyLabel.Size = UDim2.new(1, 0, 0, 18)
     emptyLabel.Position = UDim2.new(0, 0, 1, -25)
     emptyLabel.BackgroundTransparency = 1
-    emptyLabel.Text = "EMPTY"
-    emptyLabel.TextColor3 = COLORS.SlotEmptyText
+    emptyLabel.Text = typeInfo.Label
+    emptyLabel.TextColor3 = typeInfo.Color
     emptyLabel.TextSize = 11
     emptyLabel.Font = FONTS.Bold
     emptyLabel.Parent = slot
@@ -507,10 +522,21 @@ function UIController:UpdateInventory(pieces)
             slotData.PieceLabel.Visible = false
             slotData.TypeLabel.Visible = false
 
+            local typeInfo = SLOT_TYPE_INFO[i]
             slotData.Frame.BackgroundColor3 = COLORS.SlotEmpty
             slotData.Frame.BackgroundTransparency = 0.2
-            slotData.Stroke.Color = Color3.fromRGB(75, 75, 85)
-            slotData.Stroke.Transparency = 0.3
+            if typeInfo then
+                local dimColor = Color3.fromRGB(
+                    math.floor(typeInfo.Color.R * 255 * 0.35),
+                    math.floor(typeInfo.Color.G * 255 * 0.35),
+                    math.floor(typeInfo.Color.B * 255 * 0.35)
+                )
+                slotData.Stroke.Color = dimColor
+                slotData.Stroke.Transparency = 0.1
+            else
+                slotData.Stroke.Color = Color3.fromRGB(75, 75, 85)
+                slotData.Stroke.Transparency = 0.3
+            end
             slotData.TypeLabel.TextColor3 = Color3.fromRGB(180, 180, 190)
         end
     end

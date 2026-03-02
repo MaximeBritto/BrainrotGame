@@ -286,7 +286,7 @@ function EconomyController:_GetOrCreateBillboard(collectPad)
     billboard.Adornee = collectPad
     billboard.Size = UDim2.new(4, 0, 1.5, 0)
     billboard.StudsOffset = Vector3.new(0, 3, 0)
-    billboard.AlwaysOnTop = true
+    billboard.AlwaysOnTop = false
     billboard.LightInfluence = 0
     billboard.MaxDistance = 50
     billboard.Parent = collectPad
@@ -331,6 +331,15 @@ function EconomyController:UpdateCollectPads(slotCash)
             if slotIndex then
                 local collectPad = slot:FindFirstChild("CollectPad")
                 if collectPad then
+                    -- Supprimer le neon sur le pad et ses enfants
+                    if collectPad:IsA("BasePart") and collectPad.Material == Enum.Material.Neon then
+                        collectPad.Material = Enum.Material.SmoothPlastic
+                    end
+                    for _, child in ipairs(collectPad:GetDescendants()) do
+                        if child:IsA("BasePart") and child.Material == Enum.Material.Neon then
+                            child.Material = Enum.Material.SmoothPlastic
+                        end
+                    end
                     local isUnlocked = (slotIndex <= currentOwnedSlots)
 
                     local billboard = self:_GetOrCreateBillboard(collectPad)

@@ -12,42 +12,34 @@ local PROXIMITY_DISTANCE = 100 -- Distance en studs pour activer les highlights
 local function updateHighlights()
 	local character = player.Character
 	if not character then return end
-	
+
 	local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
 	if not humanoidRootPart then return end
-	
+
 	local playerPosition = humanoidRootPart.Position
-	
+
 	-- Vérifier les pièces dans l'arène (ActivePieces)
 	local activePieces = Workspace:FindFirstChild("ActivePieces")
 	if activePieces then
 		for _, piece in ipairs(activePieces:GetChildren()) do
 			if piece:IsA("Model") then
 				local primaryPart = piece.PrimaryPart
-				
+
 				if primaryPart then
 					local distance = (playerPosition - primaryPart.Position).Magnitude
 					local isNear = distance <= PROXIMITY_DISTANCE
-					
+
 					-- Activer/désactiver le highlight
 					local highlight = piece:FindFirstChild("PieceHighlight")
 					if highlight and highlight:IsA("Highlight") then
 						highlight.Enabled = isNear
 					end
-					
-					-- Activer/désactiver le TypeLabel (qui est maintenant dans le BillboardGui principal)
-					local billboard = primaryPart:FindFirstChildOfClass("BillboardGui")
-					if billboard then
-						local typeLabel = billboard:FindFirstChild("TypeLabel")
-						if typeLabel and typeLabel:IsA("TextLabel") then
-							typeLabel.Visible = isNear
-						end
-					end
+					-- Le TypeLabel est dans le BillboardGui principal qui gère sa propre MaxDistance
 				end
 			end
 		end
 	end
-	
+
 	-- Vérifier les brainrots portés par d'autres joueurs
 	for _, otherPlayer in ipairs(Players:GetPlayers()) do
 		if otherPlayer ~= player then
@@ -60,7 +52,7 @@ local function updateHighlights()
 					if otherRoot then
 						local distance = (playerPosition - otherRoot.Position).Magnitude
 						local isNear = distance <= PROXIMITY_DISTANCE
-						
+
 						-- Activer/désactiver tous les highlights et TypeLabels du brainrot porté
 						for _, descendant in ipairs(carriedBrainrot:GetDescendants()) do
 							if descendant:IsA("Highlight") then

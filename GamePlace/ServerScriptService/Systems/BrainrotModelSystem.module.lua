@@ -334,31 +334,55 @@ function BrainrotModelSystem:CreateBrainrotModel(player, slotIndex, brainrotData
         end
     end
 
+    -- Données de set (nécessaires pour rareté + revenu)
+    local headSetData = BrainrotData.Sets[brainrotData.HeadSet]
+    local bodySetData = BrainrotData.Sets[brainrotData.BodySet]
+    local legsSetData = BrainrotData.Sets[brainrotData.LegsSet]
+
+    -- Construire le nom coloré par rareté via RichText
+    local function rarityColorStr(setData)
+        if not setData then return "rgb(255,255,255)" end
+        local rarity = setData.Rarity or "Common"
+        local color = BrainrotData.Rarities[rarity] and BrainrotData.Rarities[rarity].Color or Color3.fromRGB(255, 255, 255)
+        return string.format("rgb(%d,%d,%d)", math.floor(color.R * 255), math.floor(color.G * 255), math.floor(color.B * 255))
+    end
+
+    local headName = headSetData and headSetData.Head and headSetData.Head.TemplateName or "?"
+    local bodyName = bodySetData and bodySetData.Body and bodySetData.Body.TemplateName or "?"
+    local legsName = legsSetData and legsSetData.Legs and legsSetData.Legs.TemplateName or "?"
+
+    local richName = string.format(
+        '<font color="%s">%s</font> <font color="%s">%s</font> <font color="%s">%s</font>',
+        rarityColorStr(headSetData), headName,
+        rarityColorStr(bodySetData), bodyName,
+        rarityColorStr(legsSetData), legsName
+    )
+
     local adornPart = headPart or bodyPart
+    -- adornPart est la pièce la plus haute (headPart) : on se place juste au-dessus de son sommet
+    local offsetY = adornPart.Size.Y / 2 + 1.5
+
     local billboard = Instance.new("BillboardGui")
     billboard.Name = "BrainrotInfo"
-    billboard.Size = UDim2.new(0, 200, 0, 100)
-    billboard.StudsOffset = Vector3.new(0, adornPart.Size.Y + 5, 0)
-    billboard.AlwaysOnTop = true
+    billboard.Size = UDim2.new(0, 200, 0, 60)
+    billboard.StudsOffset = Vector3.new(0, offsetY, 0)
+    billboard.AlwaysOnTop = false
     billboard.MaxDistance = 50      -- Visible seulement à 50 studs max
     billboard.Adornee = adornPart
 
     local nameLabel = Instance.new("TextLabel")
     nameLabel.Name = "NameLabel"
-    nameLabel.Size = UDim2.new(1, 0, 0.5, 0)
+    nameLabel.Size = UDim2.new(1, 0, 0, 36)
     nameLabel.Position = UDim2.new(0, 0, 0, 0)
     nameLabel.BackgroundTransparency = 1
-    nameLabel.Text = brainrotName
+    nameLabel.Text = richName
+    nameLabel.RichText = true
     nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     nameLabel.TextScaled = true
     nameLabel.Font = Enum.Font.GothamBold
     nameLabel.Parent = billboard
 
     -- Revenu total
-    local headSetData = BrainrotData.Sets[brainrotData.HeadSet]
-    local bodySetData = BrainrotData.Sets[brainrotData.BodySet]
-    local legsSetData = BrainrotData.Sets[brainrotData.LegsSet]
-
     local totalRevenue = 0
     if headSetData and headSetData.Head then
         totalRevenue = totalRevenue + (headSetData.Head.Price or 0)
@@ -372,8 +396,8 @@ function BrainrotModelSystem:CreateBrainrotModel(player, slotIndex, brainrotData
 
     local revenueLabel = Instance.new("TextLabel")
     revenueLabel.Name = "RevenueLabel"
-    revenueLabel.Size = UDim2.new(1, 0, 0.5, 0)
-    revenueLabel.Position = UDim2.new(0, 0, 0.5, 0)
+    revenueLabel.Size = UDim2.new(1, 0, 0, 24)
+    revenueLabel.Position = UDim2.new(0, 0, 0, 36)
     revenueLabel.BackgroundTransparency = 1
     revenueLabel.Text = "$" .. totalRevenue .. "/s"
     revenueLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
