@@ -924,26 +924,8 @@ end
 -- PROXIMITY PROMPT ON LUCKYBLOCKBASE
 -- ═══════════════════════════════════════════════════════
 
-local function setupProximityPrompt()
-    local shops = Workspace:FindFirstChild("Shops")
-    if not shops then
-        warn("[LuckyBlockController] workspace.Shops not found, retrying in 5s...")
-        task.wait(5)
-        shops = Workspace:FindFirstChild("Shops")
-        if not shops then
-            warn("[LuckyBlockController] workspace.Shops still not found!")
-            return
-        end
-    end
-
-    local luckyBlockBase = shops:FindFirstChild("LuckyBlockBase")
-    if not luckyBlockBase then
-        warn("[LuckyBlockController] workspace.Shops.LuckyBlockBase not found!")
-        return
-    end
-
+local function attachPromptToMachine(luckyBlockBase)
     -- Find a BasePart to attach the ProximityPrompt
-    -- If the model has no BasePart, create an invisible one at its position
     local targetPart = nil
     if luckyBlockBase:IsA("BasePart") then
         targetPart = luckyBlockBase
@@ -952,7 +934,6 @@ local function setupProximityPrompt()
     end
 
     if not targetPart then
-        -- Create an invisible anchored Part at the model center
         local anchor = Instance.new("Part")
         anchor.Name = "PromptAnchor"
         anchor.Size = Vector3.new(1, 1, 1)
@@ -966,14 +947,13 @@ local function setupProximityPrompt()
         end
         anchor.Parent = luckyBlockBase
         targetPart = anchor
-        print("[LuckyBlockController] Invisible part created as ProximityPrompt anchor")
     end
 
     local prompt = Instance.new("ProximityPrompt")
     prompt.ActionText = "Lucky Block"
     prompt.ObjectText = ""
     prompt.HoldDuration = 0
-    prompt.MaxActivationDistance = 8
+    prompt.MaxActivationDistance = 15
     prompt.RequiresLineOfSight = false
     prompt.KeyboardKeyCode = Enum.KeyCode.E
     prompt.Parent = targetPart
@@ -983,8 +963,42 @@ local function setupProximityPrompt()
             openUI()
         end
     end)
+end
 
-    print("[LuckyBlockController] ProximityPrompt placed on LuckyBlockBase")
+local function setupProximityPrompt()
+    local shops = Workspace:FindFirstChild("Shops")
+    if not shops then
+        warn("[LuckyBlockController] workspace.Shops not found, retrying in 5s...")
+        task.wait(5)
+        shops = Workspace:FindFirstChild("Shops")
+        if not shops then
+            warn("[LuckyBlockController] workspace.Shops still not found!")
+            return
+        end
+    end
+
+    -- Attach a ProximityPrompt to ALL LuckyBlockBase instances (supports duplicates with any name suffix)
+    local count = 0
+    for _, desc in ipairs(shops:GetDescendants()) do
+        if string.sub(desc.Name, 1, 14) == "LuckyBlockBase" and (desc:IsA("BasePart") or desc:IsA("Model")) then
+            -- Skip if it's a BasePart inside a Model that was already processed
+            local parent = desc.Parent
+            local alreadyCovered = false
+            if desc:IsA("BasePart") and parent and string.sub(parent.Name, 1, 14) == "LuckyBlockBase" then
+                alreadyCovered = true
+            end
+            if not alreadyCovered then
+                attachPromptToMachine(desc)
+                count = count + 1
+            end
+        end
+    end
+
+    if count == 0 then
+        warn("[LuckyBlockController] workspace.Shops.LuckyBlockBase not found!")
+    else
+        print("[LuckyBlockController] ProximityPrompt placed on " .. count .. " LuckyBlockBase(s)")
+    end
 end
 
 -- ═══════════════════════════════════════════════════════
