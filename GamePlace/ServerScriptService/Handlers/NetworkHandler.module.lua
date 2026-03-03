@@ -690,7 +690,8 @@ function NetworkHandler:_HandleGetFullPlayerData(player)
         Stats = playerData and playerData.Stats or {},
         DiscoveredFusions = playerData and playerData.DiscoveredFusions or {},
         ClaimedFusionRewards = playerData and playerData.ClaimedFusionRewards or {},
-        
+        DailyPurchases = playerData and playerData.DailyPurchases or {},
+
         -- Données runtime
         PiecesInHand = runtimeData and runtimeData.PiecesInHand or {},
         CarriedBrainrot = runtimeData and runtimeData.CarriedBrainrot or nil,

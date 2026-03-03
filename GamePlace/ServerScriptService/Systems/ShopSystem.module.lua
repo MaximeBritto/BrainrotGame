@@ -135,6 +135,15 @@ function ShopSystem:RequestPurchase(player, categoryId, productIndex)
         end
     end
 
+    -- Vérifier la limite journalière pour les items Daily
+    if product.DailyPurchaseKey and DataService then
+        local dailyPurchases = self:_GetOrResetDailyPurchases(player)
+        if dailyPurchases and dailyPurchases[product.DailyPurchaseKey] == true then
+            self:_SendNotification(player, "Error", "Already purchased today!")
+            return
+        end
+    end
+
     -- Déclencher la fenêtre d'achat Roblox native
     local success, err = pcall(function()
         MarketplaceService:PromptProductPurchase(player, product.ProductId)
@@ -319,6 +328,24 @@ function ShopSystem:_SetupProcessReceipt()
             end
         end
 
+        -- 3.6. Marquer l'achat journalier comme fait
+        if productInfo.DailyPurchaseKey and DataService then
+            local dailyPurchases = self:_GetOrResetDailyPurchases(player)
+            if dailyPurchases then
+                dailyPurchases[productInfo.DailyPurchaseKey] = true
+                DataService:UpdateValue(player, "DailyPurchases", dailyPurchases)
+
+                -- Sync vers le client
+                if NetworkSetup then
+                    local remotes = NetworkSetup:GetAllRemotes()
+                    if remotes and remotes.SyncDailyPurchases then
+                        remotes.SyncDailyPurchases:FireClient(player, dailyPurchases)
+                    end
+                end
+                print("[ShopSystem] Daily purchase marqué: " .. productInfo.DailyPurchaseKey)
+            end
+        end
+
         -- 4. Notification de succès
         self:_SendNotification(player, "Success",
             "Achat réussi ! +" .. productInfo.DisplayName .. " ajouté à votre compte !")
@@ -328,6 +355,49 @@ function ShopSystem:_SetupProcessReceipt()
     end
 
     print("[ShopSystem] ProcessReceipt configuré")
+end
+
+-- ═══════════════════════════════════════════════════════
+-- DAILY SHOP
+-- ═══════════════════════════════════════════════════════
+
+local function _GetCurrentDay()
+    local t = os.date("*t")
+    return t.year * 10000 + t.month * 100 + t.day
+end
+
+--[[
+    Récupère les achats journaliers du joueur, en réinitialisant si nécessaire.
+    @param player: Player
+    @return table | nil
+]]
+function ShopSystem:_GetOrResetDailyPurchases(player)
+    local data = DataService:GetPlayerData(player)
+    if not data then return nil end
+
+    if not data.DailyPurchases then
+        data.DailyPurchases = {
+            LastResetDay = 0,
+            LuckyBlock = false,
+            Spin = false,
+            Multiplier = false,
+            Cash = false,
+        }
+    end
+
+    local today = _GetCurrentDay()
+    if data.DailyPurchases.LastResetDay ~= today then
+        data.DailyPurchases = {
+            LastResetDay = today,
+            LuckyBlock = false,
+            Spin = false,
+            Multiplier = false,
+            Cash = false,
+        }
+        DataService:UpdateValue(player, "DailyPurchases", data.DailyPurchases)
+    end
+
+    return data.DailyPurchases
 end
 
 -- ═══════════════════════════════════════════════════════
@@ -351,6 +421,7 @@ function ShopSystem:_BuildProductMap()
                     MultiplierDuration = product.MultiplierDuration,
                     PermanentMultiplierBonus = product.PermanentMultiplierBonus,
                     OneTimePurchaseKey = product.OneTimePurchaseKey,
+                    DailyPurchaseKey = product.DailyPurchaseKey,
                     Robux = product.Robux,
                     DisplayName = product.DisplayName,
                     CategoryId = category.Id,

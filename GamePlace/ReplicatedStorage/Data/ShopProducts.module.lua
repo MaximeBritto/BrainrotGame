@@ -12,6 +12,51 @@
 local ShopProducts = {
     Categories = {
         {
+            Id = "Daily",
+            DisplayName = "DAILY",
+            Icon = "rbxassetid://0",
+            Order = 0,
+            Products = {
+                {
+                    -- TODO: Créer le Developer Product sur Roblox (R$25) et mettre l'ID ici
+                    ProductId = 3549285895,
+                    DailyPurchaseKey = "LuckyBlock",
+                    LuckyBlocks = 1,
+                    Robux = 25,
+                    NormalRobux = 49,
+                    DisplayName = "Lucky Block",
+                },
+                {
+                    -- TODO: Créer le Developer Product sur Roblox (R$50) et mettre l'ID ici
+                    ProductId = 3549286108,
+                    DailyPurchaseKey = "Spin",
+                    Spins = 1,
+                    Robux = 50,
+                    NormalRobux = 99,
+                    DisplayName = "1 Spin",
+                },
+                {
+                    -- TODO: Créer le Developer Product sur Roblox (R$100) et mettre l'ID ici
+                    ProductId = 3549286334,
+                    DailyPurchaseKey = "Multiplier",
+                    PermanentMultiplierBonus = 0.1,
+                    Robux = 100,
+                    NormalRobux = 199,
+                    DisplayName = "+0.1x Multiplier",
+                },
+                {
+                    -- TODO: Créer le Developer Product sur Roblox (R$99) et mettre l'ID ici
+                    ProductId = 3549286510,
+                    DailyPurchaseKey = "Cash",
+                    Cash = 10000,
+                    Robux = 99,
+                    NormalRobux = 199,
+                    DisplayName = "10,000 Cash",
+                },
+            },
+        },
+
+        {
             Id = "Money",
             DisplayName = "CASH",
             Icon = "rbxassetid://0",

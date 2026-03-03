@@ -91,6 +91,8 @@ local Constants = {
         SyncMultiplierBoost = "SyncMultiplierBoost", -- Boost: Sync timer multiplicateur
         SyncFusionData = "SyncFusionData",             -- Fusion: Sync fusions découvertes + rewards
         ClaimFusionReward = "ClaimFusionReward",       -- Fusion: Réclamer récompense palier
+        RequestDailyPurchase = "RequestDailyPurchase", -- Daily Shop: Achat daily avec cash
+        SyncDailyPurchases = "SyncDailyPurchases",     -- Daily Shop: Sync état achats journaliers
 
         -- RemoteFunctions
         GetFullPlayerData = "GetFullPlayerData",

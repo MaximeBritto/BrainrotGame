@@ -31,6 +31,8 @@ local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 local isOpen = false
 local currentTab = nil
 local ownedOneTimePurchases = {}
+local dailyPurchases = {}
+local dailyCountdownLabel = nil
 
 -- Références UI (créées dans Init)
 local screenGui = nil
@@ -92,8 +94,27 @@ local SIZES = {
 
 -- Tab icons (emoji + text)
 local TAB_ICONS = {
-    Extras = "\xE2\x9A\xA1",   -- ⚡
-    Money  = "\xF0\x9F\x92\xB0", -- 💰
+    Extras = "\xE2\x9A\xA1",       -- ⚡
+    Money  = "\xF0\x9F\x92\xB0",   -- 💰
+    Daily  = "\xF0\x9F\x8C\x9F",   -- 🌟
+}
+
+-- Couleurs spécifiques au Daily tab
+local DAILY_COLORS = {
+    CardLucky      = Color3.fromRGB(140, 120, 20),
+    CardLuckyStroke= Color3.fromRGB(180, 155, 30),
+    CardSpin       = Color3.fromRGB(130, 50, 130),
+    CardSpinStroke = Color3.fromRGB(170, 70, 170),
+    CardMult       = Color3.fromRGB(30, 90, 160),
+    CardMultStroke = Color3.fromRGB(50, 120, 200),
+    CardCash       = Color3.fromRGB(35, 110, 55),
+    CardCashStroke = Color3.fromRGB(50, 140, 70),
+    BuyBtn         = Color3.fromRGB(255, 185, 0),
+    BuyBtnHover    = Color3.fromRGB(255, 210, 50),
+    BoughtBtn      = Color3.fromRGB(60, 60, 60),
+    Countdown      = Color3.fromRGB(180, 200, 220),
+    BadgeBg        = Color3.fromRGB(200, 50, 50),
+    StrikeText     = Color3.fromRGB(160, 160, 160),
 }
 
 local ShopController = {}
@@ -179,16 +200,48 @@ function ShopController:Init()
         end)
     end
 
+    -- Écouter les mises à jour du Daily Shop
+    local syncDailyPurchases = Remotes:FindFirstChild("SyncDailyPurchases")
+    if syncDailyPurchases then
+        syncDailyPurchases.OnClientEvent:Connect(function(data)
+            dailyPurchases = data or {}
+            if currentTab == "Daily" then
+                self:SwitchTab("Daily")
+            end
+        end)
+    end
+
     -- Charger les données initiales
     task.spawn(function()
         local getFullPlayerData = Remotes:FindFirstChild("GetFullPlayerData")
         if getFullPlayerData then
             local fullData = getFullPlayerData:InvokeServer()
-            if fullData and fullData.OwnedOneTimePurchases then
-                ownedOneTimePurchases = fullData.OwnedOneTimePurchases
+            if fullData then
+                if fullData.OwnedOneTimePurchases then
+                    ownedOneTimePurchases = fullData.OwnedOneTimePurchases
+                end
+                if fullData.DailyPurchases then
+                    dailyPurchases = fullData.DailyPurchases
+                end
                 if currentTab then
                     self:SwitchTab(currentTab)
                 end
+            end
+        end
+    end)
+
+    -- Countdown de minuit (mis à jour chaque seconde)
+    task.spawn(function()
+        while true do
+            task.wait(1)
+            if dailyCountdownLabel and dailyCountdownLabel.Parent then
+                local t = os.date("*t")
+                local secs = (23 - t.hour) * 3600 + (59 - t.min) * 60 + (60 - t.sec)
+                local h = math.floor(secs / 3600)
+                local m = math.floor((secs % 3600) / 60)
+                local s = secs % 60
+                dailyCountdownLabel.Text = string.format(
+                    "Resets in: %02d:%02d:%02d", h, m, s)
             end
         end
     end)
@@ -278,10 +331,12 @@ function ShopController:_CreateTabBar()
     tabBar.BorderSizePixel = 0
     tabBar.Parent = mainFrame
 
-    -- Pill container centré
+    -- Pill container centré (taille adaptée au nombre d'onglets)
+    local tabCount = #ShopProducts.Categories
+    local pillWidth = math.max(340, tabCount * 160 + (tabCount - 1) * 4 + 6)
     local pillContainer = Instance.new("Frame")
     pillContainer.Name = "PillContainer"
-    pillContainer.Size = UDim2.new(0, 340, 0, 38)
+    pillContainer.Size = UDim2.new(0, pillWidth, 0, 38)
     pillContainer.Position = UDim2.new(0.5, 0, 0.5, 0)
     pillContainer.AnchorPoint = Vector2.new(0.5, 0.5)
     pillContainer.BackgroundColor3 = COLORS.TabInactive
@@ -417,6 +472,12 @@ function ShopController:_BuildProductCards(category)
 
     local scrollWidth = 680
 
+    -- Daily tab → rendu spécial
+    if category.Id == "Daily" then
+        self:_BuildDailyGrid(category, scrollWidth)
+        return
+    end
+
     -- Vérifier si la catégorie a des produits avec des Sections
     local hasSections = false
     for _, product in ipairs(category.Products) do
@@ -430,6 +491,265 @@ function ShopController:_BuildProductCards(category)
         self:_BuildSimpleGrid(category, scrollWidth)
     else
         self:_BuildSectionedGrid(category, scrollWidth)
+    end
+end
+
+-- ═══════════════════════════════════════════════════════
+-- DAILY GRID
+-- ═══════════════════════════════════════════════════════
+
+function ShopController:_BuildDailyGrid(category, scrollWidth)
+    -- Vider contenu
+    for _, child in ipairs(contentScroll:GetChildren()) do
+        if child:IsA("Frame") or child:IsA("TextLabel") then
+            child:Destroy()
+        end
+    end
+
+    local yOffset = 8
+
+    -- Titre
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Name = "DailyTitle"
+    titleLabel.Size = UDim2.new(1, 0, 0, 28)
+    titleLabel.Position = UDim2.new(0, 0, 0, yOffset)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Text = "OFFRES DU JOUR  \xF0\x9F\x8C\x9F"
+    titleLabel.TextColor3 = COLORS.GoldText
+    titleLabel.TextSize = 20
+    titleLabel.Font = Enum.Font.GothamBlack
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.Parent = contentScroll
+    yOffset = yOffset + 32
+
+    -- Countdown reset
+    local countdownLabel = Instance.new("TextLabel")
+    countdownLabel.Name = "Countdown"
+    countdownLabel.Size = UDim2.new(1, 0, 0, 22)
+    countdownLabel.Position = UDim2.new(0, 0, 0, yOffset)
+    countdownLabel.BackgroundTransparency = 1
+    countdownLabel.TextColor3 = DAILY_COLORS.Countdown
+    countdownLabel.TextSize = 13
+    countdownLabel.Font = Enum.Font.Gotham
+    countdownLabel.TextXAlignment = Enum.TextXAlignment.Left
+    countdownLabel.Parent = contentScroll
+    dailyCountdownLabel = countdownLabel
+
+    -- Afficher immédiatement
+    local t = os.date("*t")
+    local secs = (23 - t.hour) * 3600 + (59 - t.min) * 60 + (60 - t.sec)
+    countdownLabel.Text = string.format("Resets in: %02d:%02d:%02d",
+        math.floor(secs / 3600), math.floor((secs % 3600) / 60), secs % 60)
+
+    yOffset = yOffset + 30
+
+    -- Grille 2×2
+    local cols = 2
+    local spacing = 14
+    local cardW = math.floor((scrollWidth - spacing) / cols)
+    local cardH = 180
+
+    for i, product in ipairs(category.Products) do
+        local row = math.floor((i - 1) / cols)
+        local col = (i - 1) % cols
+        local xPos = col * (cardW + spacing)
+        local yPos = row * (cardH + spacing)
+        self:_CreateDailyCard(contentScroll, xPos, yOffset + yPos, cardW, cardH, product, i)
+    end
+
+    local rows = math.ceil(#category.Products / cols)
+    contentScroll.CanvasSize = UDim2.new(0, 0, 0, yOffset + rows * (cardH + spacing) + 20)
+end
+
+function ShopController:_CreateDailyCard(parent, xPos, yPos, width, height, product, productIndex)
+    -- Couleurs selon le type de récompense
+    local cardBg, cardStrokeColor
+    if product.LuckyBlocks then
+        cardBg = DAILY_COLORS.CardLucky
+        cardStrokeColor = DAILY_COLORS.CardLuckyStroke
+    elseif product.Spins then
+        cardBg = DAILY_COLORS.CardSpin
+        cardStrokeColor = DAILY_COLORS.CardSpinStroke
+    elseif product.PermanentMultiplierBonus then
+        cardBg = DAILY_COLORS.CardMult
+        cardStrokeColor = DAILY_COLORS.CardMultStroke
+    else
+        cardBg = DAILY_COLORS.CardCash
+        cardStrokeColor = DAILY_COLORS.CardCashStroke
+    end
+
+    local card = Instance.new("Frame")
+    card.Name = "Daily_" .. (product.DailyKey or "?")
+    card.Size = UDim2.new(0, width, 0, height)
+    card.Position = UDim2.new(0, xPos, 0, yPos)
+    card.BackgroundColor3 = cardBg
+    card.BorderSizePixel = 0
+    card.Parent = parent
+
+    local cardCorner = Instance.new("UICorner")
+    cardCorner.CornerRadius = SIZES.SmallCorner
+    cardCorner.Parent = card
+
+    local gradient = Instance.new("UIGradient")
+    gradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(170, 170, 170)),
+    })
+    gradient.Rotation = 90
+    gradient.Parent = card
+
+    local cardStroke = Instance.new("UIStroke")
+    cardStroke.Color = cardStrokeColor
+    cardStroke.Thickness = 1.5
+    cardStroke.Transparency = 0.3
+    cardStroke.Parent = card
+
+    -- Icône
+    local iconText = "$"
+    if product.LuckyBlocks then
+        iconText = "\xF0\x9F\x8D\x80"  -- 🍀
+    elseif product.Spins then
+        iconText = "\xF0\x9F\x8E\xB0"  -- 🎰
+    elseif product.PermanentMultiplierBonus then
+        iconText = "\xE2\x9A\xA1"       -- ⚡
+    end
+
+    local iconLabel = Instance.new("TextLabel")
+    iconLabel.Name = "Icon"
+    iconLabel.Size = UDim2.new(1, 0, 0, 46)
+    iconLabel.Position = UDim2.new(0, 0, 0, 8)
+    iconLabel.BackgroundTransparency = 1
+    iconLabel.Text = iconText
+    iconLabel.TextColor3 = Color3.fromRGB(80, 220, 80)
+    iconLabel.TextSize = 36
+    iconLabel.Font = Enum.Font.GothamBlack
+    iconLabel.TextStrokeTransparency = 0.5
+    iconLabel.TextStrokeColor3 = Color3.fromRGB(0, 30, 0)
+    iconLabel.Parent = card
+
+    -- Nom produit
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Name = "ProductName"
+    nameLabel.Size = UDim2.new(1, -12, 0, 28)
+    nameLabel.Position = UDim2.new(0, 6, 0, 54)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Text = product.DisplayName
+    nameLabel.TextColor3 = COLORS.White
+    nameLabel.TextSize = 17
+    nameLabel.Font = Enum.Font.GothamBlack
+    nameLabel.TextStrokeTransparency = 0.6
+    nameLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    nameLabel.TextWrapped = true
+    nameLabel.Parent = card
+
+    -- Prix barré (Robux normal)
+    local strikeLabel = Instance.new("TextLabel")
+    strikeLabel.Name = "StrikePrice"
+    strikeLabel.Size = UDim2.new(0, 100, 0, 20)
+    strikeLabel.Position = UDim2.new(0, 6, 0, 84)
+    strikeLabel.BackgroundTransparency = 1
+    strikeLabel.Text = utf8.char(0xE002) .. " " .. self:_FormatNumber(product.NormalRobux or 0)
+    strikeLabel.TextColor3 = DAILY_COLORS.StrikeText
+    strikeLabel.TextSize = 13
+    strikeLabel.Font = Enum.Font.Gotham
+    strikeLabel.TextXAlignment = Enum.TextXAlignment.Left
+    strikeLabel.Parent = card
+
+    -- Ligne de strike (barre horizontale sur le prix)
+    local strikeLine = Instance.new("Frame")
+    strikeLine.Name = "StrikeLine"
+    strikeLine.Size = UDim2.new(0, 72, 0, 1)
+    strikeLine.Position = UDim2.new(0, 6, 0, 93)
+    strikeLine.BackgroundColor3 = DAILY_COLORS.StrikeText
+    strikeLine.BorderSizePixel = 0
+    strikeLine.Parent = card
+
+    -- Badge -50%
+    local badgeFrame = Instance.new("Frame")
+    badgeFrame.Name = "Badge"
+    badgeFrame.Size = UDim2.new(0, 50, 0, 20)
+    badgeFrame.Position = UDim2.new(0, 84, 0, 84)
+    badgeFrame.BackgroundColor3 = DAILY_COLORS.BadgeBg
+    badgeFrame.BorderSizePixel = 0
+    badgeFrame.Parent = card
+
+    local badgeCorner = Instance.new("UICorner")
+    badgeCorner.CornerRadius = UDim.new(0, 6)
+    badgeCorner.Parent = badgeFrame
+
+    local badgeLabel = Instance.new("TextLabel")
+    badgeLabel.Size = UDim2.new(1, 0, 1, 0)
+    badgeLabel.BackgroundTransparency = 1
+    badgeLabel.Text = "-50%"
+    badgeLabel.TextColor3 = COLORS.White
+    badgeLabel.TextSize = 12
+    badgeLabel.Font = Enum.Font.GothamBold
+    badgeLabel.Parent = badgeFrame
+
+    -- Bouton Robux ou BOUGHT
+    local isAlreadyBought = dailyPurchases[product.DailyPurchaseKey or ""] == true
+
+    local buyBtn = Instance.new("TextButton")
+    buyBtn.Name = "BuyButton"
+    buyBtn.Size = UDim2.new(0.8, 0, 0, 34)
+    buyBtn.Position = UDim2.new(0.1, 0, 1, -44)
+    buyBtn.BorderSizePixel = 0
+    buyBtn.AutoButtonColor = false
+    buyBtn.Parent = card
+
+    local buyCorner = Instance.new("UICorner")
+    buyCorner.CornerRadius = SIZES.TinyCorner
+    buyCorner.Parent = buyBtn
+
+    if isAlreadyBought then
+        buyBtn.BackgroundColor3 = DAILY_COLORS.BoughtBtn
+        buyBtn.Active = false
+        local boughtLabel = Instance.new("TextLabel")
+        boughtLabel.Size = UDim2.new(1, 0, 1, 0)
+        boughtLabel.BackgroundTransparency = 1
+        boughtLabel.Text = "BOUGHT"
+        boughtLabel.TextColor3 = Color3.fromRGB(140, 140, 140)
+        boughtLabel.TextSize = 15
+        boughtLabel.Font = Enum.Font.GothamBold
+        boughtLabel.Parent = buyBtn
+    else
+        buyBtn.BackgroundColor3 = COLORS.RobuxBtnBg
+
+        local btnGradient = Instance.new("UIGradient")
+        btnGradient.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 200, 180)),
+        })
+        btnGradient.Rotation = 90
+        btnGradient.Parent = buyBtn
+
+        local priceLabel = Instance.new("TextLabel")
+        priceLabel.Size = UDim2.new(1, 0, 1, 0)
+        priceLabel.BackgroundTransparency = 1
+        priceLabel.Text = utf8.char(0xE002) .. " " .. self:_FormatNumber(product.Robux or 0)
+        priceLabel.TextColor3 = COLORS.White
+        priceLabel.TextSize = 15
+        priceLabel.Font = Enum.Font.GothamBold
+        priceLabel.TextStrokeTransparency = 0.6
+        priceLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+        priceLabel.Parent = buyBtn
+
+        buyBtn.MouseEnter:Connect(function()
+            TweenService:Create(buyBtn, TweenInfo.new(0.15), {
+                BackgroundColor3 = COLORS.RobuxBtnHover
+            }):Play()
+        end)
+        buyBtn.MouseLeave:Connect(function()
+            TweenService:Create(buyBtn, TweenInfo.new(0.15), {
+                BackgroundColor3 = COLORS.RobuxBtnBg
+            }):Play()
+        end)
+        buyBtn.MouseButton1Click:Connect(function()
+            local remote = Remotes:FindFirstChild("RequestShopPurchase")
+            if remote then
+                remote:FireServer("Daily", productIndex)
+            end
+        end)
     end
 end
 

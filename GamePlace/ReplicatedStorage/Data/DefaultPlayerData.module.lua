@@ -103,6 +103,17 @@ local DefaultPlayerData = {
     OwnedOneTimePurchases = {},  -- {["StarterPack"] = true, ...}
 
     -- ═══════════════════════════════════════
+    -- DAILY SHOP (achats journaliers Robux, limite 1/jour par item)
+    -- ═══════════════════════════════════════
+    DailyPurchases = {
+        LastResetDay = 0,   -- Format YYYYMMDD (ex: 20260303)
+        LuckyBlock = false,
+        Spin = false,
+        Multiplier = false,
+        Cash = false,
+    },
+
+    -- ═══════════════════════════════════════
     -- RÉSERVÉ POUR FUTURES FEATURES
     -- ═══════════════════════════════════════
     Inventory = {},                 -- Items spéciaux
