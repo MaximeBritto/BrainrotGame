@@ -339,8 +339,8 @@ if hudGui then
 
     local speedText = Instance.new("TextLabel")
     speedText.Name = "Label"
-    speedText.Size = UDim2.new(0, 60, 1, 0)
-    speedText.Position = UDim2.new(0, 48, 0, 0)
+    speedText.Size = UDim2.new(0, 80, 0, 20)
+    speedText.Position = UDim2.new(0, 48, 0.5, -12)
     speedText.BackgroundTransparency = 1
     speedText.Text = "SPEED"
     speedText.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -348,6 +348,18 @@ if hudGui then
     speedText.Font = Enum.Font.GothamBlack
     speedText.TextXAlignment = Enum.TextXAlignment.Left
     speedText.Parent = speedButton
+
+    local speedMultiplierLabel = Instance.new("TextLabel")
+    speedMultiplierLabel.Name = "MultiplierLabel"
+    speedMultiplierLabel.Size = UDim2.new(0, 80, 0, 14)
+    speedMultiplierLabel.Position = UDim2.new(0, 48, 0.5, 8)
+    speedMultiplierLabel.BackgroundTransparency = 1
+    speedMultiplierLabel.Text = ""
+    speedMultiplierLabel.TextColor3 = Color3.fromRGB(255, 220, 100)
+    speedMultiplierLabel.TextSize = 12
+    speedMultiplierLabel.Font = Enum.Font.GothamBold
+    speedMultiplierLabel.TextXAlignment = Enum.TextXAlignment.Left
+    speedMultiplierLabel.Parent = speedButton
 
     -- Toggle switch visuel (track + knob)
     local toggleTrack = Instance.new("Frame")
@@ -392,6 +404,17 @@ if hudGui then
         }):Play()
         speedStroke.Color = strokeColor
         speedText.Text = speedBoosted and "SPEED" or "SLOW"
+
+        -- Afficher le multiplicateur de speed quand activé
+        if speedBoosted then
+            local character = player.Character
+            local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+            local walkSpeed = humanoid and humanoid.WalkSpeed or 16
+            speedMultiplierLabel.Text = "x" .. string.format("%.1f", walkSpeed / 16)
+            speedMultiplierLabel.Visible = true
+        else
+            speedMultiplierLabel.Visible = false
+        end
     end
 
     speedButton.MouseEnter:Connect(function()
@@ -414,8 +437,12 @@ if hudGui then
 
     toggleSpeedRemote.OnClientEvent:Connect(function(newState)
         speedBoosted = newState
-        updateSpeedButtonVisual()
+        -- Petit délai pour laisser le serveur appliquer le WalkSpeed
+        task.delay(0.15, updateSpeedButtonVisual)
     end)
+
+    -- Init: afficher le multiplicateur après que le personnage soit chargé
+    task.delay(1, updateSpeedButtonVisual)
 end
 
 -- ═══════════════════════════════════════════════════════
