@@ -74,6 +74,7 @@ local Constants = {
         RequestDoorOpen = "RequestDoorOpen",           -- Ouvrir la porte d'un autre joueur (Robux)
         BuySpinWheel = "BuySpinWheel",                 -- Spin Wheel: Déclenche achat Robux
         SpinWheel = "SpinWheel",                       -- Spin Wheel: Tourner la roue
+        ToggleSpeed = "ToggleSpeed",                   -- Toggle vitesse: défaut ↔ boostée
 
         -- Serveur → Client
         SyncPlayerData = "SyncPlayerData",

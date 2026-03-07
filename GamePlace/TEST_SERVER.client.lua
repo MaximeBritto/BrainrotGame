@@ -141,16 +141,64 @@ CreateButton("ClearSlotCash", "💰 CLEAR SLOT CASH", Color3.fromRGB(200, 100, 0
 	testRemote:FireServer("ClearSlotCash")
 end).LayoutOrder = 9
 
--- BOUTON 11: Speed +10
-CreateButton("SpeedBoost", "⚡ SPEED +10", Color3.fromRGB(100, 200, 255), function()
+-- BOUTON 11: Speed +10 (SERVER - permanent)
+CreateButton("SpeedBoost", "⚡ SPEED +10\n(SERVER)", Color3.fromRGB(100, 200, 255), function()
+	testRemote:FireServer("AddSpeed", 10)
+end).LayoutOrder = 11
+
+-- BOUTON 12: Reset Speed (SERVER)
+CreateButton("ResetSpeed", "⚡ RESET SPEED\n(SERVER)", Color3.fromRGB(200, 100, 50), function()
+	testRemote:FireServer("ResetSpeed")
+end).LayoutOrder = 12
+
+-- Speed Display Label
+local speedDisplay = Instance.new("TextLabel")
+speedDisplay.Name = "SpeedDisplay"
+speedDisplay.Size = UDim2.new(0.9, 0, 0, 40)
+speedDisplay.BackgroundColor3 = Color3.fromRGB(40, 40, 80)
+speedDisplay.BackgroundTransparency = 0.3
+speedDisplay.Text = "Speed Bonus: 0"
+speedDisplay.TextColor3 = Color3.fromRGB(100, 200, 255)
+speedDisplay.TextScaled = true
+speedDisplay.Font = Enum.Font.GothamBold
+speedDisplay.LayoutOrder = 13
+speedDisplay.Parent = scrollFrame
+
+local speedDisplayCorner = Instance.new("UICorner")
+speedDisplayCorner.CornerRadius = UDim.new(0, 8)
+speedDisplayCorner.Parent = speedDisplay
+
+-- Mettre à jour l'affichage du speed bonus
+local function updateSpeedDisplay()
 	local character = player.Character
+	local walkSpeed = 16
 	if character then
 		local humanoid = character:FindFirstChildOfClass("Humanoid")
 		if humanoid then
-			humanoid.WalkSpeed = humanoid.WalkSpeed + 10
+			walkSpeed = humanoid.WalkSpeed
 		end
 	end
-end).LayoutOrder = 11
+	speedDisplay.Text = "WalkSpeed: " .. math.floor(walkSpeed)
+end
+
+-- Rafraîchir toutes les secondes
+task.spawn(function()
+	while true do
+		updateSpeedDisplay()
+		task.wait(1)
+	end
+end)
+
+-- Aussi rafraîchir quand on reçoit un sync
+local syncPlayerData = remotes:FindFirstChild("SyncPlayerData")
+if syncPlayerData then
+	syncPlayerData.OnClientEvent:Connect(function(data)
+		if data.PermanentSpeedBonus ~= nil then
+			task.wait(0.1) -- Attendre que le serveur applique
+			updateSpeedDisplay()
+		end
+	end)
+end
 
 -- Info label
 local infoLabel = Instance.new("TextLabel")

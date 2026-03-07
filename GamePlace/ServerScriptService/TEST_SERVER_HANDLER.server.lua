@@ -242,6 +242,66 @@ testRemote.OnServerEvent:Connect(function(player, action, value)
             syncRemote:FireClient(player, DataService:GetPlayerData(player))
         end
         
+    elseif action == "AddSpeed" then
+        -- Ajouter du speed bonus permanent
+        local amount = value or 10
+        local GameConfig = require(ReplicatedStorage.Config["GameConfig.module"])
+        local baseSpeed = GameConfig.MoveSpeed.BaseSpeed or 16
+        local maxSpeed = GameConfig.MoveSpeed.MaxSpeed or 50
+        local currentBonus = playerData.PermanentSpeedBonus or 0
+        local newBonus = currentBonus + amount
+
+        if baseSpeed + newBonus > maxSpeed then
+            newBonus = maxSpeed - baseSpeed
+        end
+
+        DataService:UpdateValue(player, "PermanentSpeedBonus", newBonus)
+
+        -- Appliquer immédiatement
+        local PlayerService = require(Core["PlayerService.module"])
+        if PlayerService and PlayerService.ApplyWalkSpeed then
+            PlayerService:ApplyWalkSpeed(player)
+        end
+
+        local notifRemote = remotes:FindFirstChild("Notification")
+        if notifRemote then
+            notifRemote:FireClient(player, {
+                Type = "Success",
+                Message = "+" .. amount .. " Speed! Total bonus: " .. newBonus .. " (WalkSpeed: " .. (baseSpeed + newBonus) .. ")",
+                Duration = 3
+            })
+        end
+
+        -- Sync speed vers le client
+        local syncRemote = remotes:FindFirstChild("SyncPlayerData")
+        if syncRemote then
+            syncRemote:FireClient(player, { PermanentSpeedBonus = newBonus })
+        end
+
+    elseif action == "ResetSpeed" then
+        -- Reset le speed bonus à 0
+        DataService:UpdateValue(player, "PermanentSpeedBonus", 0)
+
+        -- Appliquer immédiatement
+        local PlayerService = require(Core["PlayerService.module"])
+        if PlayerService and PlayerService.ApplyWalkSpeed then
+            PlayerService:ApplyWalkSpeed(player)
+        end
+
+        local notifRemote = remotes:FindFirstChild("Notification")
+        if notifRemote then
+            notifRemote:FireClient(player, {
+                Type = "Warning",
+                Message = "Speed reset to default (16)",
+                Duration = 3
+            })
+        end
+
+        local syncRemote = remotes:FindFirstChild("SyncPlayerData")
+        if syncRemote then
+            syncRemote:FireClient(player, { PermanentSpeedBonus = 0 })
+        end
+
     elseif action == "SpawnBrainrotPiece" then
         -- Spawn une pièce comme ArenaSystem le fait
         local setName = value.SetName

@@ -15,6 +15,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 -- Modules
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Constants = require(Shared["Constants.module"])
+local Config = ReplicatedStorage:WaitForChild("Config")
+local GameConfig = require(Config["GameConfig.module"])
 
 -- Services (seront injectés)
 local DataService = nil
@@ -44,6 +46,9 @@ local function CreateRuntimeData()
         DoorCloseTime = 0,
         DoorReopenTime = 0,
         
+        -- Speed toggle (true = boosted, false = default 16)
+        SpeedBoosted = true,
+
         -- Session
         JoinTime = os.time(),
         LastSaveTime = os.time(),
@@ -205,12 +210,15 @@ function PlayerService:OnCharacterAdded(player, character)
     
     -- Attendre que le Humanoid soit prêt
     local humanoid = character:WaitForChild("Humanoid")
-    
+
+    -- Appliquer la vitesse de déplacement (base + bonus permanent)
+    humanoid.WalkSpeed = self:GetPlayerWalkSpeed(player)
+
     -- Connecter l'événement de mort
     humanoid.Died:Connect(function()
         self:OnPlayerDied(player)
     end)
-    
+
     -- Assigner une base si pas encore fait (Phase 2)
     -- Utiliser self.BaseSystem car il est injecté après Init()
     if self.BaseSystem then
@@ -440,6 +448,63 @@ function PlayerService:IsCarryingBrainrot(player)
     local runtimeData = self._runtimeData[player.UserId]
     if not runtimeData then return false end
     return runtimeData.CarriedBrainrot ~= nil
+end
+
+--[[
+    Calcule la WalkSpeed du joueur (base + bonus permanent)
+    @param player: Player
+    @return number
+]]
+function PlayerService:GetPlayerWalkSpeed(player)
+    local baseSpeed = GameConfig.MoveSpeed.BaseSpeed or 16
+    local maxSpeed = GameConfig.MoveSpeed.MaxSpeed or 50
+
+    -- Si le toggle est désactivé, retourner la vitesse de base
+    local runtimeData = self:GetRuntimeData(player)
+    if runtimeData and runtimeData.SpeedBoosted == false then
+        return baseSpeed
+    end
+
+    local data = DataService:GetPlayerData(player)
+    if not data then return baseSpeed end
+
+    local speedBonus = data.PermanentSpeedBonus or 0
+    local finalSpeed = baseSpeed + speedBonus
+
+    if finalSpeed > maxSpeed then
+        finalSpeed = maxSpeed
+    end
+
+    return finalSpeed
+end
+
+--[[
+    Toggle la vitesse du joueur entre défaut et boostée
+    @param player: Player
+    @return boolean - nouvel état du toggle (true = boosted)
+]]
+function PlayerService:ToggleSpeed(player)
+    local runtimeData = self:GetRuntimeData(player)
+    if not runtimeData then return true end
+
+    runtimeData.SpeedBoosted = not runtimeData.SpeedBoosted
+    self:ApplyWalkSpeed(player)
+
+    return runtimeData.SpeedBoosted
+end
+
+--[[
+    Applique la WalkSpeed calculée au personnage du joueur
+    @param player: Player
+]]
+function PlayerService:ApplyWalkSpeed(player)
+    local character = player.Character
+    if not character then return end
+
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return end
+
+    humanoid.WalkSpeed = self:GetPlayerWalkSpeed(player)
 end
 
 return PlayerService

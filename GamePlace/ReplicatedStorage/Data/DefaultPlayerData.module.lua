@@ -81,6 +81,11 @@ local DefaultPlayerData = {
     PermanentMultiplierBonus = 0,  -- Bonus multiplicateur permanent (ex: 0.25 = +0.25x)
 
     -- ═══════════════════════════════════════
+    -- VITESSE PERMANENTE
+    -- ═══════════════════════════════════════
+    PermanentSpeedBonus = 0,  -- Bonus de vitesse permanent (ex: 2 = +2 WalkSpeed)
+
+    -- ═══════════════════════════════════════
     -- LUCKY BLOCKS
     -- ═══════════════════════════════════════
     LuckyBlocks = 0,  -- Nombre de Lucky Blocks disponibles (achetés via Robux)
@@ -111,6 +116,7 @@ local DefaultPlayerData = {
         Spin = false,
         Multiplier = false,
         Cash = false,
+        Speed = false,
     },
 
     -- ═══════════════════════════════════════

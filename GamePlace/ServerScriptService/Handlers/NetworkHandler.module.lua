@@ -423,6 +423,17 @@ function NetworkHandler:_ConnectHandlers()
         end)
     end
 
+    -- Toggle Speed
+    if remotes.ToggleSpeed then
+        remotes.ToggleSpeed.OnServerEvent:Connect(function(player)
+            if PlayerService then
+                local boosted = PlayerService:ToggleSpeed(player)
+                -- Renvoyer le nouvel état au client
+                remotes.ToggleSpeed:FireClient(player, boosted)
+            end
+        end)
+    end
+
     -- ═══════════════════════════════════════
     -- REMOTE FUNCTIONS
     -- ═══════════════════════════════════════

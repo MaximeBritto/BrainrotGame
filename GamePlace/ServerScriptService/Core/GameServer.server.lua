@@ -486,6 +486,7 @@ if CraftingSystem and PlacementSystem then
             DataService = DataService,
             NetworkSetup = NetworkSetup,
             EconomySystem = EconomySystem,
+            PlayerService = PlayerService,
         })
         CraftingSystem.FusionSystem = FusionSystem
         NetworkHandler:UpdateSystems({FusionSystem = FusionSystem})

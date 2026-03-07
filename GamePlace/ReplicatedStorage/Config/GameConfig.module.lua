@@ -22,6 +22,14 @@ local GameConfig = {
             CodexRarityBonus = 0.5,         -- +0.5x par rareté complétée à 75%
         },
     },
+
+    -- ═══════════════════════════════════════
+    -- VITESSE DE DÉPLACEMENT
+    -- ═══════════════════════════════════════
+    MoveSpeed = {
+        BaseSpeed = 16,                     -- Vitesse de déplacement par défaut (Roblox default)
+        MaxSpeed = 50,                      -- Vitesse maximale
+    },
     
     -- ═══════════════════════════════════════
     -- BASE
@@ -133,13 +141,20 @@ local GameConfig = {
         Milestones = {
             { Required = 3,   Type = "Cash",       Value = 500,     DisplayName = "$500" },
             { Required = 5,   Type = "Cash",       Value = 2000,    DisplayName = "$2K" },
+            { Required = 8,   Type = "Speed",      Value = 0.2,     DisplayName = "+0.2 Speed" },
             { Required = 10,  Type = "Cash",       Value = 10000,   DisplayName = "$10K" },
             { Required = 15,  Type = "Cash",       Value = 25000,   DisplayName = "$25K" },
+            { Required = 20,  Type = "Speed",      Value = 0.2,     DisplayName = "+0.2 Speed" },
             { Required = 25,  Type = "Cash",       Value = 50000,   DisplayName = "$50K" },
+            { Required = 35,  Type = "Speed",      Value = 0.2,     DisplayName = "+0.2 Speed" },
             { Required = 40,  Type = "Multiplier", Value = 0.1,     DisplayName = "+0.1x" },
+            { Required = 50,  Type = "Speed",      Value = 0.2,     DisplayName = "+0.2 Speed" },
             { Required = 60,  Type = "Cash",       Value = 250000,  DisplayName = "$250K" },
+            { Required = 70,  Type = "Speed",      Value = 0.2,     DisplayName = "+0.2 Speed" },
             { Required = 80,  Type = "Cash",       Value = 500000,  DisplayName = "$500K" },
+            { Required = 90,  Type = "Speed",      Value = 0.2,     DisplayName = "+0.2 Speed" },
             { Required = 100, Type = "Multiplier", Value = 0.25,    DisplayName = "+0.25x" },
+            { Required = 115, Type = "Speed",      Value = 0.2,     DisplayName = "+0.2 Speed" },
             { Required = 130, Type = "Cash",       Value = 1000000, DisplayName = "$1M" },
         },
     },

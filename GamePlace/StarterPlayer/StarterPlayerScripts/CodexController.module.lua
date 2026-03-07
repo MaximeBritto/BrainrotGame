@@ -1397,7 +1397,7 @@ function CodexController:_CreateFusionCard(headSet, bodySet, legsSet, layoutOrde
     nameLabel.Size = UDim2.new(1, -16, 0, 20)
     nameLabel.Position = UDim2.new(0, 8, 0, 142)
     nameLabel.BackgroundTransparency = 1
-    nameLabel.Text = headName .. " + " .. bodyName .. " + " .. legsName
+    nameLabel.Text = headName .. " " .. bodyName .. " " .. legsName
     nameLabel.TextColor3 = COLORS.White
     nameLabel.TextSize = 11
     nameLabel.Font = Enum.Font.GothamBold

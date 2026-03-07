@@ -53,6 +53,15 @@ local ShopProducts = {
                     NormalRobux = 199,
                     DisplayName = "10,000 Cash",
                 },
+                {
+                    -- TODO: Créer le Developer Product sur Roblox (R$100) et mettre l'ID ici
+                    ProductId = 3551645004,
+                    DailyPurchaseKey = "Speed",
+                    PermanentSpeedBonus = 2,
+                    Robux = 99,
+                    NormalRobux = 199,
+                    DisplayName = "+2 Speed",
+                },
             },
         },
 
@@ -108,6 +117,7 @@ local ShopProducts = {
                     LuckyBlocks = 1,
                     Spins = 1,
                     PermanentMultiplierBonus = 0.25,
+                    PermanentSpeedBonus = 3,
                     Robux = 489,
                     DisplayName = "Starter Pack",
                     OneTimePurchaseKey = "StarterPack",
@@ -115,7 +125,8 @@ local ShopProducts = {
                         "$1,000 Cash",
                         "1 Lucky Block",
                         "1 Spin",
-                        "+0.25x Multiplier (permanent)",
+                        "+0.25x Multiplier",
+                        "+3 Speed",
                     },
                 },
                 {

@@ -298,6 +298,34 @@ function ShopSystem:_SetupProcessReceipt()
                     EconomySystem:RefreshMultiplier(player)
                 end
             end
+
+            if productInfo.PermanentSpeedBonus and productInfo.PermanentSpeedBonus > 0 then
+                if DataService then
+                    local data = DataService:GetPlayerData(player)
+                    if data then
+                        local maxSpeed = GameConfig.MoveSpeed.MaxSpeed or 50
+                        local baseSpeed = GameConfig.MoveSpeed.BaseSpeed or 16
+                        local currentBonus = data.PermanentSpeedBonus or 0
+                        local newBonus = currentBonus + productInfo.PermanentSpeedBonus
+
+                        -- Clamp pour ne pas dépasser MaxSpeed
+                        if baseSpeed + newBonus > maxSpeed then
+                            newBonus = maxSpeed - baseSpeed
+                        end
+
+                        data.PermanentSpeedBonus = newBonus
+                        print(string.format("[ShopSystem] +%d Speed accordé à %s (total bonus: %d, WalkSpeed: %d)",
+                            productInfo.PermanentSpeedBonus, player.Name, newBonus, baseSpeed + newBonus))
+
+                        -- Appliquer immédiatement la vitesse au joueur
+                        if PlayerService then
+                            PlayerService:ApplyWalkSpeed(player)
+                        end
+                    end
+                else
+                    warn("[ShopSystem] DataService non injecté! PermanentSpeedBonus non accordé.")
+                end
+            end
         end)
 
         if not success then
@@ -382,6 +410,7 @@ function ShopSystem:_GetOrResetDailyPurchases(player)
             Spin = false,
             Multiplier = false,
             Cash = false,
+            Speed = false,
         }
     end
 
@@ -393,6 +422,7 @@ function ShopSystem:_GetOrResetDailyPurchases(player)
             Spin = false,
             Multiplier = false,
             Cash = false,
+            Speed = false,
         }
         DataService:UpdateValue(player, "DailyPurchases", data.DailyPurchases)
     end
@@ -420,6 +450,7 @@ function ShopSystem:_BuildProductMap()
                     MultiplierBoost = product.MultiplierBoost,
                     MultiplierDuration = product.MultiplierDuration,
                     PermanentMultiplierBonus = product.PermanentMultiplierBonus,
+                    PermanentSpeedBonus = product.PermanentSpeedBonus,
                     OneTimePurchaseKey = product.OneTimePurchaseKey,
                     DailyPurchaseKey = product.DailyPurchaseKey,
                     Robux = product.Robux,

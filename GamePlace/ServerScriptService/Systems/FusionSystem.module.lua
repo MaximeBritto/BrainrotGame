@@ -15,6 +15,7 @@ local GameConfig = nil
 local DataService = nil
 local NetworkSetup = nil
 local EconomySystem = nil
+local PlayerService = nil
 
 local FusionSystem = {}
 FusionSystem._initialized = false
@@ -28,6 +29,7 @@ function FusionSystem:Init(services)
     DataService = services.DataService
     NetworkSetup = services.NetworkSetup
     EconomySystem = services.EconomySystem
+    PlayerService = services.PlayerService
 
     if not DataService or not NetworkSetup then
         error("[FusionSystem] Services manquants!")
@@ -132,6 +134,19 @@ function FusionSystem:ClaimReward(player, milestoneIndex)
     elseif milestone.Type == "Multiplier" then
         local currentBonus = playerData.PermanentMultiplierBonus or 0
         DataService:UpdateValue(player, "PermanentMultiplierBonus", currentBonus + milestone.Value)
+    elseif milestone.Type == "Speed" then
+        local currentBonus = playerData.PermanentSpeedBonus or 0
+        local MoveSpeed = GameConfig.MoveSpeed or {}
+        local maxSpeed = MoveSpeed.MaxSpeed or 50
+        local baseSpeed = MoveSpeed.BaseSpeed or 16
+        local newBonus = currentBonus + milestone.Value
+        if baseSpeed + newBonus > maxSpeed then
+            newBonus = maxSpeed - baseSpeed
+        end
+        DataService:UpdateValue(player, "PermanentSpeedBonus", newBonus)
+        if PlayerService and PlayerService.ApplyWalkSpeed then
+            PlayerService:ApplyWalkSpeed(player)
+        end
     end
 
     -- Marquer comme réclamé

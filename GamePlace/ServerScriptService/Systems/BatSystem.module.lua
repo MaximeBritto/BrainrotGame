@@ -257,9 +257,13 @@ function BatSystem:_RemoveStun(victim)
         if humanoid then
             -- Désactiver PlatformStand pour relever le personnage
             humanoid.PlatformStand = false
-            -- Réactiver le mouvement
-            humanoid.WalkSpeed = 16 -- Vitesse par défaut
-            humanoid.JumpPower = 50 -- Vitesse par défaut
+            -- Réactiver le mouvement (utiliser la vitesse calculée si PlayerService est disponible)
+            if PlayerService and PlayerService.GetPlayerWalkSpeed then
+                humanoid.WalkSpeed = PlayerService:GetPlayerWalkSpeed(victim)
+            else
+                humanoid.WalkSpeed = 16
+            end
+            humanoid.JumpPower = 50
         end
     end
 

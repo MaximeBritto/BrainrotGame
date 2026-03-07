@@ -611,6 +611,8 @@ function ShopController:_CreateDailyCard(parent, xPos, yPos, width, height, prod
     elseif product.Spins then
         iconText = "\xF0\x9F\x8E\xB0"  -- 🎰
     elseif product.PermanentMultiplierBonus then
+        iconText = "\xF0\x9F\x93\x88"  -- 📈
+    elseif product.PermanentSpeedBonus then
         iconText = "\xE2\x9A\xA1"       -- ⚡
     end
 
@@ -1114,13 +1116,15 @@ local DESC_ICONS = {
     Cash = "\xF0\x9F\x92\xB5",        -- 💵
     Lucky = "\xF0\x9F\x8D\x80",       -- 🍀
     Spin = "\xF0\x9F\x8E\xB0",        -- 🎰
-    Multiplier = "\xE2\x9A\xA1",      -- ⚡
+    Multiplier = "\xF0\x9F\x93\x88",  -- 📈
+    Speed = "\xE2\x9A\xA1",           -- ⚡
 }
 
 local function _GetDescIcon(text)
     if string.find(text, "Cash") then return DESC_ICONS.Cash end
     if string.find(text, "Lucky") then return DESC_ICONS.Lucky end
     if string.find(text, "Spin") then return DESC_ICONS.Spin end
+    if string.find(text, "Speed") then return DESC_ICONS.Speed end
     if string.find(text, "Multiplier") then return DESC_ICONS.Multiplier end
     return "\xE2\x9C\xA8" -- ✨ fallback
 end

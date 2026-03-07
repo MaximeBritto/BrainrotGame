@@ -143,7 +143,7 @@ if hudGui then
     -- Container pour les boutons latéraux
     local sideButtonsContainer = Instance.new("Frame")
     sideButtonsContainer.Name = "SideButtons"
-    sideButtonsContainer.Size = UDim2.new(0, 170, 0, 125)
+    sideButtonsContainer.Size = UDim2.new(0, 170, 0, 190)
     sideButtonsContainer.Position = UDim2.new(0, 10, 0.5, -62)
     sideButtonsContainer.BackgroundTransparency = 1
     sideButtonsContainer.BorderSizePixel = 0
@@ -278,6 +278,125 @@ if hudGui then
 
     shopButton.MouseButton1Click:Connect(function()
         ShopController:Toggle()
+    end)
+
+    -- ── BOUTON SPEED TOGGLE ──
+    local speedBoosted = true -- état par défaut (vitesse boostée)
+    local speedColorOn = Color3.fromRGB(180, 120, 20)
+    local speedColorOff = Color3.fromRGB(80, 80, 80)
+    local speedHoverOn = Color3.fromRGB(210, 145, 30)
+    local speedHoverOff = Color3.fromRGB(110, 110, 110)
+
+    local speedButton = Instance.new("TextButton")
+    speedButton.Name = "SpeedToggleButton"
+    speedButton.Size = UDim2.new(1, 0, 0, 55)
+    speedButton.LayoutOrder = 3
+    speedButton.BackgroundColor3 = speedColorOn
+    speedButton.BackgroundTransparency = 0.1
+    speedButton.BorderSizePixel = 0
+    speedButton.Text = ""
+    speedButton.AutoButtonColor = false
+    speedButton.Parent = sideButtonsContainer
+
+    local speedCorner = Instance.new("UICorner")
+    speedCorner.CornerRadius = UDim.new(0, 14)
+    speedCorner.Parent = speedButton
+
+    local speedStroke = Instance.new("UIStroke")
+    speedStroke.Color = Color3.fromRGB(220, 160, 40)
+    speedStroke.Thickness = 1.5
+    speedStroke.Transparency = 0.3
+    speedStroke.Parent = speedButton
+
+    local speedIcon = Instance.new("TextLabel")
+    speedIcon.Name = "Icon"
+    speedIcon.Size = UDim2.new(0, 35, 0, 35)
+    speedIcon.Position = UDim2.new(0, 12, 0.5, 0)
+    speedIcon.AnchorPoint = Vector2.new(0, 0.5)
+    speedIcon.BackgroundTransparency = 1
+    speedIcon.Text = "\xE2\x9A\xA1" -- ⚡
+    speedIcon.TextSize = 24
+    speedIcon.Font = Enum.Font.GothamBold
+    speedIcon.Parent = speedButton
+
+    local speedText = Instance.new("TextLabel")
+    speedText.Name = "Label"
+    speedText.Size = UDim2.new(0, 60, 1, 0)
+    speedText.Position = UDim2.new(0, 48, 0, 0)
+    speedText.BackgroundTransparency = 1
+    speedText.Text = "SPEED"
+    speedText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    speedText.TextSize = 18
+    speedText.Font = Enum.Font.GothamBlack
+    speedText.TextXAlignment = Enum.TextXAlignment.Left
+    speedText.Parent = speedButton
+
+    -- Toggle switch visuel (track + knob)
+    local toggleTrack = Instance.new("Frame")
+    toggleTrack.Name = "ToggleTrack"
+    toggleTrack.Size = UDim2.new(0, 42, 0, 22)
+    toggleTrack.Position = UDim2.new(1, -52, 0.5, 0)
+    toggleTrack.AnchorPoint = Vector2.new(0, 0.5)
+    toggleTrack.BackgroundColor3 = Color3.fromRGB(80, 180, 80)
+    toggleTrack.BorderSizePixel = 0
+    toggleTrack.Parent = speedButton
+
+    local toggleTrackCorner = Instance.new("UICorner")
+    toggleTrackCorner.CornerRadius = UDim.new(1, 0)
+    toggleTrackCorner.Parent = toggleTrack
+
+    local toggleKnob = Instance.new("Frame")
+    toggleKnob.Name = "Knob"
+    toggleKnob.Size = UDim2.new(0, 18, 0, 18)
+    toggleKnob.Position = UDim2.new(1, -20, 0.5, 0) -- ON position (right)
+    toggleKnob.AnchorPoint = Vector2.new(0, 0.5)
+    toggleKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    toggleKnob.BorderSizePixel = 0
+    toggleKnob.Parent = toggleTrack
+
+    local toggleKnobCorner = Instance.new("UICorner")
+    toggleKnobCorner.CornerRadius = UDim.new(1, 0)
+    toggleKnobCorner.Parent = toggleKnob
+
+    local function updateSpeedButtonVisual()
+        local color = speedBoosted and speedColorOn or speedColorOff
+        local strokeColor = speedBoosted and Color3.fromRGB(220, 160, 40) or Color3.fromRGB(130, 130, 130)
+        local trackColor = speedBoosted and Color3.fromRGB(80, 180, 80) or Color3.fromRGB(120, 120, 120)
+        local knobPos = speedBoosted and UDim2.new(1, -20, 0.5, 0) or UDim2.new(0, 2, 0.5, 0)
+        TweenService:Create(speedButton, TweenInfo.new(0.2), {
+            BackgroundColor3 = color,
+        }):Play()
+        TweenService:Create(toggleTrack, TweenInfo.new(0.2), {
+            BackgroundColor3 = trackColor,
+        }):Play()
+        TweenService:Create(toggleKnob, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            Position = knobPos,
+        }):Play()
+        speedStroke.Color = strokeColor
+        speedText.Text = speedBoosted and "SPEED" or "SLOW"
+    end
+
+    speedButton.MouseEnter:Connect(function()
+        local hoverColor = speedBoosted and speedHoverOn or speedHoverOff
+        TweenService:Create(speedButton, TweenInfo.new(0.15), {
+            BackgroundColor3 = hoverColor,
+        }):Play()
+    end)
+    speedButton.MouseLeave:Connect(function()
+        local baseColor = speedBoosted and speedColorOn or speedColorOff
+        TweenService:Create(speedButton, TweenInfo.new(0.15), {
+            BackgroundColor3 = baseColor,
+        }):Play()
+    end)
+
+    local toggleSpeedRemote = Remotes:WaitForChild("ToggleSpeed")
+    speedButton.MouseButton1Click:Connect(function()
+        toggleSpeedRemote:FireServer()
+    end)
+
+    toggleSpeedRemote.OnClientEvent:Connect(function(newState)
+        speedBoosted = newState
+        updateSpeedButtonVisual()
     end)
 end
 
