@@ -28,7 +28,7 @@ local GameConfig = {
     -- ═══════════════════════════════════════
     MoveSpeed = {
         BaseSpeed = 16,                     -- Vitesse de déplacement par défaut (Roblox default)
-        MaxSpeed = 50,                      -- Vitesse maximale
+        MaxSpeed = 100,                     -- Vitesse maximale
     },
     
     -- ═══════════════════════════════════════

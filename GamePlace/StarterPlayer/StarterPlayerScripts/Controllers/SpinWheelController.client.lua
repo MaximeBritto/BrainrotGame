@@ -197,7 +197,7 @@ local function createUI()
     overlay.Parent = screenGui
 
     -- MainFrame
-    mainFrame = Instance.new("Frame")
+    mainFrame = Instance.new("TextButton")
     mainFrame.Name = "MainFrame"
     mainFrame.Size = SIZES.PanelClosed
     mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
@@ -205,6 +205,8 @@ local function createUI()
     mainFrame.BackgroundColor3 = COLORS.PanelBg
     mainFrame.BorderSizePixel = 0
     mainFrame.ClipsDescendants = true
+    mainFrame.Text = ""
+    mainFrame.AutoButtonColor = false
     mainFrame.Parent = overlay
 
     local mainCorner = Instance.new("UICorner")

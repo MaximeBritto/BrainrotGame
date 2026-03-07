@@ -478,12 +478,7 @@ function NetworkHandler:_HandlePickupPiece(player, pieceId)
 
         -- Sync l'inventaire avec le client
         self:SyncInventory(player)
-        
-        -- Phase 6: débloquer la partie dans le Codex (Head/Body/Legs)
-        if pieceData and DataService and pieceData.SetName and pieceData.PieceType then
-            DataService:UnlockCodexPart(player, pieceData.SetName, pieceData.PieceType)
-        end
-        
+
         -- Notification de succès
         local message = Constants.SuccessMessages.PiecePickedUp
         if pieceData then

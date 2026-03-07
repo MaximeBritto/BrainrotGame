@@ -217,6 +217,24 @@ if hudGui then
         CodexController:Open()
     end)
 
+    -- Badge pastille sur le bouton Codex
+    local codexBadge = Instance.new("TextLabel")
+    codexBadge.Name = "Badge"
+    codexBadge.Size = UDim2.new(0, 22, 0, 22)
+    codexBadge.Position = UDim2.new(1, -8, 0, -4)
+    codexBadge.AnchorPoint = Vector2.new(0.5, 0.5)
+    codexBadge.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
+    codexBadge.BorderSizePixel = 0
+    codexBadge.Text = "0"
+    codexBadge.TextColor3 = Color3.fromRGB(255, 255, 255)
+    codexBadge.TextSize = 12
+    codexBadge.Font = Enum.Font.GothamBold
+    codexBadge.ZIndex = 5
+    codexBadge.Visible = false
+    codexBadge.Parent = codexButton
+    Instance.new("UICorner", codexBadge).CornerRadius = UDim.new(1, 0)
+    CodexController._codexButtonBadge = codexBadge
+
     -- ── BOUTON SHOP ──
     local shopButton = Instance.new("TextButton")
     shopButton.Name = "ShopButton"
@@ -581,6 +599,9 @@ task.spawn(function()
             PreviewBrainrotController:UpdatePreview(fullData.PiecesInHand)
         end
         if fullData.CodexUnlocked then
+            -- Mark initial data as "seen" so no badge on first load
+            CodexController._codexUnlocked = fullData.CodexUnlocked
+            pcall(function() CodexController:_MarkCodexAsSeen() end)
             CodexController:UpdateCodex(fullData.CodexUnlocked)
         end
         -- Fusion data
@@ -592,6 +613,7 @@ task.spawn(function()
                 ClaimedFusionRewards = fullData.ClaimedFusionRewards or {},
                 FusionCount = count,
             }
+            pcall(function() CodexController:RefreshBadges() end)
         end
         if fullData.MultiplierBoostActive and fullData.MultiplierBoostRemaining and fullData.MultiplierBoostRemaining > 0 then
             startBoostCountdown(fullData.MultiplierBoostRemaining)

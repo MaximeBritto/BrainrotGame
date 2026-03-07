@@ -199,8 +199,10 @@ function CraftingSystem:TryCraft(player)
         return false, Constants.ActionResult.NoSlotAvailable, nil
     end
     
-    -- 7. Débloquer dans le Codex
-    DataService:UnlockCodexEntry(player, setName)
+    -- 7. Débloquer dans le Codex (chaque part utilisée dans le craft)
+    DataService:UnlockCodexPart(player, headPiece.SetName, "Head")
+    DataService:UnlockCodexPart(player, bodyPiece.SetName, "Body")
+    DataService:UnlockCodexPart(player, legsPiece.SetName, "Legs")
 
     -- 7.5. Enregistrer la fusion unique
     local fs = FusionSystem or self.FusionSystem

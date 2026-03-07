@@ -32,6 +32,12 @@ CodexController._activeFusionTab = false
 CodexController._rewardTrackContainer = nil
 CodexController._fusionBottomBar = nil
 CodexController._codexBottomBar = nil
+-- Badge notification state
+CodexController._seenCodexUnlocked = {} -- snapshot of codex when user last viewed
+CodexController._newCodexCount = 0      -- count of new codex entries since last view
+CodexController._unclaimedRewardsCount = 0 -- fusion rewards ready to claim
+CodexController._codexButtonBadge = nil -- reference to badge on sidebar button
+CodexController._fusionTabBadge = nil   -- reference to badge on fusion tab
 
 -- ══════════════════════════════════════════
 -- Visual constants (matching Shop style)
@@ -165,8 +171,12 @@ function CodexController:Init()
             if self._activeFusionTab then
                 self:RefreshFusionList()
             end
+            pcall(function() self:RefreshBadges() end)
         end)
     end
+
+    -- Ensure codex starts closed
+    self._codexUI.Enabled = false
 
     self._initialized = true
 end
@@ -195,7 +205,7 @@ function CodexController:_BuildUI()
     end)
 
     -- ═══ MAIN FRAME ═══
-    local mainFrame = Instance.new("Frame")
+    local mainFrame = Instance.new("TextButton")
     mainFrame.Name = "MainFrame"
     mainFrame.Size = SIZES.PanelClosed
     mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
@@ -203,6 +213,8 @@ function CodexController:_BuildUI()
     mainFrame.BackgroundColor3 = COLORS.PanelBg
     mainFrame.BorderSizePixel = 0
     mainFrame.ClipsDescendants = true
+    mainFrame.Text = ""
+    mainFrame.AutoButtonColor = false
     mainFrame.Parent = overlay
     self._mainFrame = mainFrame
 
@@ -452,6 +464,24 @@ function CodexController:_BuildTabBar(mainFrame)
     end)
 
     self._tabs["_fusion"] = { button = fusionTabBtn, fill = fusionFill }
+
+    -- Badge on Fusion tab
+    local fusionBadge = Instance.new("TextLabel")
+    fusionBadge.Name = "Badge"
+    fusionBadge.Size = UDim2.new(0, 20, 0, 20)
+    fusionBadge.Position = UDim2.new(1, -6, 0, -6)
+    fusionBadge.AnchorPoint = Vector2.new(0.5, 0.5)
+    fusionBadge.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
+    fusionBadge.BorderSizePixel = 0
+    fusionBadge.Text = "0"
+    fusionBadge.TextColor3 = Color3.fromRGB(255, 255, 255)
+    fusionBadge.TextSize = 11
+    fusionBadge.Font = Enum.Font.GothamBold
+    fusionBadge.ZIndex = 5
+    fusionBadge.Visible = false
+    fusionBadge.Parent = fusionTabBtn
+    Instance.new("UICorner", fusionBadge).CornerRadius = UDim.new(1, 0)
+    self._fusionTabBadge = fusionBadge
 end
 
 -- ══════════════════════════════════════════
@@ -981,6 +1011,40 @@ function CodexController:_CreateCard(setName, setData, isDiscovered, layoutOrder
         checkMark.Parent = checkBadge
     end
 
+    -- "NEW" badge (red pastille) for newly unlocked parts
+    local newPartsCount = self:_CountNewPartsForSet(setName)
+    local newBadge = nil
+    if newPartsCount > 0 then
+        newBadge = Instance.new("TextLabel")
+        newBadge.Name = "NewBadge"
+        newBadge.Size = UDim2.new(0, 22, 0, 22)
+        newBadge.Position = UDim2.new(0, -4, 0, -4)
+        newBadge.AnchorPoint = Vector2.new(0, 0)
+        newBadge.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
+        newBadge.BorderSizePixel = 0
+        newBadge.Text = tostring(newPartsCount)
+        newBadge.TextColor3 = Color3.fromRGB(255, 255, 255)
+        newBadge.TextSize = 12
+        newBadge.Font = Enum.Font.GothamBold
+        newBadge.ZIndex = 5
+        newBadge.Parent = card
+        Instance.new("UICorner", newBadge).CornerRadius = UDim.new(1, 0)
+    end
+
+    -- Click handler: mark set as seen and hide badge
+    card.Active = true
+    card.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            if newBadge and newBadge.Visible then
+                newBadge.Visible = false
+                pcall(function()
+                    self:_MarkSetAsSeen(setName)
+                    self:RefreshBadges()
+                end)
+            end
+        end
+    end)
+
     return card
 end
 
@@ -1085,20 +1149,152 @@ function CodexController:RefreshList()
 end
 
 -- ══════════════════════════════════════════
+-- Badge notification system
+-- ══════════════════════════════════════════
+
+function CodexController:_CountNewPartsForSet(setName)
+    local current = self._codexUnlocked or {}
+    local seen = self._seenCodexUnlocked or {}
+    local data = current[setName]
+    if not data then return 0 end
+
+    local seenData = seen[setName]
+    local count = 0
+
+    if not seenData then
+        -- Entire set is new
+        if data == true then
+            count = 3
+        elseif type(data) == "table" then
+            for _, partType in ipairs({"Head", "Body", "Legs"}) do
+                if data[partType] == true then
+                    count = count + 1
+                end
+            end
+        end
+    elseif data == true and seenData ~= true then
+        -- Was partial, now fully unlocked
+        local seenParts = (type(seenData) == "table") and seenData or {}
+        for _, partType in ipairs({"Head", "Body", "Legs"}) do
+            if not seenParts[partType] then
+                count = count + 1
+            end
+        end
+    elseif type(data) == "table" then
+        if seenData == true then
+            -- Was already fully seen
+        else
+            local seenParts = (type(seenData) == "table") and seenData or {}
+            for _, partType in ipairs({"Head", "Body", "Legs"}) do
+                if data[partType] == true and not seenParts[partType] then
+                    count = count + 1
+                end
+            end
+        end
+    end
+
+    return count
+end
+
+function CodexController:_CountNewCodexEntries()
+    local newCount = 0
+    local current = self._codexUnlocked or {}
+    for setName in pairs(current) do
+        if self:_CountNewPartsForSet(setName) > 0 then
+            newCount = newCount + 1
+        end
+    end
+    return newCount
+end
+
+function CodexController:_MarkSetAsSeen(setName)
+    local data = (self._codexUnlocked or {})[setName]
+    if not data then return end
+    if data == true then
+        self._seenCodexUnlocked[setName] = true
+    elseif type(data) == "table" then
+        self._seenCodexUnlocked[setName] = { Head = data.Head, Body = data.Body, Legs = data.Legs }
+    end
+end
+
+function CodexController:_CountUnclaimedRewards()
+    local milestones = GameConfig.Fusion and GameConfig.Fusion.Milestones or {}
+    local fusionData = self._fusionData or {}
+    local fusionCount = fusionData.FusionCount or 0
+    local claimed = fusionData.ClaimedFusionRewards or {}
+    local count = 0
+
+    for i, milestone in ipairs(milestones) do
+        if fusionCount >= milestone.Required then
+            if not (claimed[i] == true or claimed[tostring(i)] == true) then
+                count = count + 1
+            end
+        end
+    end
+
+    return count
+end
+
+function CodexController:_UpdateBadge(badgeLabel, count)
+    if not badgeLabel then return end
+    if count > 0 then
+        badgeLabel.Text = tostring(count)
+        badgeLabel.Visible = true
+    else
+        badgeLabel.Visible = false
+    end
+end
+
+function CodexController:RefreshBadges()
+    self._newCodexCount = self:_CountNewCodexEntries()
+    self._unclaimedRewardsCount = self:_CountUnclaimedRewards()
+
+    -- Update fusion tab badge
+    self:_UpdateBadge(self._fusionTabBadge, self._unclaimedRewardsCount)
+
+    -- Update main codex button badge (new codex entries + unclaimed rewards)
+    local totalBadge = self._newCodexCount + self._unclaimedRewardsCount
+    self:_UpdateBadge(self._codexButtonBadge, totalBadge)
+end
+
+function CodexController:_MarkCodexAsSeen()
+    -- Deep copy current codex state as "seen"
+    local copy = {}
+    for setName, data in pairs(self._codexUnlocked or {}) do
+        if data == true then
+            copy[setName] = true
+        elseif type(data) == "table" then
+            copy[setName] = { Head = data.Head, Body = data.Body, Legs = data.Legs }
+        end
+    end
+    self._seenCodexUnlocked = copy
+end
+
+-- ══════════════════════════════════════════
 -- Public API
 -- ══════════════════════════════════════════
 
 function CodexController:UpdateCodex(codexUnlocked)
     self._codexUnlocked = codexUnlocked or {}
     self:RefreshList()
+    pcall(function() self:RefreshBadges() end)
 end
 
 function CodexController:Open()
+    -- Safety: if _isOpen but UI not visible, reset the flag
+    if self._isOpen and self._codexUI and not self._codexUI.Enabled then
+        self._isOpen = false
+    end
     if self._isOpen then return end
     if not self._codexUI then return end
 
     self._isOpen = true
     self._codexUI.Enabled = true
+
+    -- Refresh badges (protected)
+    pcall(function()
+        self:RefreshBadges()
+    end)
 
     -- Refresh content
     if self._activeFusionTab then
@@ -1648,6 +1844,22 @@ function CodexController:_RefreshRewardTrack()
             rewardIcon.TextSize = 18
             rewardIcon.Font = Enum.Font.GothamBlack
             rewardIcon.Parent = node
+
+            -- Red badge pastille (unclaimed reward)
+            local claimBadge = Instance.new("TextLabel")
+            claimBadge.Name = "ClaimBadge"
+            claimBadge.Size = UDim2.new(0, 18, 0, 18)
+            claimBadge.Position = UDim2.new(1, -2, 0, -4)
+            claimBadge.AnchorPoint = Vector2.new(0.5, 0.5)
+            claimBadge.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
+            claimBadge.BorderSizePixel = 0
+            claimBadge.Text = "!"
+            claimBadge.TextColor3 = Color3.fromRGB(255, 255, 255)
+            claimBadge.TextSize = 12
+            claimBadge.Font = Enum.Font.GothamBold
+            claimBadge.ZIndex = 5
+            claimBadge.Parent = node
+            Instance.new("UICorner", claimBadge).CornerRadius = UDim.new(1, 0)
 
             -- Click to claim
             local milestoneIdx = i

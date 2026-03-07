@@ -148,7 +148,7 @@ function ShopController:Init()
     end)
 
     -- Panneau principal
-    mainFrame = Instance.new("Frame")
+    mainFrame = Instance.new("TextButton")
     mainFrame.Name = "MainFrame"
     mainFrame.Size = SIZES.PanelClosed
     mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
@@ -156,6 +156,8 @@ function ShopController:Init()
     mainFrame.BackgroundColor3 = COLORS.PanelBg
     mainFrame.BorderSizePixel = 0
     mainFrame.ClipsDescendants = true
+    mainFrame.Text = ""
+    mainFrame.AutoButtonColor = false
     mainFrame.Parent = overlay
 
     local mainCorner = Instance.new("UICorner")
@@ -514,7 +516,7 @@ function ShopController:_BuildDailyGrid(category, scrollWidth)
     titleLabel.Size = UDim2.new(1, 0, 0, 28)
     titleLabel.Position = UDim2.new(0, 0, 0, yOffset)
     titleLabel.BackgroundTransparency = 1
-    titleLabel.Text = "OFFRES DU JOUR  \xF0\x9F\x8C\x9F"
+    titleLabel.Text = "DAILY OFFERS  \xF0\x9F\x8C\x9F"
     titleLabel.TextColor3 = COLORS.GoldText
     titleLabel.TextSize = 20
     titleLabel.Font = Enum.Font.GothamBlack
@@ -522,17 +524,41 @@ function ShopController:_BuildDailyGrid(category, scrollWidth)
     titleLabel.Parent = contentScroll
     yOffset = yOffset + 32
 
-    -- Countdown reset
+    -- Countdown reset (badge style)
+    local countdownFrame = Instance.new("Frame")
+    countdownFrame.Name = "CountdownFrame"
+    countdownFrame.Size = UDim2.new(1, 0, 0, 36)
+    countdownFrame.Position = UDim2.new(0, 0, 0, yOffset)
+    countdownFrame.BackgroundColor3 = Color3.fromRGB(20, 30, 45)
+    countdownFrame.BorderSizePixel = 0
+    countdownFrame.Parent = contentScroll
+    Instance.new("UICorner", countdownFrame).CornerRadius = UDim.new(0, 8)
+
+    local countdownStroke = Instance.new("UIStroke")
+    countdownStroke.Color = Color3.fromRGB(255, 185, 0)
+    countdownStroke.Thickness = 1.5
+    countdownStroke.Parent = countdownFrame
+
+    local clockIcon = Instance.new("TextLabel")
+    clockIcon.Name = "ClockIcon"
+    clockIcon.Size = UDim2.new(0, 30, 1, 0)
+    clockIcon.Position = UDim2.new(0, 8, 0, 0)
+    clockIcon.BackgroundTransparency = 1
+    clockIcon.Text = "\xE2\x8F\xB0"
+    clockIcon.TextSize = 18
+    clockIcon.Font = Enum.Font.GothamBold
+    clockIcon.Parent = countdownFrame
+
     local countdownLabel = Instance.new("TextLabel")
     countdownLabel.Name = "Countdown"
-    countdownLabel.Size = UDim2.new(1, 0, 0, 22)
-    countdownLabel.Position = UDim2.new(0, 0, 0, yOffset)
+    countdownLabel.Size = UDim2.new(1, -42, 1, 0)
+    countdownLabel.Position = UDim2.new(0, 38, 0, 0)
     countdownLabel.BackgroundTransparency = 1
-    countdownLabel.TextColor3 = DAILY_COLORS.Countdown
-    countdownLabel.TextSize = 13
-    countdownLabel.Font = Enum.Font.Gotham
+    countdownLabel.TextColor3 = Color3.fromRGB(255, 220, 100)
+    countdownLabel.TextSize = 17
+    countdownLabel.Font = Enum.Font.GothamBold
     countdownLabel.TextXAlignment = Enum.TextXAlignment.Left
-    countdownLabel.Parent = contentScroll
+    countdownLabel.Parent = countdownFrame
     dailyCountdownLabel = countdownLabel
 
     -- Afficher immédiatement
@@ -541,7 +567,7 @@ function ShopController:_BuildDailyGrid(category, scrollWidth)
     countdownLabel.Text = string.format("Resets in: %02d:%02d:%02d",
         math.floor(secs / 3600), math.floor((secs % 3600) / 60), secs % 60)
 
-    yOffset = yOffset + 30
+    yOffset = yOffset + 44
 
     -- Grille 2×2
     local cols = 2
