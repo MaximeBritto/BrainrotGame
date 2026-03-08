@@ -12,11 +12,12 @@ local Camera = game:GetService("Workspace").CurrentCamera
 
 local ResponsiveScale = {}
 
--- Résolution de référence (design fait pour 1920x1080)
-local REFERENCE_WIDTH = 1920
-local REFERENCE_HEIGHT = 1080
-local MIN_SCALE = 0.45  -- mobile très petit
-local MAX_SCALE = 1.2   -- grand écran
+-- Résolution de référence (taille typique fenêtre Studio / petit écran)
+-- L'UI a été designée avec des tailles pixels pour ~1280x720
+local REFERENCE_WIDTH = 1280
+local REFERENCE_HEIGHT = 720
+local MIN_SCALE = 0.55  -- mobile très petit
+local MAX_SCALE = 1.0   -- ne pas agrandir au-delà de la taille originale
 
 local function calculateScale()
     local viewportSize = Camera.ViewportSize
