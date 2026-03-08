@@ -443,13 +443,30 @@ end
     @return string
 ]]
 function EconomyController:FormatNumber(number)
-    local formatted = tostring(math.floor(number))
+    local n = math.floor(number)
+    local negative = n < 0
+    if negative then n = -n end
+    local prefix = negative and "-" or ""
+
+    if n >= 1e15 then
+        return prefix .. string.format("%.1fQ", n / 1e15)
+    elseif n >= 1e12 then
+        return prefix .. string.format("%.1fT", n / 1e12)
+    elseif n >= 1e9 then
+        return prefix .. string.format("%.1fB", n / 1e9)
+    elseif n >= 1e6 then
+        return prefix .. string.format("%.1fM", n / 1e6)
+    elseif n >= 100000 then
+        return prefix .. string.format("%.1fK", n / 1e3)
+    end
+
+    local formatted = tostring(n)
     local k
     while true do
         formatted, k = string.gsub(formatted, "^(-?%d+)(%d%d%d)", "%1,%2")
         if k == 0 then break end
     end
-    return formatted
+    return prefix .. formatted
 end
 
 return EconomyController
