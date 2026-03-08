@@ -16,6 +16,10 @@ local Workspace = game:GetService("Workspace")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
+-- Responsive
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local ResponsiveScale = require(Shared["ResponsiveScale.module"])
+
 -- Data
 local Data = ReplicatedStorage:WaitForChild("Data")
 local BrainrotData = require(Data:WaitForChild("BrainrotData.module"))
@@ -145,6 +149,7 @@ local function createUI()
     screenGui.DisplayOrder = 12
     screenGui.Enabled = false
     screenGui.Parent = playerGui
+    ResponsiveScale.Apply(screenGui)
 
     -- Overlay (click to close)
     overlay = Instance.new("TextButton")

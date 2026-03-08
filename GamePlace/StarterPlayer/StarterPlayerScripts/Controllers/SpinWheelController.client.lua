@@ -21,6 +21,10 @@ local playerGui = player:WaitForChild("PlayerGui")
 local Config = ReplicatedStorage:WaitForChild("Config")
 local GameConfig = require(Config:WaitForChild("GameConfig.module"))
 
+-- Responsive
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local ResponsiveScale = require(Shared["ResponsiveScale.module"])
+
 -- Shop products (for Robux prices)
 local Data = ReplicatedStorage:WaitForChild("Data")
 local ShopProducts = require(Data:WaitForChild("ShopProducts.module"))
@@ -184,6 +188,7 @@ local function createUI()
     screenGui.DisplayOrder = 13
     screenGui.Enabled = false
     screenGui.Parent = playerGui
+    ResponsiveScale.Apply(screenGui)
 
     -- Overlay
     overlay = Instance.new("TextButton")

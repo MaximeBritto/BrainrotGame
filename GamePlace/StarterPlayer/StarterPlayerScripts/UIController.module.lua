@@ -20,6 +20,7 @@ local playerGui = player:WaitForChild("PlayerGui")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Constants = require(Shared["Constants.module"])
 local BrainrotData = require(ReplicatedStorage:WaitForChild("Data"):WaitForChild("BrainrotData.module"))
+local ResponsiveScale = require(Shared["ResponsiveScale.module"])
 
 -- ═══════════════════════════════════════════════════════
 -- CONSTANTES VISUELLES
@@ -104,12 +105,16 @@ function UIController:Init()
     screenGui.Parent = playerGui
     self._screenGui = screenGui
 
+    -- Responsive scaling
+    ResponsiveScale.Apply(screenGui)
+
     -- Créer les éléments du HUD
     self:_CreateCashDisplay(screenGui)
     self:_CreateInventoryDisplay(screenGui)
 
     -- Notifications: utiliser le NotificationUI pré-existant
     local notificationUI = playerGui:WaitForChild("NotificationUI")
+    ResponsiveScale.Apply(notificationUI)
     self._notifContainer = notificationUI:WaitForChild("Container")
     self._notifTemplate = self._notifContainer:WaitForChild("Template")
 

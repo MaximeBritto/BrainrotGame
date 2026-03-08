@@ -11,6 +11,7 @@ local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 local BrainrotData = require(ReplicatedStorage:WaitForChild("Data"):WaitForChild("BrainrotData.module"))
 local GameConfig = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("GameConfig.module"))
+local ResponsiveScale = require(ReplicatedStorage:WaitForChild("Shared")["ResponsiveScale.module"])
 
 local CodexController = {}
 CodexController._codexUnlocked = {}
@@ -152,6 +153,9 @@ function CodexController:Init()
             child:Destroy()
         end
     end
+
+    -- Responsive scaling
+    ResponsiveScale.Apply(self._codexUI)
 
     -- Build new UI
     self:_BuildUI()
