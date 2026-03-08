@@ -932,12 +932,23 @@ end
 -- ═══════════════════════════════════════════════════════
 
 local function attachPromptToMachine(luckyBlockBase)
-    -- Find a BasePart to attach the ProximityPrompt
+    -- Find the lowest BasePart (closest to ground) so the prompt is always accessible
     local targetPart = nil
     if luckyBlockBase:IsA("BasePart") then
         targetPart = luckyBlockBase
     elseif luckyBlockBase:IsA("Model") then
-        targetPart = luckyBlockBase.PrimaryPart or luckyBlockBase:FindFirstChildWhichIsA("BasePart", true)
+        local lowestPart = nil
+        local lowestY = math.huge
+        for _, desc in ipairs(luckyBlockBase:GetDescendants()) do
+            if desc:IsA("BasePart") then
+                local bottomY = desc.Position.Y - desc.Size.Y / 2
+                if bottomY < lowestY then
+                    lowestY = bottomY
+                    lowestPart = desc
+                end
+            end
+        end
+        targetPart = lowestPart or luckyBlockBase.PrimaryPart or luckyBlockBase:FindFirstChildWhichIsA("BasePart", true)
     end
 
     if not targetPart then

@@ -126,12 +126,12 @@ local GameConfig = {
         MultiplierBoost = 2.0,              -- Multiplicateur temporaire (x2)
         MultiplierDuration = 900,           -- Durée du boost en secondes (15 min)
         Rewards = {
-            { Type = "Cash",        Value = 25000,  Weight = 55.75, DisplayName = "$25K" },
-            { Type = "Cash",        Value = 100000, Weight = 34,    DisplayName = "$100K" },
-            { Type = "Cash",        Value = 1000000,Weight = 7.5,   DisplayName = "$1M" },
-            { Type = "Multiplier",  Value = 2,      Weight = 2,     DisplayName = "x2 (15 min)" },
-            { Type = "LuckyBlock",  Value = 1,      Weight = 0.5,   DisplayName = "1 Lucky Block" },
-            { Type = "LuckyBlock",  Value = 3,      Weight = 0.25,  DisplayName = "3 Lucky Blocks" },
+            { Type = "Cash",        Value = 25000,  Weight = 50, DisplayName = "$25K" },
+            { Type = "Cash",        Value = 100000, Weight = 30, DisplayName = "$100K" },
+            { Type = "Cash",        Value = 1000000,Weight = 5,  DisplayName = "$1M" },
+            { Type = "Multiplier",  Value = 2,      Weight = 5,  DisplayName = "x2 (15 min)" },
+            { Type = "LuckyBlock",  Value = 1,      Weight = 5,  DisplayName = "1 Lucky Block" },
+            { Type = "Speed",       Value = 0.2,    Weight = 5,  DisplayName = "+0.2 Speed" },
         },
     },
     -- ═══════════════════════════════════════

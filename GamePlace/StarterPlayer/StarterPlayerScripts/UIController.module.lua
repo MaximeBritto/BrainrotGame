@@ -61,7 +61,6 @@ local SLOT_TYPE_INFO = {
 local currentPlayerData = {
     Cash = 0,
     OwnedSlots = 10,
-    SlotCash = {},
     PiecesInHand = {},
 }
 
@@ -70,7 +69,6 @@ local UIController = {}
 -- Références UI
 UIController._screenGui = nil
 UIController._cashLabel = nil
-UIController._slotCashLabel = nil
 UIController._inventoryTitle = nil
 UIController._inventorySlots = {}
 UIController._craftButton = nil
@@ -187,24 +185,6 @@ function UIController:_CreateCashDisplay(parent)
     self._cashLabel = cashLabel
     self._cashFrame = cashFrame
 
-    -- SlotCash (petit texte sous le cash principal) - optionnel, masqué par défaut
-    local slotCashLabel = Instance.new("TextLabel")
-    slotCashLabel.Name = "SlotCashLabel"
-    slotCashLabel.Size = UDim2.new(0, 180, 0, 20)
-    slotCashLabel.Position = UDim2.new(0, 15, 1, -75)
-    slotCashLabel.AnchorPoint = Vector2.new(0, 1)
-    slotCashLabel.BackgroundTransparency = 1
-    slotCashLabel.Text = ""
-    slotCashLabel.TextColor3 = Color3.fromRGB(180, 255, 180)
-    slotCashLabel.TextSize = 13
-    slotCashLabel.Font = FONTS.Bold
-    slotCashLabel.TextXAlignment = Enum.TextXAlignment.Left
-    slotCashLabel.TextStrokeTransparency = 0.5
-    slotCashLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-    slotCashLabel.Visible = false
-    slotCashLabel.Parent = parent
-
-    self._slotCashLabel = slotCashLabel
 end
 
 -- ═══════════════════════════════════════════════════════
@@ -459,23 +439,6 @@ function UIController:UpdateCash(cash)
     end
 end
 
-function UIController:UpdateSlotCash(slotCash)
-    currentPlayerData.SlotCash = slotCash
-
-    local total = 0
-    for _, amount in pairs(slotCash) do
-        total = total + amount
-    end
-
-    if self._slotCashLabel then
-        if total > 0 then
-            self._slotCashLabel.Text = "Slots: $" .. self:FormatNumber(total)
-            self._slotCashLabel.Visible = true
-        else
-            self._slotCashLabel.Visible = false
-        end
-    end
-end
 
 -- ═══════════════════════════════════════════════════════
 -- MISE À JOUR DE L'INVENTAIRE
@@ -588,9 +551,6 @@ function UIController:UpdateAll(data)
         self:UpdateCash(data.Cash)
     end
 
-    if data.SlotCash ~= nil then
-        self:UpdateSlotCash(data.SlotCash)
-    end
 
     if data.PiecesInHand ~= nil then
         self:UpdateInventory(data.PiecesInHand)

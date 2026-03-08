@@ -875,11 +875,23 @@ local function setupProximityPrompt()
         return
     end
 
+    -- Find the lowest BasePart (closest to ground) so the prompt is always accessible
     local targetPart = nil
     if spinWheelBase:IsA("BasePart") then
         targetPart = spinWheelBase
     elseif spinWheelBase:IsA("Model") then
-        targetPart = spinWheelBase.PrimaryPart or spinWheelBase:FindFirstChildWhichIsA("BasePart", true)
+        local lowestPart = nil
+        local lowestY = math.huge
+        for _, desc in ipairs(spinWheelBase:GetDescendants()) do
+            if desc:IsA("BasePart") then
+                local bottomY = desc.Position.Y - desc.Size.Y / 2
+                if bottomY < lowestY then
+                    lowestY = bottomY
+                    lowestPart = desc
+                end
+            end
+        end
+        targetPart = lowestPart or spinWheelBase.PrimaryPart or spinWheelBase:FindFirstChildWhichIsA("BasePart", true)
     end
 
     if not targetPart then
