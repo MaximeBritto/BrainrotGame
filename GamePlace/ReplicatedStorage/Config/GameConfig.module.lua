@@ -63,7 +63,7 @@ local GameConfig = {
         SpawnInterval = 3,                  -- Secondes entre chaque spawn
         MaxPiecesInArena = 50,              -- Limite de pièces simultanées
         PieceLifetime = 120,                -- Secondes avant despawn auto
-        SpinnerSpeed = 0.5,                 -- Tours par seconde (0.5 = 1 tour toutes les 2 secondes)
+        SpinnerSpeed = 0.1,                 -- Tours par seconde (0.5 = 1 tour toutes les 2 secondes)
     },
     
     -- ═══════════════════════════════════════

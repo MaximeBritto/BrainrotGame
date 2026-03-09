@@ -72,16 +72,16 @@ function ArenaController:_ConnectActivePieces()
         -- Éviter les connexions multiples
         if _connectedPrompts[piece] then return end
         
-        -- Trouver le PickupZone (dans le PrimaryPart)
-        local pickupZone = nil
-        if piece.PrimaryPart then
-            pickupZone = piece.PrimaryPart:FindFirstChild("PickupZone")
+        -- Attendre que le PrimaryPart et le PickupZone soient répliqués
+        if not piece.PrimaryPart then
+            piece:GetPropertyChangedSignal("PrimaryPart"):Wait()
         end
-        
-        if not pickupZone then
-            warn("[ArenaController] PickupZone manquant dans:", piece.Name)
-            return
-        end
+        if not piece.PrimaryPart then return end
+
+        local pickupZone = piece.PrimaryPart:FindFirstChild("PickupZone")
+            or piece.PrimaryPart:WaitForChild("PickupZone", 5)
+
+        if not pickupZone then return end
         
         -- Trouver le ProximityPrompt
         local prompt = pickupZone:FindFirstChildOfClass("ProximityPrompt")
