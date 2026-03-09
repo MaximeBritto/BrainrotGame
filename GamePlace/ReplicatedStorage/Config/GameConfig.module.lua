@@ -63,7 +63,12 @@ local GameConfig = {
         SpawnInterval = 3,                  -- Secondes entre chaque spawn
         MaxPiecesInArena = 50,              -- Limite de pièces simultanées
         PieceLifetime = 120,                -- Secondes avant despawn auto
-        SpinnerSpeed = 0.1,                 -- Tours par seconde (0.5 = 1 tour toutes les 2 secondes)
+        SpinnerSpeed = 0.1,                 -- Tours par seconde du Spinner principal
+        -- Spinners supplémentaires (dans Workspace.Arena: Spinner2, Spinner3, etc.)
+        ExtraSpinners = {
+            { Name = "Spinner2", Speed = 0.2 },   -- Plus rapide, placer dans Arena
+            { Name = "Spinner3", Speed = 0.25 },   -- Encore plus rapide
+        },
     },
     
     -- ═══════════════════════════════════════

@@ -394,50 +394,45 @@ else
     end
 end
 
--- 10. Spinner Kill (Phase 4) - Mort au contact de la barre
+-- 10. Spinner Kill (Phase 4) - Mort au contact de la barre (tous les spinners)
 if ArenaSystem then
     local Workspace = game:GetService("Workspace")
     local Players = game:GetService("Players")
-    
+
     local arena = Workspace:FindFirstChild("Arena")
     if arena then
-        local spinner = arena:FindFirstChild("Spinner")
-        if spinner then
-            -- Trouver la barre mortelle (attribut Deadly = true)
-            local bar = spinner:FindFirstChild("Bar")
-            if bar and bar:IsA("BasePart") and bar:GetAttribute("Deadly") == true then
-                local debounce = {}
-                
-                bar.Touched:Connect(function(hit)
-                    local character = hit:FindFirstAncestorOfClass("Model")
-                    if not character then return end
-                    
-                    local humanoid = character:FindFirstChild("Humanoid")
-                    if not humanoid or humanoid.Health <= 0 then return end
-                    
-                    local player = Players:GetPlayerFromCharacter(character)
-                    if not player then return end
-                    
-                    -- Debounce pour éviter de tuer plusieurs fois
-                    if debounce[player.UserId] then return end
-                    debounce[player.UserId] = true
-                    
-                    -- Tuer le joueur
-                    humanoid.Health = 0
-                    -- print("[GameServer] " .. player.Name .. " tué par le Spinner")
-                    
-                    -- Réinitialiser le debounce après 3 secondes
-                    task.delay(3, function()
-                        debounce[player.UserId] = nil
+        -- Trouver tous les modèles Spinner* dans l'arène (Spinner, Spinner2, Spinner3, etc.)
+        local debounce = {}
+
+        for _, child in ipairs(arena:GetChildren()) do
+            if child.Name:match("^Spinner") then
+                local bar = child:FindFirstChild("Bar")
+                if bar and bar:IsA("BasePart") and bar:GetAttribute("Deadly") == true then
+                    bar.Touched:Connect(function(hit)
+                        local character = hit:FindFirstAncestorOfClass("Model")
+                        if not character then return end
+
+                        local humanoid = character:FindFirstChild("Humanoid")
+                        if not humanoid or humanoid.Health <= 0 then return end
+
+                        local player = Players:GetPlayerFromCharacter(character)
+                        if not player then return end
+
+                        if debounce[player.UserId] then return end
+                        debounce[player.UserId] = true
+
+                        humanoid.Health = 0
+
+                        task.delay(3, function()
+                            debounce[player.UserId] = nil
+                        end)
                     end)
-                end)
-                
-                -- print("[GameServer] Spinner Kill: activé (Bar.Deadly = true)")
-            else
-                warn("[GameServer] Spinner Bar manquante ou attribut Deadly non défini")
+
+                    print("[GameServer] Spinner Kill: " .. child.Name .. " activé")
+                else
+                    warn("[GameServer] " .. child.Name .. " Bar manquante ou attribut Deadly non défini")
+                end
             end
-        else
-            warn("[GameServer] Spinner manquant dans Arena")
         end
     else
         warn("[GameServer] Arena manquante dans Workspace")

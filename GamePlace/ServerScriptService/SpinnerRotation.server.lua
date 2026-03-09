@@ -1,6 +1,7 @@
 --[[
     SpinnerRotation.server.lua
-    Fait tourner la barre du Spinner en continu
+    Fait tourner tous les Spinners de l'arène en continu
+    Supporte plusieurs spinners avec des vitesses différentes
 ]]
 
 local RunService = game:GetService("RunService")
@@ -14,57 +15,74 @@ task.wait(1)
 local Config = ReplicatedStorage:WaitForChild("Config")
 local GameConfig = require(Config:WaitForChild("GameConfig.module"))
 
--- Récupérer le Spinner
+-- Récupérer l'arène
 local arena = Workspace:FindFirstChild("Arena")
 if not arena then
     warn("[SpinnerRotation] Arena manquante!")
     return
 end
 
-local spinner = arena:FindFirstChild("Spinner")
-if not spinner then
-    warn("[SpinnerRotation] Spinner manquant!")
-    return
+-- Liste des spinners actifs: { center, speed }
+local activeSpinners = {}
+
+-- Fonction pour initialiser un spinner
+local function setupSpinner(spinnerModel, speed)
+    local center = spinnerModel:FindFirstChild("Center")
+    local bar = spinnerModel:FindFirstChild("Bar")
+
+    if not center or not bar then
+        warn("[SpinnerRotation] Center ou Bar manquant dans " .. spinnerModel.Name .. "!")
+        return
+    end
+
+    -- Ancrer le centre
+    center.Anchored = true
+
+    -- Désactiver les collisions (la détection de mort fonctionne via Touched)
+    bar.CanCollide = false
+    center.CanCollide = false
+
+    -- Créer le WeldConstraint AVANT de désancrer la barre
+    local weld = Instance.new("WeldConstraint")
+    weld.Part0 = center
+    weld.Part1 = bar
+    weld.Parent = bar
+
+    -- Désancrer la barre maintenant que le weld la retient
+    bar.Anchored = false
+
+    table.insert(activeSpinners, {
+        center = center,
+        speed = speed,
+    })
+
+    print("[SpinnerRotation] " .. spinnerModel.Name .. " activé - Vitesse: " .. speed .. " tours/sec")
 end
 
-local center = spinner:FindFirstChild("Center")
-local bar = spinner:FindFirstChild("Bar")
-
-if not center or not bar then
-    warn("[SpinnerRotation] Center ou Bar manquant dans Spinner!")
-    return
+-- Initialiser le spinner principal
+local mainSpinner = arena:FindFirstChild("Spinner")
+if mainSpinner then
+    local mainSpeed = GameConfig.Arena.SpinnerSpeed or 0.1
+    setupSpinner(mainSpinner, mainSpeed)
+else
+    warn("[SpinnerRotation] Spinner principal manquant!")
 end
 
--- Vérifier que Center est ancré et Bar ne l'est pas
-center.Anchored = true
-bar.Anchored = false
+-- Initialiser les spinners supplémentaires depuis la config
+local extraSpinners = GameConfig.Arena.ExtraSpinners or {}
+for _, spinnerConfig in ipairs(extraSpinners) do
+    local spinnerModel = arena:FindFirstChild(spinnerConfig.Name)
+    if spinnerModel then
+        setupSpinner(spinnerModel, spinnerConfig.Speed)
+    else
+        warn("[SpinnerRotation] " .. spinnerConfig.Name .. " manquant dans Arena!")
+    end
+end
 
--- Désactiver les collisions pour éviter l'effet "batte de baseball"
--- La détection de mort fonctionne toujours via Touched
-bar.CanCollide = false
-center.CanCollide = false
-
--- Créer un WeldConstraint pour attacher la barre au centre
-local weld = Instance.new("WeldConstraint")
-weld.Part0 = center
-weld.Part1 = bar
-weld.Parent = bar
-
--- Position initiale de la barre (offset depuis le centre)
-local offset = bar.Position - center.Position
-local offsetCFrame = CFrame.new(offset)
-
--- Vitesse de rotation (tours par seconde)
-local spinSpeed = GameConfig.Arena.SpinnerSpeed or 2
-local angle = 0
-
--- print("[SpinnerRotation] Rotation du Spinner activée - Vitesse: " .. spinSpeed .. " tours/sec")
-
--- Boucle de rotation
+-- Boucle de rotation pour tous les spinners
 RunService.Heartbeat:Connect(function(deltaTime)
-    -- Incrémenter l'angle
-    angle = angle + (deltaTime * 2 * math.pi * spinSpeed)
-    
-    -- Appliquer la rotation au centre (qui entraîne la barre via le weld)
-    center.CFrame = center.CFrame * CFrame.Angles(0, deltaTime * 2 * math.pi * spinSpeed, 0)
+    for _, spinner in ipairs(activeSpinners) do
+        local rotationAngle = deltaTime * 2 * math.pi * spinner.speed
+        spinner.center.CFrame = spinner.center.CFrame * CFrame.Angles(0, rotationAngle, 0)
+    end
 end)
