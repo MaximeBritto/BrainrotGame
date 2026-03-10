@@ -634,6 +634,156 @@ local BrainrotData = {
 				SpawnWeight = 10,
 			},
 		},
+		
+		["ElcrococrocoDilito"] = {
+			Rarity = "Common",
+			Head = {
+				Price = 170,
+				DisplayName = "Elcroco",
+				ModelName = "ElcrococrocoDilito_Head",
+				TemplateName = "Elcroco",  -- Template dans HeadTemplate folder
+				SpawnWeight = 10,
+			},
+			Body = {
+				Price = 180,
+				DisplayName = "croco",
+				ModelName = "ElcrococrocoDilito_Body",
+				TemplateName = "croco",  -- Template dans BodyTemplate folder
+				SpawnWeight = 10,
+			},
+			Legs = {
+				Price = 165,
+				DisplayName = "Dilito",
+				ModelName = "ElcrococrocoDilito_Legs",
+				TemplateName = "Dilito",  -- Template dans LegsTemplate folder
+				SpawnWeight = 10,
+			},
+		},
+		
+		["DinossauroNuclearo"] = {
+			Rarity = "Common",
+			Head = {
+				Price = 175,
+				DisplayName = "Dinossauro",
+				ModelName = "DinossauroNuclearo_Head",
+				TemplateName = "Dinossauro",  -- Template dans HeadTemplate folder
+				SpawnWeight = 10,
+			},
+			Body = {
+				Price = 185,
+				DisplayName = "sauro",
+				ModelName = "DinossauroNuclearo_Body",
+				TemplateName = "sauro",  -- Template dans BodyTemplate folder
+				SpawnWeight = 10,
+			},
+			Legs = {
+				Price = 170,
+				DisplayName = "Nuclearo",
+				ModelName = "DinossauroNuclearo_Legs",
+				TemplateName = "Nuclearo",  -- Template dans LegsTemplate folder
+				SpawnWeight = 10,
+			},
+		},
+		
+		["ChefCrabracadabra"] = {
+			Rarity = "Common",
+			Head = {
+				Price = 180,
+				DisplayName = "Chef",
+				ModelName = "ChefCrabracadabra_Head",
+				TemplateName = "Chef",  -- Template dans HeadTemplate folder
+				SpawnWeight = 10,
+			},
+			Body = {
+				Price = 190,
+				DisplayName = "Crabra",
+				ModelName = "ChefCrabracadabra_Body",
+				TemplateName = "Crabra",  -- Template dans BodyTemplate folder
+				SpawnWeight = 10,
+			},
+			Legs = {
+				Price = 175,
+				DisplayName = "cadabra",
+				ModelName = "ChefCrabracadabra_Legs",
+				TemplateName = "cadabra",  -- Template dans LegsTemplate folder
+				SpawnWeight = 10,
+			},
+		},
+		
+		["AvocadoGorille"] = {
+			Rarity = "Common",
+			Head = {
+				Price = 185,
+				DisplayName = "avo",
+				ModelName = "AvocadoGorille_Head",
+				TemplateName = "avo",  -- Template dans HeadTemplate folder
+				SpawnWeight = 10,
+			},
+			Body = {
+				Price = 195,
+				DisplayName = "cado",
+				ModelName = "AvocadoGorille_Body",
+				TemplateName = "cado",  -- Template dans BodyTemplate folder
+				SpawnWeight = 10,
+			},
+			Legs = {
+				Price = 180,
+				DisplayName = "Gorilla",
+				ModelName = "AvocadoGorille_Legs",
+				TemplateName = "Gorilla",  -- Template dans LegsTemplate folder
+				SpawnWeight = 10,
+			},
+		},
+		
+		["PapePaperoBetonino"] = {
+			Rarity = "Common",
+			Head = {
+				Price = 190,
+				DisplayName = "Pape",
+				ModelName = "PapePaperoBetonino_Head",
+				TemplateName = "Pape",  -- Template dans HeadTemplate folder
+				SpawnWeight = 10,
+			},
+			Body = {
+				Price = 200,
+				DisplayName = "Papero",
+				ModelName = "PapePaperoBetonino_Body",
+				TemplateName = "Papero",  -- Template dans BodyTemplate folder
+				SpawnWeight = 10,
+			},
+			Legs = {
+				Price = 185,
+				DisplayName = "Betonino",
+				ModelName = "PapePaperoBetonino_Legs",
+				TemplateName = "Betonino",  -- Template dans LegsTemplate folder
+				SpawnWeight = 10,
+			},
+		},
+		
+		["KoalaTostinoGrillini"] = {
+			Rarity = "Common",
+			Head = {
+				Price = 195,
+				DisplayName = "Koala",
+				ModelName = "KoalaTostinoGrillini_Head",
+				TemplateName = "Koala",  -- Template dans HeadTemplate folder
+				SpawnWeight = 10,
+			},
+			Body = {
+				Price = 205,
+				DisplayName = "Tostino",
+				ModelName = "KoalaTostinoGrillini_Body",
+				TemplateName = "Tostino",  -- Template dans BodyTemplate folder
+				SpawnWeight = 10,
+			},
+			Legs = {
+				Price = 190,
+				DisplayName = "Grillini",
+				ModelName = "KoalaTostinoGrillini_Legs",
+				TemplateName = "Grillini",  -- Template dans LegsTemplate folder
+				SpawnWeight = 10,
+			},
+		},
     },
     
     -- ═══════════════════════════════════════
