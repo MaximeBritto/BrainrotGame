@@ -518,7 +518,7 @@ function NetworkHandler:_HandleCraft(player, slotIndex)
     
     if success then
         -- Construire le message
-        local message = craftData.SetName .. " Brainrot crafted!"
+        local message = craftData.SetName .. " crafted! -$" .. craftData.CraftCost
         if craftData.IsCompleteSet then
             message = message .. " Complete set! +$" .. craftData.Bonus
         end

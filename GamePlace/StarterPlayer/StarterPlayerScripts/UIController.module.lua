@@ -195,7 +195,7 @@ function UIController:_CreateInventoryDisplay(parent)
     -- Container
     local invContainer = Instance.new("Frame")
     invContainer.Name = "InventoryDisplay"
-    invContainer.Size = UDim2.new(0, 310, 0, 145)
+    invContainer.Size = UDim2.new(0, 310, 0, 170)
     invContainer.Position = UDim2.new(1, -15, 1, -15)
     invContainer.AnchorPoint = Vector2.new(1, 1)
     invContainer.BackgroundTransparency = 1
@@ -217,11 +217,29 @@ function UIController:_CreateInventoryDisplay(parent)
 
     self._inventoryTitle = title
 
+    -- Label prix total (en dessous du titre)
+    local priceTotalLabel = Instance.new("TextLabel")
+    priceTotalLabel.Name = "PriceTotalLabel"
+    priceTotalLabel.Size = UDim2.new(1, 0, 0, 28)
+    priceTotalLabel.Position = UDim2.new(0, 0, 0, 20)
+    priceTotalLabel.BackgroundTransparency = 1
+    priceTotalLabel.Text = ""
+    priceTotalLabel.TextColor3 = Color3.fromRGB(255, 210, 60)
+    priceTotalLabel.TextSize = 22
+    priceTotalLabel.Font = FONTS.Black
+    priceTotalLabel.TextXAlignment = Enum.TextXAlignment.Right
+    priceTotalLabel.TextStrokeTransparency = 0.5
+    priceTotalLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    priceTotalLabel.Visible = false
+    priceTotalLabel.Parent = invContainer
+
+    self._priceTotalLabel = priceTotalLabel
+
     -- Container pour les 3 slots
     local slotsContainer = Instance.new("Frame")
     slotsContainer.Name = "SlotsContainer"
     slotsContainer.Size = UDim2.new(1, 0, 0, 115)
-    slotsContainer.Position = UDim2.new(0, 0, 0, 26)
+    slotsContainer.Position = UDim2.new(0, 0, 0, 50)
     slotsContainer.BackgroundTransparency = 1
     slotsContainer.Parent = invContainer
 
@@ -494,6 +512,20 @@ function UIController:UpdateInventory(pieces)
                 slotData.Stroke.Transparency = 0.3
             end
             slotData.TypeLabel.TextColor3 = Color3.fromRGB(180, 180, 190)
+        end
+    end
+
+    -- Afficher/masquer le prix total cumulé
+    if self._priceTotalLabel then
+        if #pieces >= 1 then
+            local total = 0
+            for _, piece in ipairs(pieces) do
+                total = total + (piece.Price or 0)
+            end
+            self._priceTotalLabel.Text = "Craft cost: $" .. self:FormatNumber(total)
+            self._priceTotalLabel.Visible = true
+        else
+            self._priceTotalLabel.Visible = false
         end
     end
 

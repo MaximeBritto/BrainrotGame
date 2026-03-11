@@ -21,6 +21,7 @@ local InventorySystem = nil
 local PlacementSystem = nil
 
 local FusionSystem = nil
+local EconomySystem = nil
 
 local CraftingSystem = {}
 CraftingSystem._initialized = false
@@ -43,6 +44,7 @@ function CraftingSystem:Init(services)
     InventorySystem = services.InventorySystem
     PlacementSystem = services.PlacementSystem
     FusionSystem = services.FusionSystem
+    EconomySystem = services.EconomySystem
     
     if not DataService or not PlayerService or not InventorySystem or not PlacementSystem then
         error("[CraftingSystem] Services manquants!")
@@ -170,7 +172,17 @@ function CraftingSystem:TryCraft(player, requestedSlotIndex)
         return false, Constants.ActionResult.NoSlotAvailable, nil
     end
     
-    -- 4. Déterminer le set crafté
+    -- 4. Calculer et vérifier le coût total des pièces
+    local craftCost = 0
+    for _, piece in ipairs(pieces) do
+        craftCost = craftCost + (piece.Price or 0)
+    end
+
+    if EconomySystem and not EconomySystem:CanAfford(player, craftCost) then
+        return false, Constants.ActionResult.NotEnoughMoney, nil
+    end
+
+    -- 5. Déterminer le set crafté
     local setName = self:GetCraftableSet(pieces)
     local isCompleteSet = self:IsCompleteSet(pieces)
     
@@ -198,7 +210,12 @@ function CraftingSystem:TryCraft(player, requestedSlotIndex)
         warn("[CraftingSystem] Échec placement Brainrot")
         return false, Constants.ActionResult.NoSlotAvailable, nil
     end
-    
+
+    -- 6.5. Déduire le coût du craft
+    if EconomySystem and craftCost > 0 then
+        EconomySystem:RemoveCash(player, craftCost)
+    end
+
     -- 7. Débloquer dans le Codex (chaque part utilisée dans le craft)
     DataService:UnlockCodexPart(player, headPiece.SetName, "Head")
     DataService:UnlockCodexPart(player, bodyPiece.SetName, "Body")
@@ -225,6 +242,7 @@ function CraftingSystem:TryCraft(player, requestedSlotIndex)
         SlotIndex = slotIndex,
         IsCompleteSet = isCompleteSet,
         Bonus = bonus,
+        CraftCost = craftCost,
     }
 end
 

@@ -115,7 +115,7 @@ local function createPlacePrompts()
 			if platform and not hasBrainrot and platform.Transparency < 1 then
 				local prompt = Instance.new("ProximityPrompt")
 				prompt.Name = "PlacePrompt"
-				prompt.ActionText = "Placer"
+				prompt.ActionText = "Place"
 				prompt.ObjectText = "Brainrot volé"
 				prompt.HoldDuration = 0
 				prompt.MaxActivationDistance = 8
@@ -178,7 +178,7 @@ local function createCraftPlacePrompts()
 			if platform and not hasBrainrot and platform.Transparency < 1 then
 				local prompt = Instance.new("ProximityPrompt")
 				prompt.Name = "CraftPlacePrompt"
-				prompt.ActionText = "Placer"
+				prompt.ActionText = "Place"
 				prompt.ObjectText = "Brainrot"
 				prompt.HoldDuration = 0
 				prompt.MaxActivationDistance = 8
@@ -316,6 +316,20 @@ ProximityPromptService.PromptTriggered:Connect(function(promptObject, playerWhoT
 			remotes.Craft:FireServer(slotIndex)
 		end
 		return
+	end
+end)
+
+---
+-- Écoute SyncPlayerData pour rafraîchir les prompts quand les slots changent (ex: vente)
+---
+local syncPlayerData = remotes:WaitForChild("SyncPlayerData")
+syncPlayerData.OnClientEvent:Connect(function(data)
+	if data.PlacedBrainrots then
+		if _isCarrying then
+			createPlacePrompts()
+		elseif _isCraftReady then
+			createCraftPlacePrompts()
+		end
 	end
 end)
 

@@ -467,6 +467,7 @@ if CraftingSystem and PlacementSystem then
         PlayerService = PlayerService,
         InventorySystem = InventorySystem,
         PlacementSystem = PlacementSystem,
+        EconomySystem = EconomySystem,
     })
     -- print("[GameServer] CraftingSystem: OK")
     
