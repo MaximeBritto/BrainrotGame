@@ -150,17 +150,38 @@ function ArenaSystem:_AddHighlightToPiece(piece, pieceType, setName)
     -- Trouver le BillboardGui existant avec le nom/prix et ajouter le TypeLabel dedans
     local existingBillboard = primaryPart:FindFirstChildOfClass("BillboardGui")
 
+    -- Récupérer le GainPerSec depuis BrainrotData
+    local gainPerSec = 0
+    if setName and BrainrotData.Sets[setName] and BrainrotData.Sets[setName][pieceType] then
+        gainPerSec = BrainrotData.Sets[setName][pieceType].GainPerSec or 0
+    end
+
     if existingBillboard then
-        -- Augmenter la taille du BillboardGui pour faire de la place pour le TypeLabel
+        -- Augmenter la taille du BillboardGui pour TypeLabel + GainLabel
         local originalSize = existingBillboard.Size
         existingBillboard.Size = UDim2.new(originalSize.X.Scale, originalSize.X.Offset,
-                                           originalSize.Y.Scale, originalSize.Y.Offset + 30)
+                                           originalSize.Y.Scale, originalSize.Y.Offset + 52)
 
         -- Décaler le StudsOffset pour compenser l'agrandissement
         local originalOffset = existingBillboard.StudsOffset
-        existingBillboard.StudsOffset = Vector3.new(originalOffset.X, originalOffset.Y + 1, originalOffset.Z)
+        existingBillboard.StudsOffset = Vector3.new(originalOffset.X, originalOffset.Y + 1.5, originalOffset.Z)
 
-        -- TypeLabel : couleur nude par type, sobre (ne ressemble pas aux raretés)
+        -- GainLabel : gain par seconde en vert, tout en haut
+        local gainLabel = Instance.new("TextLabel")
+        gainLabel.Name = "GainLabel"
+        gainLabel.Size = UDim2.new(1, 0, 0, 22)
+        gainLabel.Position = UDim2.new(0, 0, 0, 22)
+        gainLabel.BackgroundTransparency = 1
+        gainLabel.Text = gainPerSec .. "/s"
+        gainLabel.TextColor3 = Color3.fromRGB(100, 220, 100)
+        gainLabel.TextScaled = true
+        gainLabel.Font = Enum.Font.GothamBold
+        gainLabel.TextStrokeTransparency = 0.3
+        gainLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+        gainLabel.Visible = true
+        gainLabel.Parent = existingBillboard
+
+        -- TypeLabel : couleur nude par type, sobre
         local typeLabel = Instance.new("TextLabel")
         typeLabel.Name = "TypeLabel"
         typeLabel.Size = UDim2.new(1, 0, 0, 22)
@@ -178,14 +199,14 @@ function ArenaSystem:_AddHighlightToPiece(piece, pieceType, setName)
         -- NameLabel : couleur selon la RARETÉ
         local nameLabel = existingBillboard:FindFirstChild("NameLabel")
         if nameLabel and nameLabel:IsA("TextLabel") then
-            nameLabel.Position = UDim2.new(0, 0, 0, 22)
+            nameLabel.Position = UDim2.new(0, 0, 0, 44)
             nameLabel.Size = UDim2.new(1, 0, 0, 32)
             nameLabel.TextColor3 = rarityColor
         end
 
         local priceLabel = existingBillboard:FindFirstChild("PriceLabel")
         if priceLabel and priceLabel:IsA("TextLabel") then
-            priceLabel.Position = UDim2.new(0, 0, 0, 54)
+            priceLabel.Position = UDim2.new(0, 0, 0, 76)
             priceLabel.Size = UDim2.new(1, 0, 0, 40)
         end
     end
@@ -800,12 +821,13 @@ function ArenaSystem:SpawnRandomPiece()
     piece:SetAttribute("SetName", setName)
     piece:SetAttribute("PieceType", pieceType)
     piece:SetAttribute("Price", pieceInfo.Price)
+    piece:SetAttribute("GainPerSec", pieceInfo.GainPerSec or 0)
     piece:SetAttribute("DisplayName", pieceInfo.DisplayName)
     piece:SetAttribute("SpawnedAt", tick())
-    
+
     -- Nom du modèle
     piece.Name = pieceId
-    
+
     -- Mettre à jour le BillboardGui dans PrimaryPart
     local primaryPart = piece.PrimaryPart
     if primaryPart then
@@ -928,12 +950,13 @@ function ArenaSystem:_SpawnSpecificPiece(setName, pieceType, pieceInfo, template
     piece:SetAttribute("SetName", setName)
     piece:SetAttribute("PieceType", pieceType)
     piece:SetAttribute("Price", pieceInfo.Price)
+    piece:SetAttribute("GainPerSec", pieceInfo.GainPerSec or 0)
     piece:SetAttribute("DisplayName", pieceInfo.DisplayName)
     piece:SetAttribute("SpawnedAt", tick())
-    
+
     -- Nom du modèle
     piece.Name = pieceId
-    
+
     -- Mettre à jour le BillboardGui dans PrimaryPart
     local primaryPart = piece.PrimaryPart
     if primaryPart then

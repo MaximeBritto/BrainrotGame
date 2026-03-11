@@ -353,13 +353,13 @@ function EconomySystem:_ProcessPlayerRevenue(player)
 
             local slotRevenue = 0
             if headSetData and headSetData.Head then
-                slotRevenue = slotRevenue + (headSetData.Head.Price or 0)
+                slotRevenue = slotRevenue + (headSetData.Head.GainPerSec or 0)
             end
             if bodySetData and bodySetData.Body then
-                slotRevenue = slotRevenue + (bodySetData.Body.Price or 0)
+                slotRevenue = slotRevenue + (bodySetData.Body.GainPerSec or 0)
             end
             if legsSetData and legsSetData.Legs then
-                slotRevenue = slotRevenue + (legsSetData.Legs.Price or 0)
+                slotRevenue = slotRevenue + (legsSetData.Legs.GainPerSec or 0)
             end
 
             -- Appliquer le multiplicateur
