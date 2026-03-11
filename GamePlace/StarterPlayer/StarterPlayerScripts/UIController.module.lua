@@ -71,7 +71,7 @@ UIController._screenGui = nil
 UIController._cashLabel = nil
 UIController._inventoryTitle = nil
 UIController._inventorySlots = {}
-UIController._craftButton = nil
+UIController._craftLabel = nil
 UIController._dropButton = nil
 UIController._notifContainer = nil
 UIController._notifTemplate = nil
@@ -239,52 +239,40 @@ function UIController:_CreateInventoryDisplay(parent)
         self._inventorySlots[i] = slot
     end
 
-    -- Bouton Craft (au-dessus de l'inventaire, centré)
-    local craftButton = Instance.new("TextButton")
-    craftButton.Name = "CraftButton"
-    craftButton.Size = UDim2.new(0, 200, 0, 40)
-    craftButton.Position = UDim2.new(1, -55, 0, -48)
-    craftButton.AnchorPoint = Vector2.new(1, 0)
-    craftButton.BackgroundColor3 = COLORS.CraftGreen
-    craftButton.BorderSizePixel = 0
-    craftButton.Text = "CRAFT!"
-    craftButton.TextColor3 = COLORS.White
-    craftButton.TextSize = 20
-    craftButton.Font = FONTS.Black
-    craftButton.Visible = false
-    craftButton.AutoButtonColor = false
-    craftButton.Parent = invContainer
+    -- Message Craft (au-dessus de l'inventaire, centré) - remplace l'ancien bouton
+    local craftLabel = Instance.new("TextLabel")
+    craftLabel.Name = "CraftLabel"
+    craftLabel.Size = UDim2.new(1, 0, 0, 40)
+    craftLabel.Position = UDim2.new(0, 0, 0, -48)
+    craftLabel.AnchorPoint = Vector2.new(0, 0)
+    craftLabel.BackgroundColor3 = COLORS.CraftGreen
+    craftLabel.BackgroundTransparency = 0.15
+    craftLabel.BorderSizePixel = 0
+    craftLabel.Text = "Go place your Brainrot at your base!"
+    craftLabel.TextColor3 = COLORS.White
+    craftLabel.TextSize = 16
+    craftLabel.Font = FONTS.Black
+    craftLabel.Visible = false
+    craftLabel.Parent = invContainer
 
     local craftCorner = Instance.new("UICorner")
     craftCorner.CornerRadius = UDim.new(0, 10)
-    craftCorner.Parent = craftButton
+    craftCorner.Parent = craftLabel
 
     local craftStroke = Instance.new("UIStroke")
     craftStroke.Color = Color3.fromRGB(0, 255, 0)
     craftStroke.Thickness = 2
     craftStroke.Transparency = 0.5
-    craftStroke.Parent = craftButton
+    craftStroke.Parent = craftLabel
 
-    -- Hover effect
-    craftButton.MouseEnter:Connect(function()
-        TweenService:Create(craftButton, TweenInfo.new(0.15), {
-            BackgroundColor3 = Color3.fromRGB(0, 230, 0)
-        }):Play()
-    end)
-    craftButton.MouseLeave:Connect(function()
-        TweenService:Create(craftButton, TweenInfo.new(0.15), {
-            BackgroundColor3 = craftButton:GetAttribute("CraftColor") or COLORS.CraftGreen
-        }):Play()
-    end)
-
-    self._craftButton = craftButton
+    self._craftLabel = craftLabel
 
     -- Bouton Drop (à gauche du Craft, visible dès 1 pièce)
     local dropButton = Instance.new("TextButton")
     dropButton.Name = "DropButton"
-    dropButton.Size = UDim2.new(0, 95, 0, 40)
-    dropButton.Position = UDim2.new(1, -260, 0, -48)
-    dropButton.AnchorPoint = Vector2.new(1, 0)
+    dropButton.Size = UDim2.new(1, 0, 0, 40)
+    dropButton.Position = UDim2.new(0, 0, 0, -96)
+    dropButton.AnchorPoint = Vector2.new(0, 0)
     dropButton.BackgroundColor3 = COLORS.DropRed
     dropButton.BorderSizePixel = 0
     dropButton.Text = "DROP"
@@ -514,9 +502,9 @@ function UIController:UpdateInventory(pieces)
         self._dropButton.Visible = (#pieces >= 1)
     end
 
-    -- Afficher/masquer le bouton Craft
-    if self._craftButton then
-        self._craftButton.Visible = (#pieces >= 3)
+    -- Afficher/masquer le message Craft
+    if self._craftLabel then
+        self._craftLabel.Visible = (#pieces >= 3)
 
         if #pieces >= 3 then
             local hasHead = false
@@ -530,14 +518,16 @@ function UIController:UpdateInventory(pieces)
             end
 
             if hasHead and hasBody and hasLegs then
-                self._craftButton.BackgroundColor3 = COLORS.CraftGreen
-                self._craftButton:SetAttribute("CraftColor", COLORS.CraftGreen)
-                self._craftButton.Text = "CRAFT!"
+                self._craftLabel.BackgroundColor3 = COLORS.CraftGreen
+                self._craftLabel.Text = "Go place your Brainrot at your base!"
+                self._craftReady = true
             else
-                self._craftButton.BackgroundColor3 = COLORS.CraftYellow
-                self._craftButton:SetAttribute("CraftColor", COLORS.CraftYellow)
-                self._craftButton.Text = "Need 3 types"
+                self._craftLabel.BackgroundColor3 = COLORS.CraftYellow
+                self._craftLabel.Text = "Need 3 different types!"
+                self._craftReady = false
             end
+        else
+            self._craftReady = false
         end
     end
 end
@@ -742,8 +732,8 @@ function UIController:GetRarityColor(setName)
     return Color3.fromRGB(100, 100, 200)
 end
 
-function UIController:GetCraftButton()
-    return self._craftButton
+function UIController:IsCraftReady()
+    return self._craftReady == true
 end
 
 function UIController:GetDropButton()

@@ -8,13 +8,19 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local Workspace = game:GetService("Workspace")
 
+-- Modules
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Constants = require(Shared["Constants.module"])
+
 -- Variables
 local player = Players.LocalPlayer
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
 
 -- État local
 local _isCarrying = false
-local _placePrompts = {} -- ProximityPrompts créés pour les slots vides
+local _placePrompts = {} -- ProximityPrompts créés pour les slots vides (brainrot volé)
+local _isCraftReady = false
+local _craftPlacePrompts = {} -- ProximityPrompts créés pour le craft
 
 -- Le modèle 3D porté est désormais géré côté serveur (StealSystem)
 -- pour être visible par tous les joueurs
@@ -136,6 +142,69 @@ local function removePlacePrompts()
 end
 
 -- ═══════════════════════════════════════════════════════
+-- CRAFT PLACE PROMPTS (placer un brainrot crafté sur un slot)
+-- ═══════════════════════════════════════════════════════
+
+---
+-- Crée des ProximityPrompts "CraftPlacePrompt" sur les slots vides
+---
+local function createCraftPlacePrompts()
+	-- D'abord nettoyer les anciens
+	for _, prompt in ipairs(_craftPlacePrompts) do
+		if prompt and prompt.Parent then
+			prompt:Destroy()
+		end
+	end
+	_craftPlacePrompts = {}
+
+	local playerBase = findPlayerBase()
+	if not playerBase then return end
+
+	local slotsFolder = playerBase:FindFirstChild("Slots")
+	if not slotsFolder then return end
+
+	for _, slot in ipairs(slotsFolder:GetChildren()) do
+		local slotIndex = tonumber(slot.Name:match("^Slot_(%d+)$"))
+		if slotIndex then
+			local hasBrainrot = false
+			for _, child in ipairs(slot:GetChildren()) do
+				if child:IsA("Model") and child.Name:match("^Brainrot_") then
+					hasBrainrot = true
+					break
+				end
+			end
+
+			local platform = slot:FindFirstChild("Platform")
+			if platform and not hasBrainrot and platform.Transparency < 1 then
+				local prompt = Instance.new("ProximityPrompt")
+				prompt.Name = "CraftPlacePrompt"
+				prompt.ActionText = "Placer"
+				prompt.ObjectText = "Brainrot"
+				prompt.HoldDuration = 0
+				prompt.MaxActivationDistance = 8
+				prompt.RequiresLineOfSight = false
+				prompt.KeyboardKeyCode = Enum.KeyCode.E
+				prompt:SetAttribute("SlotIndex", slotIndex)
+				prompt.Parent = platform
+				table.insert(_craftPlacePrompts, prompt)
+			end
+		end
+	end
+end
+
+---
+-- Supprime tous les CraftPlacePrompts
+---
+local function removeCraftPlacePrompts()
+	for _, prompt in ipairs(_craftPlacePrompts) do
+		if prompt and prompt.Parent then
+			prompt:Destroy()
+		end
+	end
+	_craftPlacePrompts = {}
+end
+
+-- ═══════════════════════════════════════════════════════
 -- ÉVÉNEMENTS REMOTES
 -- ═══════════════════════════════════════════════════════
 
@@ -146,10 +215,48 @@ local syncCarried = remotes:WaitForChild("SyncCarriedBrainrot")
 syncCarried.OnClientEvent:Connect(function(carriedData)
 	if carriedData then
 		_isCarrying = true
+		_isCraftReady = false
+		removeCraftPlacePrompts()
 		createPlacePrompts()
 	else
 		_isCarrying = false
 		removePlacePrompts()
+	end
+end)
+
+---
+-- Écoute SyncInventory pour savoir si on peut crafter (3 pièces avec Head+Body+Legs)
+---
+local syncInventory = remotes:WaitForChild("SyncInventory")
+syncInventory.OnClientEvent:Connect(function(pieces)
+	if _isCarrying then
+		-- Si on porte un brainrot volé, pas de craft prompts
+		_isCraftReady = false
+		removeCraftPlacePrompts()
+		return
+	end
+
+	if pieces and #pieces >= 3 then
+		local hasHead = false
+		local hasBody = false
+		local hasLegs = false
+
+		for _, piece in ipairs(pieces) do
+			if piece.PieceType == Constants.PieceType.Head then hasHead = true end
+			if piece.PieceType == Constants.PieceType.Body then hasBody = true end
+			if piece.PieceType == Constants.PieceType.Legs then hasLegs = true end
+		end
+
+		if hasHead and hasBody and hasLegs then
+			_isCraftReady = true
+			createCraftPlacePrompts()
+		else
+			_isCraftReady = false
+			removeCraftPlacePrompts()
+		end
+	else
+		_isCraftReady = false
+		removeCraftPlacePrompts()
 	end
 end)
 
@@ -194,7 +301,19 @@ ProximityPromptService.PromptTriggered:Connect(function(promptObject, playerWhoT
 		local slotIndex = promptObject:GetAttribute("SlotIndex")
 		if slotIndex then
 			remotes.PlaceStolenBrainrot:FireServer(slotIndex)
-			-- print(string.format("[StealController] Placement envoyé au serveur (slot: %d)", slotIndex))
+		end
+		return
+	end
+
+	-- Handle CraftPlacePrompt (crafter et placer sur un slot)
+	if promptObject.Name == "CraftPlacePrompt" then
+		if not _isCraftReady then return end
+
+		local slotIndex = promptObject:GetAttribute("SlotIndex")
+		if slotIndex then
+			_isCraftReady = false
+			removeCraftPlacePrompts()
+			remotes.Craft:FireServer(slotIndex)
 		end
 		return
 	end

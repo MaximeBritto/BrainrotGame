@@ -112,16 +112,7 @@ local activateDoor = Remotes:WaitForChild("ActivateDoor")
 local dropPieces = Remotes:WaitForChild("DropPieces")
 local collectSlotCash = Remotes:WaitForChild("CollectSlotCash")
 
--- ═══════════════════════════════════════════════════════
--- BOUTON CRAFT
--- ═══════════════════════════════════════════════════════
-
-local craftButton = UIController:GetCraftButton()
-if craftButton then
-    craftButton.MouseButton1Click:Connect(function()
-        craft:FireServer()
-    end)
-end
+-- Le craft se fait maintenant via ProximityPrompt sur les slots (voir StealController)
 
 -- ═══════════════════════════════════════════════════════
 -- BOUTON DROP

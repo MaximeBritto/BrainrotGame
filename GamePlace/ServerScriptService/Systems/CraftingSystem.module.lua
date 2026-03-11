@@ -143,7 +143,7 @@ end
     @param player: Player
     @return success: boolean, result: string (ActionResult), craftData: table | nil
 ]]
-function CraftingSystem:TryCraft(player)
+function CraftingSystem:TryCraft(player, requestedSlotIndex)
     if not self._initialized then
         return false, Constants.ActionResult.InvalidPiece, nil
     end
@@ -155,16 +155,16 @@ function CraftingSystem:TryCraft(player)
 
     -- 1. Récupérer les pièces en main
     local pieces = InventorySystem:GetPiecesInHand(player)
-    
+
     -- 2. Valider les pièces
     local valid, errorMsg = self:ValidateCraft(pieces)
     if not valid then
         warn("[CraftingSystem] Validation échouée: " .. (errorMsg or "unknown"))
         return false, Constants.ActionResult.MissingPieces, nil
     end
-    
-    -- 3. Trouver un slot libre
-    local slotIndex = PlacementSystem:FindAvailableSlot(player)
+
+    -- 3. Utiliser le slot demandé ou trouver un slot libre
+    local slotIndex = requestedSlotIndex or PlacementSystem:FindAvailableSlot(player)
     if not slotIndex then
         warn("[CraftingSystem] Aucun slot disponible pour " .. player.Name)
         return false, Constants.ActionResult.NoSlotAvailable, nil

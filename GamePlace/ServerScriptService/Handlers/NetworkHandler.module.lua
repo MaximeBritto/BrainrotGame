@@ -126,8 +126,8 @@ function NetworkHandler:_ConnectHandlers()
     
     -- Craft (Phase 5)
     if remotes.Craft then
-        remotes.Craft.OnServerEvent:Connect(function(player)
-            self:_HandleCraft(player)
+        remotes.Craft.OnServerEvent:Connect(function(player, slotIndex)
+            self:_HandleCraft(player, slotIndex)
         end)
     end
     
@@ -496,16 +496,25 @@ function NetworkHandler:_HandlePickupPiece(player, pieceId)
     end
 end
 
-function NetworkHandler:_HandleCraft(player)
+function NetworkHandler:_HandleCraft(player, slotIndex)
     print("[NetworkHandler] Craft reçu de " .. player.Name)
-    
+
     if not CraftingSystem then
         self:_SendNotification(player, "Error", "Crafting system not initialized")
         return
     end
-    
+
+    -- Valider le slotIndex si fourni
+    if slotIndex ~= nil then
+        slotIndex = tonumber(slotIndex)
+        if not slotIndex then
+            self:_SendNotification(player, "Error", "Invalid slot", 2)
+            return
+        end
+    end
+
     -- Tenter de crafter
-    local success, result, craftData = CraftingSystem:TryCraft(player)
+    local success, result, craftData = CraftingSystem:TryCraft(player, slotIndex)
     
     if success then
         -- Construire le message
