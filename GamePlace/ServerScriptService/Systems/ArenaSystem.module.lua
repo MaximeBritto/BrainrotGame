@@ -17,10 +17,9 @@ local Constants = nil
 
 local ArenaSystem = {}
 ArenaSystem._initialized = false
-ArenaSystem._pieces = {}  -- [pieceId] = {Model = piece, SpawnedAt = tick()}
-ArenaSystem._spawnLoopRunning = false
-ArenaSystem._cleanupLoopRunning = false
-ArenaSystem._spawnZone = nil
+ArenaSystem._pieces = {}  -- [pieceId] = {Model, SpawnedAt, ZoneName, Lifetime}
+ArenaSystem._loopsRunning = false
+ArenaSystem._spawnZones = {}  -- [{Parts, Center, Config, Name}]
 ArenaSystem._piecesFolder = nil
 ArenaSystem._headTemplates = nil
 ArenaSystem._bodyTemplates = nil
@@ -56,11 +55,65 @@ function ArenaSystem:Init(services)
         return
     end
     
-    self._spawnZone = arena:FindFirstChild(Constants.WorkspaceNames.SpawnZone)
-    if not self._spawnZone then
-        warn("[ArenaSystem] SpawnZone manquante dans Arena!")
+    -- Collecte toutes les BaseParts d'un objet et calcule le centre moyen
+    local function collectZoneParts(obj)
+        if not obj then return nil, nil end
+        local parts = {}
+        if obj:IsA("BasePart") then
+            table.insert(parts, obj)
+        elseif obj:IsA("Model") or obj:IsA("Folder") then
+            for _, child in ipairs(obj:GetDescendants()) do
+                if child:IsA("BasePart") then
+                    table.insert(parts, child)
+                end
+            end
+        end
+        if #parts == 0 then return nil, nil end
+        -- Centre moyen de toutes les parts
+        local sumX, sumY, sumZ = 0, 0, 0
+        for _, p in ipairs(parts) do
+            sumX = sumX + p.Position.X
+            sumY = sumY + p.Position.Y
+            sumZ = sumZ + p.Position.Z
+        end
+        local n = #parts
+        local center = Vector3.new(sumX / n, sumY / n, sumZ / n)
+        return parts, center
+    end
+
+    -- Chercher SpawnZone1, SpawnZone2, ... (fallback sur "SpawnZone" pour rétrocompat)
+    self._spawnZones = {}
+    for i = 1, 10 do
+        local zoneObj = arena:FindFirstChild("SpawnZone" .. i)
+        if zoneObj then
+            local parts, center = collectZoneParts(zoneObj)
+            if parts then
+                local zoneName = "SpawnZone" .. i
+                local zoneConfig = GameConfig.SpawnZones[zoneName] or GameConfig.SpawnZones.DefaultZone
+                table.insert(self._spawnZones, { Parts = parts, Center = center, Config = zoneConfig, Name = zoneName })
+                print("[ArenaSystem] " .. zoneName .. " — " .. #parts .. " parts, centre X=" .. math.floor(center.X) .. " Z=" .. math.floor(center.Z))
+            else
+                warn("[ArenaSystem] SpawnZone" .. i .. " trouvée mais aucune BasePart dedans!")
+            end
+        end
+    end
+    -- Fallback : ancienne SpawnZone unique
+    if #self._spawnZones == 0 then
+        local legacyObj = arena:FindFirstChild(Constants.WorkspaceNames.SpawnZone)
+        local parts, center = collectZoneParts(legacyObj)
+        if parts then
+            table.insert(self._spawnZones, {
+                Parts = parts, Center = center,
+                Config = GameConfig.SpawnZones.DefaultZone,
+                Name = "SpawnZone",
+            })
+        end
+    end
+    if #self._spawnZones == 0 then
+        warn("[ArenaSystem] Aucune SpawnZone trouvée dans Arena! (SpawnZone1..N ou SpawnZone)")
         return
     end
+    print("[ArenaSystem] " .. #self._spawnZones .. " zone(s) de spawn trouvée(s)")
     
     -- Créer ou récupérer le folder ActivePieces
     self._piecesFolder = Workspace:FindFirstChild(Constants.WorkspaceNames.PiecesFolder)
@@ -96,8 +149,11 @@ function ArenaSystem:Init(services)
     -- Initialiser les canons
     self:_InitializeCannons(arena)
     
-    -- Lancer les boucles
-    self:_StartSpawnLoop()
+    -- Lancer une boucle de spawn par zone + une boucle de nettoyage globale
+    self._loopsRunning = true
+    for _, zone in ipairs(self._spawnZones) do
+        self:_StartZoneSpawnLoop(zone)
+    end
     self:_StartCleanupLoop()
     
     self._initialized = true
@@ -255,10 +311,10 @@ function ArenaSystem:_InitializeCannons(arena)
                 end
                 
                 if firePosition then
-                    -- Calculer la direction vers le centre de la SpawnZone
+                    -- Calculer la direction vers le centre de la première zone (cosmétique)
                     local direction = Vector3.new(0, 0, 0)
-                    if self._spawnZone then
-                        direction = (self._spawnZone.Position - firePosition).Unit
+                    if self._spawnZones[1] then
+                        direction = (self._spawnZones[1].Center - firePosition).Unit
                     end
                     
                     local cannonData = {
@@ -326,34 +382,35 @@ function ArenaSystem:_GetCannonFirePosition(cannon)
 end
 
 --[[
-    Calcule une position aléatoire dans la SpawnZone
+    Sélectionne une zone de spawn selon les poids (Weight) définis dans GameConfig.SpawnZones
+    @return table {Parts, Center, Config, Name}
+]]
+function ArenaSystem:_PickRandomZone()
+    local totalWeight = 0
+    for _, zone in ipairs(self._spawnZones) do
+        totalWeight = totalWeight + (zone.Config.Weight or 1)
+    end
+    local roll = math.random() * totalWeight
+    local cumulative = 0
+    for _, zone in ipairs(self._spawnZones) do
+        cumulative = cumulative + (zone.Config.Weight or 1)
+        if roll <= cumulative then
+            return zone
+        end
+    end
+    return self._spawnZones[#self._spawnZones]
+end
+
+--[[
+    Retourne une position aléatoire dans une zone en choisissant une Part au hasard
+    Fonctionne avec n'importe quelle forme (arc, étoile, irrégulier...)
+    @param zone: table {Parts, Center, Config, Name}
     @return Vector3
 ]]
-function ArenaSystem:_GetRandomSpawnZonePosition()
-    local zoneCFrame = self._spawnZone.CFrame
-    local zoneSize = self._spawnZone.Size
-    
-    -- La SpawnZone est un Cylindre plat (disque)
-    -- Axe du cylindre = local X (Size.X = épaisseur = 3.189)
-    -- Section circulaire = local Y et Z (diamètres ~344 et ~357)
-    local radiusY = zoneSize.Y / 2
-    local radiusZ = zoneSize.Z / 2
-    
-    -- Point aléatoire dans le disque (distribution uniforme avec sqrt)
-    local angle = math.random() * 2 * math.pi
-    local dist = math.sqrt(math.random()) * 0.8 -- 80% du rayon pour éviter les bords
-    
-    local localY = math.cos(angle) * radiusY * dist
-    local localZ = math.sin(angle) * radiusZ * dist
-    
-    -- Transformer le point du disque en coordonnées monde (localX = 0 = centre du cylindre)
-    local worldPos = zoneCFrame:PointToWorldSpace(Vector3.new(0, localY, localZ))
-    
-    -- Forcer la hauteur Y : utiliser la position monde du centre du cylindre + offset
-    -- Les pièces spawn au-dessus et tombent naturellement sur le Floor
-    worldPos = Vector3.new(worldPos.X, zoneCFrame.Position.Y + 10, worldPos.Z)
-    
-    return worldPos
+function ArenaSystem:_GetRandomPositionInZone(zone)
+    local part = zone.Parts[math.random(1, #zone.Parts)]
+    -- Spawn 10 studs au-dessus de la surface de la part, les pièces tombent dessus
+    return Vector3.new(part.Position.X, part.Position.Y + part.Size.Y / 2 + 10, part.Position.Z)
 end
 
 --[[
@@ -717,69 +774,66 @@ end
 -- ═══════════════════════════════════════════════════════════════
 
 --[[
-    Choisit un set et un type de pièce selon les SpawnWeight
+    Choisit un set et un type de pièce selon les SpawnWeight, modifiés par les RarityWeights de la zone
+    @param rarityWeights: table {Common=1.0, Rare=0.5, ...} (multiplicateurs par rareté)
     @return setName: string, pieceType: string, pieceInfo: table
 ]]
-function ArenaSystem:_ChooseRandomPiece()
-    -- 1. Calculer le poids total
+function ArenaSystem:_ChooseRandomPiece(rarityWeights)
+    -- 1. Calculer le poids effectif de chaque pièce (SpawnWeight * multiplicateur de rareté)
     local totalWeight = 0
     local weightedSets = {}
-    
+
     for setName, setData in pairs(BrainrotData.Sets) do
+        local rarity = setData.Rarity or "Common"
+        local rarityMult = rarityWeights and (rarityWeights[rarity] or 0) or 1.0
+
         for _, pieceType in ipairs(BrainrotData.PieceTypes) do
             local pieceInfo = setData[pieceType]
-            if pieceInfo and pieceInfo.SpawnWeight then
-                table.insert(weightedSets, {
-                    SetName = setName,
-                    PieceType = pieceType,
-                    Weight = pieceInfo.SpawnWeight,
-                    Info = pieceInfo,
-                })
-                totalWeight = totalWeight + pieceInfo.SpawnWeight
+            if pieceInfo and pieceInfo.SpawnWeight and pieceInfo.SpawnWeight > 0 then
+                local effectiveWeight = pieceInfo.SpawnWeight * rarityMult
+                if effectiveWeight > 0 then
+                    table.insert(weightedSets, {
+                        SetName = setName,
+                        PieceType = pieceType,
+                        Weight = effectiveWeight,
+                        Info = pieceInfo,
+                    })
+                    totalWeight = totalWeight + effectiveWeight
+                end
             end
         end
     end
-    
+
     if totalWeight == 0 then
-        warn("[ArenaSystem] Aucune pièce avec SpawnWeight > 0!")
+        warn("[ArenaSystem] Aucune pièce disponible pour cette zone (tous les poids = 0)!")
         return nil, nil, nil
     end
-    
+
     -- 2. Sélection pondérée
     local roll = math.random() * totalWeight
     local cumulative = 0
-    
+
     for _, entry in ipairs(weightedSets) do
         cumulative = cumulative + entry.Weight
         if roll <= cumulative then
             return entry.SetName, entry.PieceType, entry.Info
         end
     end
-    
+
     -- Fallback (ne devrait jamais arriver)
     local last = weightedSets[#weightedSets]
     return last.SetName, last.PieceType, last.Info
 end
 
 --[[
-    Spawn une pièce aléatoire dans l'arène
+    Spawn une pièce dans une zone spécifique (appelé par _StartZoneSpawnLoop)
+    @param zone: table {Parts, Center, Config, Name}
     @return Model | nil
 ]]
-function ArenaSystem:SpawnRandomPiece()
+function ArenaSystem:_SpawnInZone(zone)
     if not self._initialized then return nil end
-    
-    -- Vérifier la limite
-    local currentCount = 0
-    for _ in pairs(self._pieces) do
-        currentCount = currentCount + 1
-    end
-    
-    if currentCount >= GameConfig.Arena.MaxPiecesInArena then
-        return nil
-    end
-    
-    -- Choisir une pièce
-    local setName, pieceType, pieceInfo = self:_ChooseRandomPiece()
+
+    local setName, pieceType, pieceInfo = self:_ChooseRandomPiece(zone.Config.RarityWeights)
     if not setName then return nil end
     
     -- Récupérer le nom du template depuis pieceInfo
@@ -894,35 +948,36 @@ function ArenaSystem:SpawnRandomPiece()
     -- Ajouter le Highlight coloré selon la rareté du set
     self:_AddHighlightToPiece(piece, pieceType, setName)
 
-    -- Stocker la pièce dans le tracker
+    -- Stocker la pièce dans le tracker avec zone et lifetime
     self._pieces[pieceId] = {
         Model = piece,
         SpawnedAt = tick(),
+        ZoneName = zone.Name,
+        Lifetime = zone.Config.PieceLifetime or GameConfig.Arena.PieceLifetime,
     }
-    
+
     -- === TIR DEPUIS UN CANON ===
     local cannon = self:_SelectRandomCannon()
-    
+    local targetPosition = self:_GetRandomPositionInZone(zone)
+
     if cannon then
-        -- Position cible aléatoire dans la SpawnZone
-        local targetPosition = self:_GetRandomSpawnZonePosition()
-        
-        -- Lancer la pièce depuis le canon (gère le parent, la visibilité, et l'atterrissage)
         self:_LaunchPieceFromCannon(cannon, piece, targetPosition)
     else
-        -- Fallback sans canon : spawn direct (ancien comportement)
-        local zonePos = self._spawnZone.Position
-        local zoneSize = self._spawnZone.Size
-        
-        local randomX = zonePos.X + (math.random() - 0.5) * zoneSize.X
-        local randomY = zonePos.Y + zoneSize.Y / 2 + 10
-        local randomZ = zonePos.Z + (math.random() - 0.5) * zoneSize.Z
-        
-        piece:SetPrimaryPartCFrame(CFrame.new(randomX, randomY, randomZ))
+        piece:SetPrimaryPartCFrame(CFrame.new(targetPosition))
         piece.Parent = self._piecesFolder
     end
-    
+
     return piece
+end
+
+--[[
+    Spawn une pièce aléatoire (zone choisie par poids) — compatibilité et cheat menu
+    @return Model | nil
+]]
+function ArenaSystem:SpawnRandomPiece()
+    if not self._initialized then return nil end
+    local zone = self:_PickRandomZone()
+    return self:_SpawnInZone(zone)
 end
 
 --[[
@@ -1038,64 +1093,48 @@ function ArenaSystem:_SpawnSpecificPiece(setName, pieceType, pieceInfo, template
 end
 
 --[[
-    Boucle de spawn des pièces
+    Boucle de spawn dédiée à une zone (SpawnInterval, MaxPieces par zone)
+    @param zone: table {Parts, Center, Config, Name}
 ]]
-function ArenaSystem:_StartSpawnLoop()
-    if self._spawnLoopRunning then return end
-    self._spawnLoopRunning = true
-    
+function ArenaSystem:_StartZoneSpawnLoop(zone)
+    local cfg = zone.Config
     task.spawn(function()
-        -- print("[ArenaSystem] Boucle de spawn démarrée")
-        
-        while self._spawnLoopRunning do
-            task.wait(GameConfig.Arena.SpawnInterval)
-            
-            -- Compter les pièces actuelles
+        while self._loopsRunning do
+            task.wait(cfg.SpawnInterval or GameConfig.Arena.SpawnInterval)
+            if not self._loopsRunning then break end
+
+            -- Compter uniquement les pièces de cette zone
             local count = 0
-            for _ in pairs(self._pieces) do
-                count = count + 1
+            for _, data in pairs(self._pieces) do
+                if data.ZoneName == zone.Name then count = count + 1 end
             end
-            
-            -- Spawn si sous la limite
-            if count < GameConfig.Arena.MaxPiecesInArena then
-                local piece = self:SpawnRandomPiece()
-                if piece then
-                    -- print("[ArenaSystem] Pièce spawnée: " .. piece.Name)
-                end
+
+            local max = cfg.MaxPieces or GameConfig.Arena.MaxPiecesInArena
+            if count < max then
+                self:_SpawnInZone(zone)
             end
         end
     end)
 end
 
 --[[
-    Boucle de nettoyage des pièces expirées
+    Boucle de nettoyage globale — chaque pièce a son propre Lifetime (issu de sa zone)
 ]]
 function ArenaSystem:_StartCleanupLoop()
-    if self._cleanupLoopRunning then return end
-    self._cleanupLoopRunning = true
-    
     task.spawn(function()
-        -- print("[ArenaSystem] Boucle de nettoyage démarrée")
-        
-        while self._cleanupLoopRunning do
-            task.wait(10) -- Vérifier toutes les 10 secondes
-            
+        while self._loopsRunning do
+            task.wait(10)
             local now = tick()
             local toRemove = {}
-            
-            -- Trouver les pièces expirées
             for pieceId, data in pairs(self._pieces) do
-                if (now - data.SpawnedAt) > GameConfig.Arena.PieceLifetime then
+                if (now - data.SpawnedAt) > data.Lifetime then
                     table.insert(toRemove, pieceId)
                 end
             end
-            
-            -- Supprimer les pièces expirées
             for _, pieceId in ipairs(toRemove) do
                 local data = self._pieces[pieceId]
                 if data and data.Model then
                     data.Model:Destroy()
-                    -- print("[ArenaSystem] Pièce expirée supprimée: " .. pieceId)
                 end
                 self._pieces[pieceId] = nil
             end

@@ -70,6 +70,23 @@ local GameConfig = {
             { Name = "Spinner3", Speed = 0.25 },   -- Encore plus rapide
         },
     },
+
+    -- ═══════════════════════════════════════
+    -- ZONES DE SPAWN (SpawnZone1, SpawnZone2, ...)
+    -- Chaque zone a des multiplicateurs de rareté (0 = jamais, 1 = normal, >1 = boosté)
+    -- Si une zone n'est pas listée ici, elle utilise DefaultZone
+    -- ═══════════════════════════════════════
+    SpawnZones = {
+        -- Weight        = probabilité relative d'être choisie (60/20/15/5 ≈ 60%, 20%, 15%, 5%)
+        -- SpawnInterval = secondes entre chaque spawn dans cette zone
+        -- MaxPieces     = nombre max de pièces simultanées dans cette zone
+        -- PieceLifetime = secondes avant qu'une pièce disparaisse dans cette zone
+        DefaultZone = { Weight = 60, SpawnInterval = 3,  MaxPieces = 40, PieceLifetime = 120, RarityWeights = { Common = 1.0, Rare = 0.0, Epic = 0.0, Legendary = 0.0 } },
+        SpawnZone1  = { Weight = 60, SpawnInterval = 3,  MaxPieces = 40, PieceLifetime = 120, RarityWeights = { Common = 1.0, Rare = 0.0, Epic = 0.0, Legendary = 0.0 } },
+        SpawnZone2  = { Weight = 20, SpawnInterval = 5,  MaxPieces = 20, PieceLifetime = 90,  RarityWeights = { Common = 0.0, Rare = 1.0, Epic = 0.0, Legendary = 0.0 } },
+        SpawnZone3  = { Weight = 15, SpawnInterval = 8,  MaxPieces =  10, PieceLifetime = 60,  RarityWeights = { Common = 0.0, Rare = 0.0, Epic = 1.0, Legendary = 0.0 } },
+        SpawnZone4  = { Weight =  5, SpawnInterval = 15, MaxPieces =  4, PieceLifetime = 45,  RarityWeights = { Common = 0.0, Rare = 0.0, Epic = 0.0, Legendary = 1.0 } },
+    },
     
     -- ═══════════════════════════════════════
     -- CANONS (tir de pièces dans l'arène)
