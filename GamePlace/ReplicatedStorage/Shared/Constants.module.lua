@@ -95,6 +95,10 @@ local Constants = {
         RequestDailyPurchase = "RequestDailyPurchase", -- Daily Shop: Achat daily avec cash
         SyncDailyPurchases = "SyncDailyPurchases",     -- Daily Shop: Sync état achats journaliers
 
+        -- Tutorial
+        CompleteTutorial = "CompleteTutorial",         -- Client → Serveur: marquer le tutoriel comme terminé
+        SpawnTutorialPieces = "SpawnTutorialPieces",   -- Client → Serveur: spawner les pièces tutoriel près de la base
+
         -- RemoteFunctions
         GetFullPlayerData = "GetFullPlayerData",
     },

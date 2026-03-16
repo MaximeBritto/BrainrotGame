@@ -423,6 +423,73 @@ function NetworkHandler:_ConnectHandlers()
         end)
     end
 
+    -- SpawnTutorialPieces: spawner Head/Body/Legs dans SpawnZone1 (même logique que les canons)
+    if remotes.SpawnTutorialPieces then
+        remotes.SpawnTutorialPieces.OnServerEvent:Connect(function(player)
+            if not ArenaSystem then return end
+
+            local TUTORIAL_SET = "CactoHipopoTamo"
+            local BrainrotDataMod = require(ReplicatedStorage:WaitForChild("Data"):WaitForChild("BrainrotData.module"))
+            local setData = BrainrotDataMod.Sets[TUTORIAL_SET]
+            if not setData then return end
+
+            -- Position de référence : SpawnPoint de la base du joueur
+            local baseSpawnPos = nil
+            local runtimeData = PlayerService and PlayerService:GetRuntimeData(player)
+            local assignedBase = runtimeData and runtimeData.AssignedBase
+            if assignedBase then
+                local spawnPoint = assignedBase:FindFirstChild("SpawnPoint", true)
+                local refPos = spawnPoint and spawnPoint.Position or assignedBase:GetPivot().Position
+                baseSpawnPos = ArenaSystem:GetClosestPositionInZone("SpawnZone1", refPos)
+            end
+            if not baseSpawnPos then
+                baseSpawnPos = ArenaSystem:GetRandomPositionInZone("SpawnZone1")
+            end
+            if not baseSpawnPos then
+                warn("[Tutorial] SpawnZone1 introuvable")
+                return
+            end
+
+            local pieceDefs = {
+                { PieceType = "Head", offset = Vector3.new(-3.5, 0, 0) },
+                { PieceType = "Body", offset = Vector3.new( 0,   0, 0) },
+                { PieceType = "Legs", offset = Vector3.new( 3.5, 0, 0) },
+            }
+
+            for _, def in ipairs(pieceDefs) do
+                local typeData = setData[def.PieceType]
+                if not typeData or typeData.TemplateName == "" then continue end
+
+                local spawnPos = baseSpawnPos + def.offset
+
+                local pieceData = {
+                    SetName     = TUTORIAL_SET,
+                    PieceType   = def.PieceType,
+                    Price       = typeData.Price,
+                    DisplayName = typeData.DisplayName,
+                }
+                local model = ArenaSystem:SpawnPieceFromData(pieceData, spawnPos)
+
+                if model then
+                    model:SetAttribute("IsTutorialPiece", true)
+                    model:SetAttribute("TutorialPieceType", def.PieceType)
+                end
+            end
+        end)
+    end
+
+    -- CompleteTutorial: marquer le tutoriel comme vu
+    if remotes.CompleteTutorial then
+        remotes.CompleteTutorial.OnServerEvent:Connect(function(player)
+            local ok, err = pcall(function()
+                DataService:UpdateValue(player, "HasSeenTutorial", true)
+            end)
+            if not ok then
+                warn("[NetworkHandler] Erreur CompleteTutorial: " .. tostring(err))
+            end
+        end)
+    end
+
     -- Toggle Speed
     if remotes.ToggleSpeed then
         remotes.ToggleSpeed.OnServerEvent:Connect(function(player)
@@ -706,6 +773,8 @@ function NetworkHandler:_HandleGetFullPlayerData(player)
         DiscoveredFusions = playerData and playerData.DiscoveredFusions or {},
         ClaimedFusionRewards = playerData and playerData.ClaimedFusionRewards or {},
         DailyPurchases = playerData and playerData.DailyPurchases or {},
+        -- DEV RESET: retire cette ligne une fois le tutoriel testé
+        HasSeenTutorial = false, -- TEMP: force reset pour test
 
         -- Données runtime
         PiecesInHand = runtimeData and runtimeData.PiecesInHand or {},

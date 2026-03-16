@@ -120,6 +120,13 @@ local DefaultPlayerData = {
     },
 
     -- ═══════════════════════════════════════
+    -- TUTORIEL
+    -- ═══════════════════════════════════════
+    -- false / nil = tutoriel pas encore vu → afficher
+    -- true        = tutoriel terminé → ne plus afficher
+    HasSeenTutorial = false,
+
+    -- ═══════════════════════════════════════
     -- RÉSERVÉ POUR FUTURES FEATURES
     -- ═══════════════════════════════════════
     Inventory = {},                 -- Items spéciaux

@@ -1175,6 +1175,60 @@ end
     @param position: Vector3 - Position où faire tomber la pièce
     @return Model | nil
 ]]
+--[[
+    Retourne une position aléatoire dans une zone nommée (ex: "SpawnZone1").
+    Utilise la même logique que le spawn normal des canons.
+    @param zoneName: string
+    @return Vector3 | nil
+]]
+function ArenaSystem:GetRandomPositionInZone(zoneName)
+    for _, zone in ipairs(self._spawnZones) do
+        if zone.Name == zoneName then
+            return self:_GetRandomPositionInZone(zone)
+        end
+    end
+    -- Fallback : première zone disponible
+    if #self._spawnZones > 0 then
+        return self:_GetRandomPositionInZone(self._spawnZones[1])
+    end
+    return nil
+end
+
+--[[
+    Retourne la position de la part la plus proche de targetPosition dans une zone nommée.
+    Utilisé par le tutoriel pour spawner les pièces près de la base du joueur.
+    @param zoneName: string
+    @param targetPosition: Vector3
+    @return Vector3 | nil
+]]
+function ArenaSystem:GetClosestPositionInZone(zoneName, targetPosition)
+    local targetZone = nil
+    for _, zone in ipairs(self._spawnZones) do
+        if zone.Name == zoneName then
+            targetZone = zone
+            break
+        end
+    end
+    if not targetZone and #self._spawnZones > 0 then
+        targetZone = self._spawnZones[1]
+    end
+    if not targetZone then return nil end
+
+    local bestPart = nil
+    local bestDistSq = math.huge
+    for _, part in ipairs(targetZone.Parts) do
+        local dx = part.Position.X - targetPosition.X
+        local dz = part.Position.Z - targetPosition.Z
+        local distSq = dx * dx + dz * dz
+        if distSq < bestDistSq then
+            bestDistSq = distSq
+            bestPart = part
+        end
+    end
+    if not bestPart then return nil end
+    return Vector3.new(bestPart.Position.X, bestPart.Position.Y + bestPart.Size.Y / 2 + 10, bestPart.Position.Z)
+end
+
 function ArenaSystem:SpawnPieceFromData(pieceData, position)
     if not self._initialized then return nil end
 
