@@ -600,7 +600,8 @@ function UIController:ShowNotification(notifType, message, duration)
     notificationCounter = notificationCounter + 1
 
     -- Configurer le contenu
-    local messageLabel = notif:WaitForChild("Message")
+    local messageLabel = notif:FindFirstChild("Message")
+    if not messageLabel then return end
     messageLabel.Text = message
 
     -- Configurer la couleur

@@ -309,13 +309,19 @@ function PlayerService:OnPlayerDied(player)
         runtimeData.PiecesInHand = {}
 
         if droppedCount > 0 then
+            -- Tagger les pièces droppées avec OwnerUserId : si le joueur est en tuto
+            -- (SpawnTutorialPieces va fire au rollback), cela permet de les nettoyer.
+            -- Hors tuto ce tag est inoffensif (SpawnTutorialPieces ne fire pas).
             -- Spawner chaque pièce près de l'endroit où le joueur est mort
             if deathPosition and self.ArenaSystem then
                 for i, pieceData in ipairs(droppedPieces) do
                     -- Décaler légèrement chaque pièce pour ne pas les empiler
                     local angle = (i - 1) * (2 * math.pi / droppedCount)
                     local offset = Vector3.new(math.cos(angle) * 3, 0, math.sin(angle) * 3)
-                    self.ArenaSystem:SpawnPieceFromData(pieceData, deathPosition + offset)
+                    local droppedModel = self.ArenaSystem:SpawnPieceFromData(pieceData, deathPosition + offset)
+                    if droppedModel then
+                        droppedModel:SetAttribute("OwnerUserId", player.UserId)
+                    end
                 end
             end
 

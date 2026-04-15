@@ -450,6 +450,27 @@ function NetworkHandler:_ConnectHandlers()
                 return
             end
 
+            -- Nettoyer UNIQUEMENT les pièces taggées OwnerUserId de ce joueur.
+            -- Cela couvre : les spawns tuto précédents + les pièces droppées à sa mort.
+            -- Scopé au UserId pour ne PAS toucher les pièces des autres joueurs (drops,
+            -- pièces tuto d'autres joueurs en tuto en parallèle, pièces arène normales).
+            local piecesFolder = ArenaSystem._piecesFolder
+            local cleaned = 0
+            if piecesFolder then
+                for _, existing in ipairs(piecesFolder:GetChildren()) do
+                    if existing:GetAttribute("OwnerUserId") == player.UserId then
+                        -- Retirer l'entrée orpheline du registre interne
+                        local pid = existing:GetAttribute("PieceId")
+                        if pid and ArenaSystem._pieces then
+                            ArenaSystem._pieces[pid] = nil
+                        end
+                        existing:Destroy()
+                        cleaned = cleaned + 1
+                    end
+                end
+            end
+            print("[Tutorial] SpawnTutorialPieces — cleaned", cleaned, "pieces avant spawn pour", player.Name)
+
             local pieceDefs = {
                 { PieceType = "Head", offset = Vector3.new(-3.5, 0, 0) },
                 { PieceType = "Body", offset = Vector3.new( 0,   0, 0) },
@@ -473,6 +494,7 @@ function NetworkHandler:_ConnectHandlers()
                 if model then
                     model:SetAttribute("IsTutorialPiece", true)
                     model:SetAttribute("TutorialPieceType", def.PieceType)
+                    model:SetAttribute("OwnerUserId", player.UserId)
                 end
             end
         end)

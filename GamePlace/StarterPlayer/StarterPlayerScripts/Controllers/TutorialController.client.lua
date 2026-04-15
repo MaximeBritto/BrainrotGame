@@ -523,18 +523,12 @@ local function StartTutorial()
     end)
 
     -- Rollback sur mort (étapes 1 et 2 seulement — étape 3 le brainrot est déjà placé)
+    -- Note : RenderStep(1) déclenche déjà STEPS[1].onEnter qui fire SpawnTutorialPieces.
+    -- Pas besoin de re-fire ici pour éviter les doubles spawns.
     local function RollbackToStep1()
         if not _active or _step >= 3 then return end
         _step = 1
         RenderStep(title, body, badge, dots)
-        -- Respawn les pièces tuto (les anciennes ont disparu avec la mort)
-        if SpawnTutorialPiecesRemote then
-            task.delay(1, function()
-                if _active and _step == 1 then
-                    SpawnTutorialPiecesRemote:FireServer()
-                end
-            end)
-        end
     end
 
     local respawnConn = player.CharacterAdded:Connect(function()

@@ -3,7 +3,10 @@
     "allow": [
       "WebFetch(domain:devforum.roblox.com)",
       "Bash(find:*)",
-      "Bash(git diff:*)"
+      "Bash(git diff:*)",
+      "mcp__Roblox_Studio__get_studio_mode",
+      "mcp__Roblox_Studio__get_console_output",
+      "mcp__Roblox_Studio__run_code"
     ]
   }
 }

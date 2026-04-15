@@ -1085,8 +1085,9 @@ function ArenaSystem:_SpawnSpecificPiece(setName, pieceType, pieceInfo, template
     self._pieces[pieceId] = {
         Model = piece,
         SpawnedAt = tick(),
+        Lifetime = GameConfig.Arena.PieceLifetime,
     }
-    
+
     -- print("[ArenaSystem] Pièce cheat spawnée: " .. pieceId .. " (" .. templateName .. " " .. pieceType .. " - Set: " .. setName .. ")")
     
     return piece
