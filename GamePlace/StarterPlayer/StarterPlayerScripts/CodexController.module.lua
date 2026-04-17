@@ -141,24 +141,54 @@ end
 -- Initialization
 -- ══════════════════════════════════════════
 
-function CodexController:Init()
-    if self._initialized then return end
-
+function CodexController:_EnsureUI()
     local gui = player:WaitForChild("PlayerGui")
-    self._codexUI = gui:WaitForChild("CodexUI")
+    local existing = self._codexUI
+    if existing and existing.Parent == gui then
+        return
+    end
 
-    -- Remove old UI
+    -- Re-fetch (either first time, or PlayerGui was reset on respawn)
+    self._codexUI = gui:WaitForChild("CodexUI")
+    self._codexUI.ResetOnSpawn = false
+
+    -- Reset UI references (children were destroyed with the old ScreenGui)
+    self._isOpen = false
+    self._tabs = {}
+    self._gridContainer = nil
+    self._counterLabel = nil
+    self._mainFrame = nil
+    self._overlay = nil
+    self._bottomText = nil
+    self._progressFill = nil
+    self._progressCount = nil
+    self._rewardTrackContainer = nil
+    self._fusionBottomBar = nil
+    self._codexBottomBar = nil
+
+    -- Remove any pre-existing children
     for _, child in ipairs(self._codexUI:GetChildren()) do
         if child:IsA("GuiObject") then
             child:Destroy()
         end
     end
 
-    -- Responsive scaling
     ResponsiveScale.Apply(self._codexUI)
-
-    -- Build new UI
     self:_BuildUI()
+    self._codexUI.Enabled = false
+end
+
+function CodexController:Init()
+    if self._initialized then return end
+
+    self:_EnsureUI()
+
+    -- Rebuild on respawn if ResetPlayerGuiOnSpawn destroyed the UI
+    player.CharacterAdded:Connect(function()
+        task.defer(function()
+            self:_EnsureUI()
+        end)
+    end)
 
     -- Connect SyncCodex
     local Remotes = ReplicatedStorage:WaitForChild("Remotes")
@@ -178,9 +208,6 @@ function CodexController:Init()
             pcall(function() self:RefreshBadges() end)
         end)
     end
-
-    -- Ensure codex starts closed
-    self._codexUI.Enabled = false
 
     self._initialized = true
 end
@@ -1285,6 +1312,9 @@ function CodexController:UpdateCodex(codexUnlocked)
 end
 
 function CodexController:Open()
+    -- Ensure UI is valid (guard against respawn-induced destruction)
+    self:_EnsureUI()
+
     -- Safety: if _isOpen but UI not visible, reset the flag
     if self._isOpen and self._codexUI and not self._codexUI.Enabled then
         self._isOpen = false

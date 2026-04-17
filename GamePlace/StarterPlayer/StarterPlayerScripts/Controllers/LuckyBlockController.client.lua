@@ -774,11 +774,8 @@ local function playSlotMachineAnimation(revealData)
 
     takeButton.MouseButton1Click:Connect(function()
         luckyBlockTakeRemote:FireServer()
-        slotMachineFrame.Visible = false
         isAnimating = false
-        TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-            Size = SIZES.Panel,
-        }):Play()
+        closeUI()
     end)
 
     -- THROW button (red)

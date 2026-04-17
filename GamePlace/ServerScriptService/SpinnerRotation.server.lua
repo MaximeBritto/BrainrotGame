@@ -196,12 +196,24 @@ for _, z in ipairs(zones) do
 
     wall.CFrame = getCF(startRad)
 
-    wall.Touched:Connect(function(hit)
-        local character = hit.Parent
-        if not character then return end
-        local player = Players:GetPlayerFromCharacter(character)
-        if player then killPlayer(player, character) end
-    end)
+    -- Détection fiable via OverlapParams (remplace Touched, peu fiable sur parts ancrées en CFrame)
+    local overlapParams = OverlapParams.new()
+    overlapParams.FilterType = Enum.RaycastFilterType.Exclude
+    overlapParams.FilterDescendantsInstances = { wall }
+    overlapParams.MaxParts = 0
+
+    local function checkHits()
+        local hits = Workspace:GetPartBoundsInBox(wall.CFrame, wall.Size, overlapParams)
+        local seen = {}
+        for _, part in ipairs(hits) do
+            local character = part.Parent
+            if character and not seen[character] then
+                seen[character] = true
+                local player = Players:GetPlayerFromCharacter(character)
+                if player then killPlayer(player, character) end
+            end
+        end
+    end
 
     -- Sweep 0 → SweepAngle puis reset au StartAngle
     local angle = startRad
@@ -211,6 +223,7 @@ for _, z in ipairs(zones) do
             angle = startRad  -- reset au début
         end
         wall.CFrame = getCF(angle)
+        checkHits()
     end)
 end
 

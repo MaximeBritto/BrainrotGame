@@ -795,8 +795,7 @@ function NetworkHandler:_HandleGetFullPlayerData(player)
         DiscoveredFusions = playerData and playerData.DiscoveredFusions or {},
         ClaimedFusionRewards = playerData and playerData.ClaimedFusionRewards or {},
         DailyPurchases = playerData and playerData.DailyPurchases or {},
-        -- DEV RESET: retire cette ligne une fois le tutoriel testé
-        HasSeenTutorial = false, -- TEMP: force reset pour test
+        HasSeenTutorial = (playerData and playerData.HasSeenTutorial) or false,
 
         -- Données runtime
         PiecesInHand = runtimeData and runtimeData.PiecesInHand or {},
