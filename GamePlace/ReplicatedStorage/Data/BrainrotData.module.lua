@@ -95,7 +95,7 @@ local BrainrotData = {
         },
 
         ["PiccioneMacchina"] = {
-            Rarity = "Common",
+            Rarity = "Epic",
             Head = {
                 Price = 75,
                 GainPerSec = 7,
@@ -235,7 +235,7 @@ local BrainrotData = {
 		},
 
 		["GraipusMedussi"] = {
-			Rarity = "Common",
+			Rarity = "Legendary",
 			Head = {
 				Price = 85,
 				GainPerSec = 8,
@@ -263,7 +263,7 @@ local BrainrotData = {
 		},
 
 		["BombardiroCrocodilo"] = {
-			Rarity = "Common",
+			Rarity = "Epic",
 			Head = {
 				Price = 90,
 				GainPerSec = 9,
@@ -291,7 +291,7 @@ local BrainrotData = {
 		},
 
 		["SpioniroGolubiro"] = {
-			Rarity = "Common",
+			Rarity = "Epic",
 			Head = {
 				Price = 95,
 				GainPerSec = 9,
@@ -347,7 +347,7 @@ local BrainrotData = {
 		},
 
 		["TorrtuginniDragonfrutini"] = {
-			Rarity = "Common",
+			Rarity = "Epic",
 			Head = {
 				Price = 105,
 				GainPerSec = 10,
@@ -403,7 +403,7 @@ local BrainrotData = {
 		},
 
 		["ChimpanziniSpiderini"] = {
-			Rarity = "Common",
+			Rarity = "Rare",
 			Head = {
 				Price = 115,
 				GainPerSec = 11,
@@ -515,7 +515,7 @@ local BrainrotData = {
 		},
 
 		["TrenostruzzoTurbo3000"] = {
-			Rarity = "Common",
+			Rarity = "Legendary",
 			Head = {
 				Price = 135,
 				GainPerSec = 13,
@@ -571,7 +571,7 @@ local BrainrotData = {
 		},
 
 		["BlueberrinniOctopusini"] = {
-			Rarity = "Common",
+			Rarity = "Epic",
 			Head = {
 				Price = 145,
 				GainPerSec = 14,
@@ -599,7 +599,7 @@ local BrainrotData = {
 		},
 
 		["LaVaccaSaturnoSaturnita"] = {
-			Rarity = "Common",
+			Rarity = "Epic",
 			Head = {
 				Price = 150,
 				GainPerSec = 15,
@@ -683,7 +683,7 @@ local BrainrotData = {
 		},
 
 		["TigreTigroligreFrutonni"] = {
-			Rarity = "Common",
+			Rarity = "Epic",
 			Head = {
 				Price = 165,
 				GainPerSec = 16,
@@ -711,7 +711,7 @@ local BrainrotData = {
 		},
 
 		["ElcrococrocoDilito"] = {
-			Rarity = "Common",
+			Rarity = "Legendary",
 			Head = {
 				Price = 170,
 				GainPerSec = 17,
@@ -739,7 +739,7 @@ local BrainrotData = {
 		},
 
 		["DinossauroNuclearo"] = {
-			Rarity = "Common",
+			Rarity = "Legendary",
 			Head = {
 				Price = 175,
 				GainPerSec = 17,
@@ -767,7 +767,7 @@ local BrainrotData = {
 		},
 
 		["ChefCrabracadabra"] = {
-			Rarity = "Common",
+			Rarity = "Rare",
 			Head = {
 				Price = 180,
 				GainPerSec = 18,
@@ -795,7 +795,7 @@ local BrainrotData = {
 		},
 
 		["AvocadoGorille"] = {
-			Rarity = "Common",
+			Rarity = "Epic",
 			Head = {
 				Price = 185,
 				GainPerSec = 18,
@@ -823,7 +823,7 @@ local BrainrotData = {
 		},
 
 		["PapePaperoBetonino"] = {
-			Rarity = "Common",
+			Rarity = "Rare",
 			Head = {
 				Price = 190,
 				GainPerSec = 19,
@@ -851,7 +851,7 @@ local BrainrotData = {
 		},
 
 		["KoalaTostinoGrillini"] = {
-			Rarity = "Common",
+			Rarity = "Rare",
 			Head = {
 				Price = 195,
 				GainPerSec = 19,
@@ -874,6 +874,247 @@ local BrainrotData = {
 				DisplayName = "Grillini",
 				ModelName = "KoalaTostinoGrillini_Legs",
 				TemplateName = "Grillini",  -- Template dans LegsTemplate folder
+				SpawnWeight = 10,
+			},
+		},
+
+		["LucertoloDisconnessoDisconessa"] = {
+			Rarity = "Legendary",
+			Head = {
+				Price = 200,
+				GainPerSec = 20,
+				DisplayName = "Lucertolo",
+				ModelName = "LucertoloDisconnessoDisconessa_Head",
+				TemplateName = "Lucertolo",  -- Template dans HeadTemplate folder
+				SpawnWeight = 10,
+			},
+			Body = {
+				Price = 210,
+				GainPerSec = 21,
+				DisplayName = "Disconnesso",
+				ModelName = "LucertoloDisconnessoDisconessa_Body",
+				TemplateName = "Disconnesso",  -- Template dans BodyTemplate folder
+				SpawnWeight = 10,
+			},
+			Legs = {
+				Price = 195,
+				GainPerSec = 19,
+				DisplayName = "Disconessa",
+				ModelName = "LucertoloDisconnessoDisconessa_Legs",
+				TemplateName = "Disconessa",  -- Template dans LegsTemplate folder
+				SpawnWeight = 10,
+			},
+		},
+
+		["DonCaprinoSigaro"] = {
+			Rarity = "Legendary",
+			Head = {
+				Price = 205,
+				GainPerSec = 20,
+				DisplayName = "Don",
+				ModelName = "DonCaprinoSigaro_Head",
+				TemplateName = "Don",  -- Template dans HeadTemplate folder
+				SpawnWeight = 10,
+			},
+			Body = {
+				Price = 215,
+				GainPerSec = 22,
+				DisplayName = "Caprino",
+				ModelName = "DonCaprinoSigaro_Body",
+				TemplateName = "Caprino",  -- Template dans BodyTemplate folder
+				SpawnWeight = 10,
+			},
+			Legs = {
+				Price = 200,
+				GainPerSec = 20,
+				DisplayName = "Sigaro",
+				ModelName = "DonCaprinoSigaro_Legs",
+				TemplateName = "Sigaro",  -- Template dans LegsTemplate folder
+				SpawnWeight = 10,
+			},
+		},
+
+		["AstroGorilloBananito"] = {
+			Rarity = "Legendary",
+			Head = {
+				Price = 210,
+				GainPerSec = 21,
+				DisplayName = "Astro",
+				ModelName = "AstroGorilloBananito_Head",
+				TemplateName = "Astro",  -- Template dans HeadTemplate folder
+				SpawnWeight = 10,
+			},
+			Body = {
+				Price = 220,
+				GainPerSec = 22,
+				DisplayName = "Gorillo",
+				ModelName = "AstroGorilloBananito_Body",
+				TemplateName = "Gorillo",  -- Template dans BodyTemplate folder
+				SpawnWeight = 10,
+			},
+			Legs = {
+				Price = 205,
+				GainPerSec = 21,
+				DisplayName = "Bananito",
+				ModelName = "AstroGorilloBananito_Legs",
+				TemplateName = "Bananito",  -- Template dans LegsTemplate folder
+				SpawnWeight = 10,
+			},
+		},
+
+		["PupazzoVuotoOrbitalino"] = {
+			Rarity = "Legendary",
+			Head = {
+				Price = 215,
+				GainPerSec = 21,
+				DisplayName = "Pupazzo",
+				ModelName = "PupazzoVuotoOrbitalino_Head",
+				TemplateName = "Pupazzo",  -- Template dans HeadTemplate folder
+				SpawnWeight = 10,
+			},
+			Body = {
+				Price = 225,
+				GainPerSec = 23,
+				DisplayName = "Vuoto",
+				ModelName = "PupazzoVuotoOrbitalino_Body",
+				TemplateName = "Vuoto",  -- Template dans BodyTemplate folder
+				SpawnWeight = 10,
+			},
+			Legs = {
+				Price = 210,
+				GainPerSec = 22,
+				DisplayName = "orbitalino",
+				ModelName = "PupazzoVuotoOrbitalino_Legs",
+				TemplateName = "orbitalino",  -- Template dans LegsTemplate folder
+				SpawnWeight = 10,
+			},
+		},
+
+		["ToilettoPinzePinze"] = {
+			Rarity = "Epic",
+			Head = {
+				Price = 220,
+				GainPerSec = 22,
+				DisplayName = "Toiletto",
+				ModelName = "ToilettoPinzePinze_Head",
+				TemplateName = "Toiletto",  -- Template dans HeadTemplate folder
+				SpawnWeight = 10,
+			},
+			Body = {
+				Price = 230,
+				GainPerSec = 23,
+				DisplayName = "Pinze",
+				ModelName = "ToilettoPinzePinze_Body",
+				TemplateName = "Pinze",  -- BodyTemplate : P majuscule (distinct de legs)
+				SpawnWeight = 10,
+			},
+			Legs = {
+				Price = 215,
+				GainPerSec = 22,
+				DisplayName = "pinze",
+				ModelName = "ToilettoPinzePinze_Legs",
+				TemplateName = "pinze",  -- LegsTemplate : p minuscule
+				SpawnWeight = 10,
+			},
+		},
+
+		-- Visuellement 2 pièces (Head + Legs). Le jeu exige 3 templates pour craft + assemblage :
+		-- crée un petit corps "connecteur" (part invisible + Top/BottomAttachment) dans BodyTemplate
+		-- sous le nom PakrahmatmamatBody.
+		["Pakrahmatmamat"] = {
+			Rarity = "Epic",
+			Head = {
+				Price = 225,
+				GainPerSec = 23,
+				DisplayName = "Pakrahmat",
+				ModelName = "Pakrahmatmamat_Head",
+				TemplateName = "Pakrahmat",  -- HeadTemplate folder
+				SpawnWeight = 10,
+			},
+		
+			Legs = {
+				Price = 220,
+				GainPerSec = 23,
+				DisplayName = "mamat",
+				ModelName = "Pakrahmatmamat_Legs",
+				TemplateName = "mamat",  -- LegsTemplate folder
+				SpawnWeight = 10,
+			},
+		},
+
+		["MariachiCoraCorazoni"] = {
+			Rarity = "Legendary",
+			Head = {
+				Price = 220,
+				GainPerSec = 22,
+				DisplayName = "Mariachi",
+				ModelName = "MariachiCoraCorazoni_Head",
+				TemplateName = "Mariachi",  -- Template dans HeadTemplate folder
+				SpawnWeight = 10,
+			},
+			Body = {
+				Price = 230,
+				GainPerSec = 23,
+				DisplayName = "Cora",
+				ModelName = "MariachiCoraCorazoni_Body",
+				TemplateName = "Cora",  -- BodyTemplate : P majuscule (distinct de legs)
+				SpawnWeight = 10,
+			},
+			Legs = {
+				Price = 215,
+				GainPerSec = 22,
+				DisplayName = "Corazoni",
+				ModelName = "MariachiCoraCorazoni_Legs",
+				TemplateName = "Corazoni",  -- LegsTemplate : p minuscule
+				SpawnWeight = 10,
+			},
+		},
+
+		["LaCucarachaScara"] = {
+			Rarity = "Epic",
+			Head = {
+				Price = 220,
+				GainPerSec = 22,
+				DisplayName = "LaCuca",
+				ModelName = "LaCucarachaScara_Head",
+				TemplateName = "LaCuca",  -- Template dans HeadTemplate folder
+				SpawnWeight = 10,
+			},
+			Body = {
+				Price = 230,
+				GainPerSec = 23,
+				DisplayName = "Racha",
+				ModelName = "LaCucarachaScara_Body",
+				TemplateName = "Racha",  -- BodyTemplate : P majuscule (distinct de legs)
+				SpawnWeight = 10,
+			},
+			Legs = {
+				Price = 215,
+				GainPerSec = 22,
+				DisplayName = "Scara",
+				ModelName = "LaCucarachaScara_Legs",
+				TemplateName = "Scara",  -- LegsTemplate : p minuscule
+				SpawnWeight = 10,
+			},
+		},
+
+		["Alessio"] = {
+			Rarity = "Epic",
+			Head = {
+				Price = 225,
+				GainPerSec = 23,
+				DisplayName = "Ales",
+				ModelName = "Alessio_Head",
+				TemplateName = "Ales",  -- HeadTemplate folder
+				SpawnWeight = 10,
+			},
+		
+			Legs = {
+				Price = 220,
+				GainPerSec = 23,
+				DisplayName = "sio",
+				ModelName = "Alessio_Legs",
+				TemplateName = "sio",  -- LegsTemplate folder
 				SpawnWeight = 10,
 			},
 		},
