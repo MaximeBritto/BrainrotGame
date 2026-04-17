@@ -11,9 +11,17 @@ local GameConfig = {
     -- ═══════════════════════════════════════
     Economy = {
         StartingCash = 100,                 -- Argent de départ nouveau joueur
-        RevenuePerBrainrot = 5,             -- $ par seconde par Brainrot placé
+        RevenuePerBrainrot = 5,             -- (legacy, non utilisé — revenu calculé depuis GainPerSec)
         RevenueTickRate = 1,                -- Intervalle en secondes
-        SetCompletionBonus = 1000,          -- Bonus pour compléter un set
+
+        -- Bonus de complétion de set (par rareté, ≈ coût d'un craft du tier)
+        -- Fallback sur Common si la rareté est inconnue.
+        SetCompletionBonus = {
+            Common    = 500,
+            Rare      = 5000,
+            Epic      = 25000,
+            Legendary = 150000,
+        },
 
         -- Multiplicateur de revenus (basé sur le Codex)
         Multiplier = {
@@ -89,11 +97,11 @@ local GameConfig = {
         --   OuterRadius = rayon extérieur (nil = auto-détection)
         --   SweepAngle  = degrés balayés avant reset (180 pour demi-cercle)
         --   StartAngle  = angle de départ en degrés (ajuster selon orientation de la map)
-        DefaultZone = { Weight = 60, SpawnInterval = 3,  MaxPieces = 40, PieceLifetime = 120, RarityWeights = { Common = 1.0, Rare = 0.0, Epic = 0.0, Legendary = 0.0 }, KillWall = { Enabled = false, Speed = 30,  Height = 30, WallWidth = 5, InnerRadius = nil, OuterRadius = nil, SweepAngle = 180, StartAngle = -90 } },
-        SpawnZone1  = { Weight = 60, SpawnInterval = 3,  MaxPieces = 40, PieceLifetime = 120, RarityWeights = { Common = 1.0, Rare = 0.0, Epic = 0.0, Legendary = 0.0 }, KillWall = { Enabled = true,  Speed = 30,  Height = 7,  WallWidth = 5, InnerRadius = nil, OuterRadius = nil, SweepAngle = 180, StartAngle = -90 } },
-        SpawnZone2  = { Weight = 20, SpawnInterval = 5,  MaxPieces = 20, PieceLifetime = 90,  RarityWeights = { Common = 0.0, Rare = 1.0, Epic = 0.0, Legendary = 0.0 }, KillWall = { Enabled = true,  Speed = 45,  Height = 7,  WallWidth = 5, InnerRadius = 450, OuterRadius = nil, SweepAngle = 180, StartAngle = -90 } },
-        SpawnZone3  = { Weight = 15, SpawnInterval = 8,  MaxPieces = 10, PieceLifetime = 60,  RarityWeights = { Common = 0.0, Rare = 0.0, Epic = 1.0, Legendary = 0.0 }, KillWall = { Enabled = true,  Speed = 65,  Height = 7,  WallWidth = 5, InnerRadius = 320, OuterRadius = 440, SweepAngle = 180, StartAngle = -90 } },
-        SpawnZone4  = { Weight =  5, SpawnInterval = 15, MaxPieces =  4, PieceLifetime = 45,  RarityWeights = { Common = 0.0, Rare = 0.0, Epic = 0.0, Legendary = 1.0 }, KillWall = { Enabled = true,  Speed = 110, Height = 7,  WallWidth = 5, InnerRadius = 0,  OuterRadius = 300, SweepAngle = 180, StartAngle = -90 } },
+        DefaultZone = { Weight = 65, SpawnInterval = 3,  MaxPieces = 40, PieceLifetime = 90, RarityWeights = { Common = 1.0, Rare = 0.0, Epic = 0.0, Legendary = 0.0 }, KillWall = { Enabled = false, Speed = 30,  Height = 30, WallWidth = 5, InnerRadius = nil, OuterRadius = nil, SweepAngle = 180, StartAngle = -90 } },
+        SpawnZone1  = { Weight = 65, SpawnInterval = 3,  MaxPieces = 40, PieceLifetime = 90, RarityWeights = { Common = 1.0, Rare = 0.0, Epic = 0.0, Legendary = 0.0 }, KillWall = { Enabled = true,  Speed = 30,  Height = 7,  WallWidth = 5, InnerRadius = nil, OuterRadius = nil, SweepAngle = 180, StartAngle = -90 } },
+        SpawnZone2  = { Weight = 22, SpawnInterval = 6,  MaxPieces = 15, PieceLifetime = 60, RarityWeights = { Common = 0.5, Rare = 1.0, Epic = 0.0, Legendary = 0.0 }, KillWall = { Enabled = true,  Speed = 45,  Height = 7,  WallWidth = 5, InnerRadius = 450, OuterRadius = nil, SweepAngle = 180, StartAngle = -90 } },
+        SpawnZone3  = { Weight = 10, SpawnInterval = 15, MaxPieces =  6, PieceLifetime = 45, RarityWeights = { Common = 0.2, Rare = 0.5, Epic = 1.0, Legendary = 0.0 }, KillWall = { Enabled = true,  Speed = 65,  Height = 7,  WallWidth = 5, InnerRadius = 320, OuterRadius = 440, SweepAngle = 180, StartAngle = -90 } },
+        SpawnZone4  = { Weight =  3, SpawnInterval = 60, MaxPieces =  2, PieceLifetime = 30, RarityWeights = { Common = 0.1, Rare = 0.2, Epic = 0.5, Legendary = 1.0 }, KillWall = { Enabled = true,  Speed = 110, Height = 7,  WallWidth = 5, InnerRadius = 0,  OuterRadius = 300, SweepAngle = 180, StartAngle = -90 } },
     },
     
     -- ═══════════════════════════════════════
@@ -156,36 +164,44 @@ local GameConfig = {
         MultiplierBoost = 2.0,              -- Multiplicateur temporaire (x2)
         MultiplierDuration = 900,           -- Durée du boost en secondes (15 min)
         Rewards = {
-            { Type = "Cash",        Value = 25000,  Weight = 50, DisplayName = "$25K" },
-            { Type = "Cash",        Value = 100000, Weight = 30, DisplayName = "$100K" },
-            { Type = "Cash",        Value = 1000000,Weight = 5,  DisplayName = "$1M" },
-            { Type = "Multiplier",  Value = 2,      Weight = 5,  DisplayName = "x2 (15 min)" },
-            { Type = "LuckyBlock",  Value = 1,      Weight = 5,  DisplayName = "1 Lucky Block" },
-            { Type = "Speed",       Value = 0.2,    Weight = 5,  DisplayName = "+0.2 Speed" },
+            -- Paliers de cash couvrent early → endgame (total weights = 100)
+            { Type = "Cash",        Value = 10000,    Weight = 40, DisplayName = "$10K" },
+            { Type = "Cash",        Value = 100000,   Weight = 25, DisplayName = "$100K" },
+            { Type = "Cash",        Value = 1000000,  Weight = 10, DisplayName = "$1M" },
+            { Type = "Cash",        Value = 10000000, Weight = 2,  DisplayName = "$10M" },
+            { Type = "Multiplier",  Value = 2,        Weight = 10, DisplayName = "x2 (15 min)" },
+            { Type = "LuckyBlock",  Value = 1,        Weight = 8,  DisplayName = "1 Lucky Block" },
+            { Type = "Speed",       Value = 0.2,      Weight = 5,  DisplayName = "+0.2 Speed" },
         },
     },
     -- ═══════════════════════════════════════
     -- FUSION (Codex Fusion Tab)
     -- ═══════════════════════════════════════
     Fusion = {
+        -- Récompenses cash calibrées pour représenter ~1-3 min de revenu au
+        -- moment où le joueur atteint le milestone (early → endgame).
+        -- Speed et Multiplier restent des stats permanentes, non scale.
         Milestones = {
-            { Required = 3,   Type = "Cash",       Value = 500,     DisplayName = "$500" },
-            { Required = 5,   Type = "Cash",       Value = 2000,    DisplayName = "$2K" },
-            { Required = 8,   Type = "Speed",      Value = 0.2,     DisplayName = "+0.2 Speed" },
-            { Required = 10,  Type = "Cash",       Value = 10000,   DisplayName = "$10K" },
-            { Required = 15,  Type = "Cash",       Value = 25000,   DisplayName = "$25K" },
-            { Required = 20,  Type = "Speed",      Value = 0.2,     DisplayName = "+0.2 Speed" },
-            { Required = 25,  Type = "Cash",       Value = 50000,   DisplayName = "$50K" },
-            { Required = 35,  Type = "Speed",      Value = 0.2,     DisplayName = "+0.2 Speed" },
-            { Required = 40,  Type = "Multiplier", Value = 0.1,     DisplayName = "+0.1x" },
-            { Required = 50,  Type = "Speed",      Value = 0.2,     DisplayName = "+0.2 Speed" },
-            { Required = 60,  Type = "Cash",       Value = 250000,  DisplayName = "$250K" },
-            { Required = 70,  Type = "Speed",      Value = 0.2,     DisplayName = "+0.2 Speed" },
-            { Required = 80,  Type = "Cash",       Value = 500000,  DisplayName = "$500K" },
-            { Required = 90,  Type = "Speed",      Value = 0.2,     DisplayName = "+0.2 Speed" },
-            { Required = 100, Type = "Multiplier", Value = 0.25,    DisplayName = "+0.25x" },
-            { Required = 115, Type = "Speed",      Value = 0.2,     DisplayName = "+0.2 Speed" },
-            { Required = 130, Type = "Cash",       Value = 1000000, DisplayName = "$1M" },
+            -- Early game (Floor 0, commons)
+            { Required = 3,   Type = "Cash",       Value = 2000,     DisplayName = "$2K" },
+            { Required = 5,   Type = "Cash",       Value = 5000,     DisplayName = "$5K" },
+            { Required = 8,   Type = "Speed",      Value = 0.2,      DisplayName = "+0.2 Speed" },
+            { Required = 10,  Type = "Cash",       Value = 15000,    DisplayName = "$15K" },
+            -- Mid game (Floor 1, rares)
+            { Required = 15,  Type = "Cash",       Value = 35000,    DisplayName = "$35K" },
+            { Required = 20,  Type = "Speed",      Value = 0.2,      DisplayName = "+0.2 Speed" },
+            { Required = 25,  Type = "Cash",       Value = 75000,    DisplayName = "$75K" },
+            { Required = 35,  Type = "Speed",      Value = 0.2,      DisplayName = "+0.2 Speed" },
+            { Required = 40,  Type = "Multiplier", Value = 0.1,      DisplayName = "+0.1x" },
+            -- Late game (Floor 2, epics → legendaries)
+            { Required = 50,  Type = "Speed",      Value = 0.2,      DisplayName = "+0.2 Speed" },
+            { Required = 60,  Type = "Cash",       Value = 500000,   DisplayName = "$500K" },
+            { Required = 70,  Type = "Speed",      Value = 0.2,      DisplayName = "+0.2 Speed" },
+            { Required = 80,  Type = "Cash",       Value = 1500000,  DisplayName = "$1.5M" },
+            { Required = 90,  Type = "Speed",      Value = 0.2,      DisplayName = "+0.2 Speed" },
+            { Required = 100, Type = "Multiplier", Value = 0.25,     DisplayName = "+0.25x" },
+            { Required = 115, Type = "Speed",      Value = 0.2,      DisplayName = "+0.2 Speed" },
+            { Required = 130, Type = "Cash",       Value = 5000000,  DisplayName = "$5M" },
         },
     },
 }

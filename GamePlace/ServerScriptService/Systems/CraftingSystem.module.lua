@@ -227,10 +227,13 @@ function CraftingSystem:TryCraft(player, requestedSlotIndex)
         fs:RecordFusion(player, headPiece.SetName, bodyPiece.SetName, legsPiece.SetName)
     end
 
-    -- 8. Bonus si set complet
+    -- 8. Bonus si set complet (scale par rareté)
     local bonus = 0
     if isCompleteSet then
-        bonus = GameConfig.Economy.SetCompletionBonus
+        local bonusTable = GameConfig.Economy.SetCompletionBonus
+        local setData = BrainrotData.Sets[setName]
+        local rarity = setData and setData.Rarity or "Common"
+        bonus = bonusTable[rarity] or bonusTable.Common or 0
         DataService:IncrementValue(player, "Cash", bonus)
     end
     
