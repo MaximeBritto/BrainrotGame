@@ -263,6 +263,18 @@ function DoorSystem:_SetPlayerDoorCollision(player, collide)
 end
 
 --[[
+    Réapplique la collision de porte pour le personnage actuel
+    (à appeler au respawn pour que le propriétaire puisse toujours
+    traverser ses propres barreaux si sa porte est fermée)
+    @param player: Player
+]]
+function DoorSystem:ApplyCharacterDoorCollision(player)
+    local doorState = self._doorStates[player.UserId]
+    local isClosed = doorState and doorState.State == Constants.DoorState.Closed
+    self:_SetPlayerDoorCollision(player, not isClosed)
+end
+
+--[[
     Récupère l'état actuel de la porte d'un joueur
     @param player: Player
     @return table - {State, RemainingTime}

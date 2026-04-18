@@ -214,6 +214,12 @@ function PlayerService:OnCharacterAdded(player, character)
     -- Appliquer la vitesse de déplacement (base + bonus permanent)
     humanoid.WalkSpeed = self:GetPlayerWalkSpeed(player)
 
+    -- Réappliquer la collision de porte (respawn : le nouveau personnage
+    -- est dans le groupe par défaut et collisionnerait avec ses propres barreaux)
+    if self.DoorSystem then
+        self.DoorSystem:ApplyCharacterDoorCollision(player)
+    end
+
     -- Connecter l'événement de mort
     humanoid.Died:Connect(function()
         self:OnPlayerDied(player)
@@ -337,22 +343,16 @@ function PlayerService:OnPlayerDied(player)
             end
         end
 
-        -- Vider le brainrot porté en main (perdu aussi)
-        local carriedBrainrot = runtimeData.CarriedBrainrot
-        runtimeData.CarriedBrainrot = nil
-
-        if carriedBrainrot then
-            if remotes.SyncCarriedBrainrot then
-                remotes.SyncCarriedBrainrot:FireClient(player, nil)
-            end
-            if remotes.Notification then
-                remotes.Notification:FireClient(player, {
-                    Type = "Warning",
-                    Message = "You died! Stolen Brainrot lost.",
-                    Duration = 3,
-                })
-            end
+        -- Si le joueur transportait un Brainrot volé, le retourner à son
+        -- propriétaire d'origine (même logique qu'un coup de batte)
+        if runtimeData.CarriedBrainrot and self.BatSystem then
+            self.BatSystem:ReturnStolenBrainrot(player)
         end
+    end
+
+    -- Nettoyer l'état de stun pour qu'il ne traîne pas sur le personnage respawné
+    if self.BatSystem then
+        self.BatSystem:ClearStun(player)
     end
 
     -- Incrémenter les stats de mort
@@ -465,8 +465,14 @@ function PlayerService:GetPlayerWalkSpeed(player)
     local baseSpeed = GameConfig.MoveSpeed.BaseSpeed or 16
     local maxSpeed = GameConfig.MoveSpeed.MaxSpeed or 50
 
-    -- Si le toggle est désactivé, retourner la vitesse de base
     local runtimeData = self:GetRuntimeData(player)
+
+    -- Vitesse fixe quand on porte un brainrot volé (ignore tous les bonus/toggles)
+    if runtimeData and runtimeData.CarriedBrainrot then
+        return GameConfig.MoveSpeed.CarryingSpeed or baseSpeed
+    end
+
+    -- Si le toggle est désactivé, retourner la vitesse de base
     if runtimeData and runtimeData.SpeedBoosted == false then
         return baseSpeed
     end

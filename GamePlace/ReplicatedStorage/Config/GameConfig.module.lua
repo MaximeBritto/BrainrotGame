@@ -37,6 +37,7 @@ local GameConfig = {
     MoveSpeed = {
         BaseSpeed = 16,                     -- Vitesse de déplacement par défaut (Roblox default)
         MaxSpeed = 100,                     -- Vitesse maximale
+        CarryingSpeed = 14,                 -- Vitesse fixe quand on porte un brainrot volé (ignore bonus/malus)
     },
     
     -- ═══════════════════════════════════════
@@ -70,7 +71,7 @@ local GameConfig = {
     Arena = {
         SpawnInterval = 3,                  -- Secondes entre chaque spawn
         MaxPiecesInArena = 50,              -- Limite de pièces simultanées
-        PieceLifetime = 120,                -- Secondes avant despawn auto
+        PieceLifetime = 60,                 -- Secondes avant despawn auto (fallback hors arène : tutoriel, lucky block, etc.)
         SpinnerSpeed = 0.1,                 -- Tours par seconde du Spinner principal
         -- Spinners supplémentaires (dans Workspace.Arena: Spinner2, Spinner3, etc.)
         ExtraSpinners = {

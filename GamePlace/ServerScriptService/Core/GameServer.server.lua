@@ -269,8 +269,9 @@ DoorSystem:Init({
 })
 -- print("[GameServer] DoorSystem: OK")
 
--- 6.1. Injecter DoorSystem dans NetworkHandler
+-- 6.1. Injecter DoorSystem dans NetworkHandler et PlayerService
 NetworkHandler:UpdateSystems({DoorSystem = DoorSystem})
+PlayerService.DoorSystem = DoorSystem
 
 -- 7. EconomySystem (Phase 3) - optionnel si le chargement a échoué
 if EconomySystem then
@@ -518,6 +519,9 @@ if StealSystem and BatSystem then
         BrainrotModelSystem = BrainrotModelSystem,
     })
     -- print("[GameServer] BatSystem: OK")
+
+    -- Injecter BatSystem dans PlayerService (pour clear stun + return brainrot à la mort)
+    PlayerService.BatSystem = BatSystem
 
     NetworkHandler:UpdateSystems({
         StealSystem = StealSystem,

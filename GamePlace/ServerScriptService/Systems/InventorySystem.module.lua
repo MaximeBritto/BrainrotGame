@@ -120,6 +120,7 @@ function InventorySystem:TryPickupPiece(player, pieceId)
                     PieceType = existingPiece.PieceType,
                     Price = existingPiece.Price,
                     DisplayName = existingPiece.DisplayName,
+                    RemainingLifetime = existingPiece.RemainingLifetime,
                 }
                 table.remove(currentPieces, i)
                 replacedExisting = true
@@ -156,15 +157,16 @@ function InventorySystem:TryPickupPiece(player, pieceId)
         PieceType = pieceType,
         Price = price,
         DisplayName = displayName,
+        RemainingLifetime = ArenaSystem:GetRemainingLifetime(pieceId),
     }
-    
+
     -- Ajouter à l'inventaire du joueur
     local added = self:AddPiece(player, pieceData)
     if not added then
         warn("[InventorySystem] Échec ajout pièce à l'inventaire: " .. player.Name)
         return false, Constants.ActionResult.InvalidPiece, nil, nil
     end
-    
+
     -- Retirer la pièce de l'arène
     ArenaSystem:RemovePiece(piece)
     

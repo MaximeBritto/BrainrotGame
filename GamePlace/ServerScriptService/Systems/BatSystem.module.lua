@@ -164,7 +164,7 @@ function BatSystem:HandleBatHit(attacker, victimId)
     self:_ApplyStun(victim)
 
     -- 6. Si la victime transportait un Brainrot volé, le retourner
-    self:_ReturnStolenBrainrot(victim)
+    self:ReturnStolenBrainrot(victim)
 
     -- 7. Mettre à jour le cooldown de l'attaquant
     _playerStates[attackerId] = _playerStates[attackerId] or {}
@@ -241,14 +241,32 @@ function BatSystem:_ApplyStun(victim)
 end
 
 ---
+-- Efface l'état de stun (ex: appelé à la mort du joueur pour éviter que l'état
+-- traîne sur le personnage respawné et que le task.delay de _RemoveStun fire
+-- en override sur le nouveau personnage)
+-- @param player Player
+---
+function BatSystem:ClearStun(player)
+    local state = _playerStates[player.UserId]
+    if state then
+        state.IsStunned = false
+    end
+end
+
+---
 -- Retire le stun de la victime
 ---
 function BatSystem:_RemoveStun(victim)
     local victimId = victim.UserId
+    local state = _playerStates[victimId]
 
-    -- Mettre à jour l'état
-    _playerStates[victimId] = _playerStates[victimId] or {}
-    _playerStates[victimId].IsStunned = false
+    -- Idempotent : si le stun a déjà été effacé (ex: mort avant fin du timer),
+    -- ne pas toucher au personnage respawné
+    if not state or not state.IsStunned then
+        return
+    end
+
+    state.IsStunned = false
 
     -- Relever le personnage et réactiver le mouvement
     local character = victim.Character
@@ -278,8 +296,9 @@ end
 
 ---
 -- Retire le Brainrot volé porté en main et le retourne au slot d'origine
+-- (utilisé par un coup de batte ET par la mort du voleur)
 ---
-function BatSystem:_ReturnStolenBrainrot(victim)
+function BatSystem:ReturnStolenBrainrot(victim)
     if not PlayerService then return end
 
     local carriedData = PlayerService:GetCarriedBrainrot(victim)

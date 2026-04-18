@@ -990,7 +990,7 @@ end
     @param position Vector3
     @return Model | nil
 ]]
-function ArenaSystem:_SpawnSpecificPiece(setName, pieceType, pieceInfo, templateName, template, position)
+function ArenaSystem:_SpawnSpecificPiece(setName, pieceType, pieceInfo, templateName, template, position, lifetimeOverride)
     if not self._initialized then return nil end
     
     -- Cloner le template
@@ -1085,7 +1085,7 @@ function ArenaSystem:_SpawnSpecificPiece(setName, pieceType, pieceInfo, template
     self._pieces[pieceId] = {
         Model = piece,
         SpawnedAt = tick(),
-        Lifetime = GameConfig.Arena.PieceLifetime,
+        Lifetime = lifetimeOverride or GameConfig.Arena.PieceLifetime,
     }
 
     -- print("[ArenaSystem] Pièce cheat spawnée: " .. pieceId .. " (" .. templateName .. " " .. pieceType .. " - Set: " .. setName .. ")")
@@ -1157,6 +1157,13 @@ end
     Supprime une pièce de l'arène
     @param piece: Model
 ]]
+function ArenaSystem:GetRemainingLifetime(pieceId)
+    local data = self._pieces[pieceId]
+    if not data then return nil end
+    local elapsed = tick() - data.SpawnedAt
+    return math.max(0, data.Lifetime - elapsed)
+end
+
 function ArenaSystem:RemovePiece(piece)
     if not piece then return end
     
@@ -1271,7 +1278,7 @@ function ArenaSystem:SpawnPieceFromData(pieceData, position)
     -- Spawn légèrement au-dessus pour que la pièce tombe
     local dropPosition = position + Vector3.new(0, 5, 0)
 
-    local piece = self:_SpawnSpecificPiece(setName, pieceType, pieceInfo, templateName, template, dropPosition)
+    local piece = self:_SpawnSpecificPiece(setName, pieceType, pieceInfo, templateName, template, dropPosition, pieceData.RemainingLifetime)
     if piece then
         -- print("[ArenaSystem] Pièce droppée: " .. setName .. " " .. pieceType .. " à " .. tostring(position))
     end

@@ -146,6 +146,7 @@ function StealSystem:ExecuteSteal(thief, ownerId, slotId)
 		StolenFromSlotId = slotId,
 	}
 	PlayerService:SetCarriedBrainrot(thief, carriedData)
+	PlayerService:ApplyWalkSpeed(thief)
 
 	-- 9. Attacher le modèle visuel à la main gauche du voleur
 	self:_AttachBrainrotToHand(thief, carriedData)
@@ -216,6 +217,7 @@ function StealSystem:PlaceStolenBrainrot(player, slotIndex)
 
 	-- 4. Vider le CarriedBrainrot
 	PlayerService:ClearCarriedBrainrot(player)
+	PlayerService:ApplyWalkSpeed(player)
 	self:_RemoveBrainrotFromHand(player)
 
 	-- 5. Sync client
