@@ -70,7 +70,7 @@ local GameConfig = {
     -- ═══════════════════════════════════════
     Sounds = {
         BackgroundMusic = "rbxassetid://70927742280169",
-        BackgroundMusicVolume = 0.4,
+        BackgroundMusicVolume = 0.15,
         DoorClose = "rbxassetid://86128313455174",
         DoorCloseVolume = 0.65,
     },

@@ -11,11 +11,17 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 
 local ArenaController = {}
 local _remotes = nil
 local _inventory = {} -- Cache local des pièces en main
 local _connectedPrompts = {} -- Pour éviter les connexions multiples
+local _blinkState = {} -- [piece] = {parts = {[BasePart] = originalT}, phase = number}
+
+local BLINK_THRESHOLD = 10 -- secondes avant despawn où le clignotement commence
+local BLINK_MIN_FREQ = 2   -- Hz au début du seuil
+local BLINK_MAX_FREQ = 12  -- Hz à la fin (juste avant despawn)
 
 --[[
     Initialise le contrôleur
@@ -48,8 +54,99 @@ function ArenaController:Init()
     
     -- Connecter les pièces existantes et futures
     self:_ConnectActivePieces()
-    
+
+    -- Démarrer la boucle de clignotement d'expiration
+    self:_StartBlinkLoop()
+
     -- print("[ArenaController] Initialisé!")
+end
+
+--[[
+    Récupère (et cache) l'état de clignotement d'une pièce :
+    liste des parts avec leur transparence d'origine + phase accumulée
+]]
+function ArenaController:_GetBlinkState(piece)
+    local state = _blinkState[piece]
+    if state then return state end
+
+    local parts = {}
+    for _, d in ipairs(piece:GetDescendants()) do
+        if d:IsA("BasePart") and d.Name ~= "PickupZone" then
+            parts[d] = d.Transparency
+        end
+    end
+    state = { parts = parts, phase = 0 }
+    _blinkState[piece] = state
+    return state
+end
+
+--[[
+    Applique un état visible/invisible sur toutes les parts cachées d'une pièce
+]]
+function ArenaController:_ApplyPieceVisibility(state, visible)
+    for part, originalT in pairs(state.parts) do
+        if part.Parent then
+            part.Transparency = visible and originalT or 1
+        end
+    end
+end
+
+--[[
+    Désactive le ProximityPrompt d'une pièce (pour empêcher le pickup
+    pendant la phase finale avant que le serveur ne la détruise)
+]]
+function ArenaController:_SetPiecePromptEnabled(piece, enabled)
+    local primary = piece.PrimaryPart
+    if not primary then return end
+    local pickupZone = primary:FindFirstChild("PickupZone")
+    if not pickupZone then return end
+    local prompt = pickupZone:FindFirstChildOfClass("ProximityPrompt")
+    if prompt then prompt.Enabled = enabled end
+end
+
+--[[
+    Boucle de clignotement : rend les pièces clignotantes dans les 10 dernières secondes,
+    de plus en plus rapidement à mesure que le temps s'approche de zéro.
+    Utilise une phase accumulée pour un clignotement régulier malgré la variation de fréquence.
+]]
+function ArenaController:_StartBlinkLoop()
+    local piecesFolder = Workspace:WaitForChild("ActivePieces", 10)
+    if not piecesFolder then return end
+
+    piecesFolder.ChildRemoved:Connect(function(piece)
+        _blinkState[piece] = nil
+    end)
+
+    RunService.Heartbeat:Connect(function(dt)
+        for _, piece in ipairs(piecesFolder:GetChildren()) do
+            if piece:IsA("Model") then
+                local spawnedAt = piece:GetAttribute("SpawnedAt")
+                local lifetime = piece:GetAttribute("Lifetime")
+                if spawnedAt and lifetime then
+                    local remaining = lifetime - (tick() - spawnedAt)
+                    if remaining <= 0 then
+                        -- Expirée : cacher et désactiver le pickup en attendant la destruction serveur
+                        local state = self:_GetBlinkState(piece)
+                        self:_ApplyPieceVisibility(state, false)
+                        self:_SetPiecePromptEnabled(piece, false)
+                    elseif remaining < BLINK_THRESHOLD then
+                        -- progress : 0 (début du seuil) → 1 (despawn)
+                        local progress = 1 - (remaining / BLINK_THRESHOLD)
+                        local freq = BLINK_MIN_FREQ + progress * (BLINK_MAX_FREQ - BLINK_MIN_FREQ)
+                        local state = self:_GetBlinkState(piece)
+                        -- Phase accumulée : freq * 2 demi-périodes/s (on/off)
+                        state.phase = state.phase + dt * freq * 2
+                        local visible = math.floor(state.phase) % 2 == 0
+                        self:_ApplyPieceVisibility(state, visible)
+                    elseif _blinkState[piece] then
+                        -- Hors zone de clignotement : restaurer visibilité + prompt
+                        self:_ApplyPieceVisibility(_blinkState[piece], true)
+                        self:_SetPiecePromptEnabled(piece, true)
+                    end
+                end
+            end
+        end
+    end)
 end
 
 --[[

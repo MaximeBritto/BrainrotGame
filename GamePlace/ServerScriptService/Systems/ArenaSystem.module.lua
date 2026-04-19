@@ -878,6 +878,7 @@ function ArenaSystem:_SpawnInZone(zone)
     piece:SetAttribute("GainPerSec", pieceInfo.GainPerSec or 0)
     piece:SetAttribute("DisplayName", pieceInfo.DisplayName)
     piece:SetAttribute("SpawnedAt", tick())
+    piece:SetAttribute("Lifetime", zone.Config.PieceLifetime or GameConfig.Arena.PieceLifetime)
 
     -- Nom du modèle
     piece.Name = pieceId
@@ -1008,6 +1009,7 @@ function ArenaSystem:_SpawnSpecificPiece(setName, pieceType, pieceInfo, template
     piece:SetAttribute("GainPerSec", pieceInfo.GainPerSec or 0)
     piece:SetAttribute("DisplayName", pieceInfo.DisplayName)
     piece:SetAttribute("SpawnedAt", tick())
+    piece:SetAttribute("Lifetime", lifetimeOverride or GameConfig.Arena.PieceLifetime)
 
     -- Nom du modèle
     piece.Name = pieceId
@@ -1124,7 +1126,7 @@ end
 function ArenaSystem:_StartCleanupLoop()
     task.spawn(function()
         while self._loopsRunning do
-            task.wait(10)
+            task.wait(1)
             local now = tick()
             local toRemove = {}
             for pieceId, data in pairs(self._pieces) do

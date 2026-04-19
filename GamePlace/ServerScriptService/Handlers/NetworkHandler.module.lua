@@ -833,6 +833,13 @@ function NetworkHandler:_HandleSellBrainrot(player, slotIndex)
         return
     end
 
+    -- 1b. Vérifier que la main du joueur est vide (pour pouvoir recevoir les 3 pièces)
+    local currentPieces = PlayerService:GetPiecesInHand(player)
+    if currentPieces and #currentPieces > 0 then
+        self:_SendNotification(player, "Error", "Drop your pieces before selling!", 2)
+        return
+    end
+
     -- 2. Calculer le prix de vente (60% de la somme des prix des 3 parties)
     local BrainrotData = require(ReplicatedStorage:WaitForChild("Data"):WaitForChild("BrainrotData.module"))
     local Config = ReplicatedStorage:WaitForChild("Config")
@@ -874,7 +881,25 @@ function NetworkHandler:_HandleSellBrainrot(player, slotIndex)
     -- 4. Donner l'argent au joueur
     EconomySystem:AddCash(player, sellPrice)
 
-    -- 5. Sync les données vers le client
+    -- 5. Rendre les 3 pièces (Head/Body/Legs) au joueur
+    local partTypes = { Constants.PieceType.Head, Constants.PieceType.Body, Constants.PieceType.Legs }
+    local setKeys = { "HeadSet", "BodySet", "LegsSet" }
+
+    for i, partType in ipairs(partTypes) do
+        local setName = brainrotData[setKeys[i]]
+        local setData = setName and BrainrotData.Sets[setName]
+        local partData = setData and setData[partType]
+        if partData then
+            PlayerService:AddPieceToHand(player, {
+                SetName = setName,
+                PieceType = partType,
+                Price = partData.Price or 0,
+                DisplayName = partData.DisplayName or setName,
+            })
+        end
+    end
+
+    -- 6. Sync les données vers le client
     if playerData then
         self:SyncPlayerData(player, {
             Cash = playerData.Cash,
@@ -882,8 +907,10 @@ function NetworkHandler:_HandleSellBrainrot(player, slotIndex)
         })
     end
 
-    -- 6. Notification
-    self:_SendNotification(player, "Success", "Brainrot sold for $" .. sellPrice .. "!", 3)
+    self:SyncInventory(player)
+
+    -- 7. Notification
+    self:_SendNotification(player, "Success", "Brainrot sold for $" .. sellPrice .. "! Pieces returned to your hand.", 3)
 end
 
 -- ═══════════════════════════════════════════════════════
