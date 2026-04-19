@@ -14,6 +14,8 @@ local player = Players.LocalPlayer
 -- Modules
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Constants = require(Shared["Constants.module"])
+local Config = ReplicatedStorage:WaitForChild("Config")
+local GameConfig = require(Config:WaitForChild("GameConfig.module"))
 
 -- Contrôleurs (charger depuis le même dossier)
 local UIController = require(script.Parent:WaitForChild("UIController.module"))
@@ -48,6 +50,19 @@ CodexController:Init()
 
 -- Preview Brainrot 3D
 PreviewBrainrotController:Init()
+
+-- Précharger les audios config (évite le décalage au 1er Play)
+if SoundHelper and GameConfig.Sounds then
+    SoundHelper.PrecacheConfigSounds(GameConfig.Sounds)
+end
+
+-- Musique d'ambiance (config GameConfig.Sounds)
+if SoundHelper and GameConfig.Sounds and GameConfig.Sounds.BackgroundMusic and GameConfig.Sounds.BackgroundMusic ~= "" then
+    SoundHelper.StartBackgroundMusic(
+        GameConfig.Sounds.BackgroundMusic,
+        GameConfig.Sounds.BackgroundMusicVolume
+    )
+end
 
 -- ═══════════════════════════════════════════════════════
 -- CONNEXION AUX REMOTES (Serveur → Client)
@@ -635,6 +650,9 @@ task.spawn(function()
         end
         if fullData.MultiplierBoostActive and fullData.MultiplierBoostRemaining and fullData.MultiplierBoostRemaining > 0 then
             startBoostCountdown(fullData.MultiplierBoostRemaining)
+        end
+        if fullData.DoorState then
+            DoorController:UpdateDoorState(fullData.DoorState, fullData.DoorReopenTime or 0, true)
         end
     else
         warn("[ClientMain] No data received from server")

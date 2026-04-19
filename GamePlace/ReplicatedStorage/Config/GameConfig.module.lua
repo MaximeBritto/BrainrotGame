@@ -64,6 +64,16 @@ local GameConfig = {
         DoorOpenProductId = 3544540787,              -- Developer Product ID (à créer sur roblox.com, 80 Robux)
         DoorOpenRobux = 80,                 -- Prix en Robux pour ouvrir la porte d'un autre joueur
     },
+
+    -- ═══════════════════════════════════════
+    -- AUDIO (SoundHelper + client)
+    -- ═══════════════════════════════════════
+    Sounds = {
+        BackgroundMusic = "rbxassetid://70927742280169",
+        BackgroundMusicVolume = 0.4,
+        DoorClose = "rbxassetid://86128313455174",
+        DoorCloseVolume = 0.65,
+    },
     
     -- ═══════════════════════════════════════
     -- ARÈNE

@@ -19,6 +19,18 @@ local playerGui = player:WaitForChild("PlayerGui")
 -- Modules
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Constants = require(Shared["Constants.module"])
+local Config = ReplicatedStorage:WaitForChild("Config")
+local GameConfig = require(Config:WaitForChild("GameConfig.module"))
+
+local SoundHelper = nil
+do
+    local ok, mod = pcall(function()
+        return require(Shared:WaitForChild("SoundHelper.module"))
+    end)
+    if ok and mod then
+        SoundHelper = mod
+    end
+end
 
 local DoorController = {}
 DoorController._initialized = false
@@ -166,7 +178,25 @@ end
 -- MISE À JOUR
 -- ═══════════════════════════════════════════════════════
 
-function DoorController:UpdateDoorState(state, reopenTime)
+--[[
+    @param skipCloseSound: true pour aligner l'UI sur le serveur sans jouer le SFX
+    (ex. hydratation GetFullPlayerData si la porte est déjà fermée au join).
+]]
+function DoorController:UpdateDoorState(state, reopenTime, skipCloseSound)
+    local prev = self._doorState
+
+    local shouldPlayClose = not skipCloseSound
+        and prev ~= Constants.DoorState.Closed
+        and state == Constants.DoorState.Closed
+        and SoundHelper
+        and GameConfig.Sounds
+        and GameConfig.Sounds.DoorClose
+        and GameConfig.Sounds.DoorClose ~= ""
+
+    if shouldPlayClose then
+        SoundHelper.PlayFromAssetId(GameConfig.Sounds.DoorClose, GameConfig.Sounds.DoorCloseVolume)
+    end
+
     self._doorState = state
     self._reopenTime = reopenTime or 0
 

@@ -801,6 +801,7 @@ function NetworkHandler:_HandleGetFullPlayerData(player)
         PiecesInHand = runtimeData and runtimeData.PiecesInHand or {},
         CarriedBrainrot = runtimeData and runtimeData.CarriedBrainrot or nil,
         DoorState = runtimeData and runtimeData.DoorState or Constants.DoorState.Open,
+        DoorReopenTime = runtimeData and runtimeData.DoorReopenTime or 0,
 
         -- Multiplicateur temporaire (Boost)
         MultiplierBoostActive = (runtimeData and runtimeData.TemporaryMultiplier ~= nil
