@@ -282,11 +282,15 @@ function StealSystem:_AttachBrainrotToHand(player, carriedData)
 		return
 	end
 
-	-- Préparer toutes les parts : désactiver collision, désancrer, supprimer BillboardGui
+	-- Préparer toutes les parts : désactiver collision, désancrer, rendre sans masse, supprimer BillboardGui
+	-- Massless=true est critique : sans ça, la masse du modèle (surtout pour des gros brainrots
+	-- comme le Gorilla) s'ajoute au rig physique via le Motor6D LeftHand→LeftUpperArm et fait
+	-- exploser la physique du Humanoid (téléport + mouvements erratiques).
 	for _, desc in ipairs(model:GetDescendants()) do
 		if desc:IsA("BasePart") then
 			desc.CanCollide = false
 			desc.Anchored = false
+			desc.Massless = true
 		end
 		if desc:IsA("BillboardGui") then
 			desc:Destroy()
