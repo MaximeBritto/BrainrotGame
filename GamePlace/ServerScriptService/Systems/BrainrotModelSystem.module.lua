@@ -427,7 +427,7 @@ function BrainrotModelSystem:CreateBrainrotModel(player, slotIndex, brainrotData
         proximityPrompt.ObjectText = "Brainrot"
         proximityPrompt.HoldDuration = 3
         proximityPrompt.MaxActivationDistance = 15
-        proximityPrompt.RequiresLineOfSight = false
+        proximityPrompt.RequiresLineOfSight = true
         proximityPrompt.KeyboardKeyCode = Enum.KeyCode.E
         proximityPrompt.Parent = primaryPart
 

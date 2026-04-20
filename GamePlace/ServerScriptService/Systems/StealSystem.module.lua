@@ -361,7 +361,20 @@ function StealSystem:_IsInRange(thief, owner, slotId)
 			if not target then return false end
 
 			local distance = (thiefRoot.Position - target.Position).Magnitude
-			return distance <= STEAL_MAX_DISTANCE
+			if distance > STEAL_MAX_DISTANCE then return false end
+
+			-- Vérification ligne de vue : un mur ou une porte fermée bloque le vol
+			local origin = thiefRoot.Position
+			local direction = target.Position - origin
+			local raycastParams = RaycastParams.new()
+			raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+			raycastParams.FilterDescendantsInstances = { thiefChar, slot }
+			raycastParams.IgnoreWater = true
+
+			local hit = workspace:Raycast(origin, direction, raycastParams)
+			if hit then return false end
+
+			return true
 		end
 	end
 
