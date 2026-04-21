@@ -41,8 +41,39 @@ local ROTATION_SPEED = 0.5       -- Vitesse de rotation lente (rad/s)
 local DEBUG_PREVIEW = true
 
 -- Les templates sont visiblement en axe différent du monde Roblox (Y-up),
--- on applique une correction fixe pour garder le preview debout (tête en haut, pieds en bas).
-local ORIENTATION_CORRECTION = CFrame.Angles(math.rad(90), 0, 0)
+-- on applique une correction (rotation autour de l'axe X = pitch) pour garder le preview
+-- debout (tête en haut, pieds en bas).
+--
+-- L'angle utilisé peut être OVERRIDE par template : il suffit d'ajouter un Attachment
+-- dans le PrimaryPart du template dont le NOM est un nombre de degrés (ex. "0", "90",
+-- "180", "270", "-90"). Si un tel Attachment est trouvé, son nom est parsé et utilisé
+-- comme angle de rotation (autour de X). Si aucun Attachment nommé avec un nombre n'est
+-- trouvé, on applique 90° par défaut (comportement historique).
+--
+-- Permet de corriger au cas par cas les templates qui étaient authorés dans des
+-- orientations différentes sans toucher au code.
+local DEFAULT_ORIENTATION_DEGREES = 90
+local ORIENTATION_CORRECTION = CFrame.Angles(math.rad(DEFAULT_ORIENTATION_DEGREES), 0, 0)
+
+--[[
+    Cherche dans les enfants directs de `part` un Attachment dont le nom est un nombre
+    (interprété comme des degrés). Retourne la CFrame de correction correspondante
+    (rotation autour de l'axe X).
+    Si aucun Attachment avec un nom numérique n'est trouvé → retourne ORIENTATION_CORRECTION
+    (90° par défaut).
+]]
+local function _GetOrientationCorrection(part)
+    if not part then return ORIENTATION_CORRECTION, DEFAULT_ORIENTATION_DEGREES, "default (no part)" end
+    for _, child in ipairs(part:GetChildren()) do
+        if child:IsA("Attachment") then
+            local degrees = tonumber(child.Name)
+            if degrees then
+                return CFrame.Angles(math.rad(degrees), 0, 0), degrees, "attachment '" .. child.Name .. "'"
+            end
+        end
+    end
+    return ORIENTATION_CORRECTION, DEFAULT_ORIENTATION_DEGREES, "default (no numeric attachment found)"
+end
 
 -- ═══════════════════════════════════════════════════════
 -- INITIALISATION
@@ -124,7 +155,9 @@ function PreviewBrainrotController:UpdatePreview(pieces)
         if flatLook.Magnitude < 0.001 then flatLook = Vector3.new(0, 0, -1) else flatLook = flatLook.Unit end
         local uprightFrame = CFrame.lookAt(rootPart.Position, rootPart.Position + flatLook, Vector3.new(0, 1, 0))
         local pos = (uprightFrame * OFFSET).Position
-        model:PivotTo(CFrame.new(pos) * ORIENTATION_CORRECTION)
+        -- Utilise self._orientationCorrection (défini dans _AssemblePreview via l'Attachment
+        -- nommé du PrimaryPart, ou 90° par défaut).
+        model:PivotTo(CFrame.new(pos) * (self._orientationCorrection or ORIENTATION_CORRECTION))
     end
 
     -- Parent au workspace (client-side uniquement)
@@ -360,6 +393,19 @@ function PreviewBrainrotController:_AssemblePreview(pieces)
     -- 8b. Ancrer le PrimaryPart pour stabiliser l'assemblage (PivotTo fonctionne avec Anchored)
     model.PrimaryPart.Anchored = true
 
+    -- 8c. Déterminer la correction d'orientation pour ce preview.
+    -- On regarde les Attachments du PrimaryPart : si un Attachment a un nom numérique
+    -- (ex. "90", "180"), on l'utilise comme angle. Sinon, 90° par défaut.
+    -- Stocké sur self pour être réutilisé par Show() et le Heartbeat.
+    local correction, degrees, source = _GetOrientationCorrection(model.PrimaryPart)
+    self._orientationCorrection = correction
+    if DEBUG_PREVIEW then
+        print(string.format(
+            "[PreviewBrainrotController] Correction d'orientation = %d° (source: %s)",
+            degrees, source
+        ))
+    end
+
     -- 9. Centrer la rotation du modèle sur son centre de masse via WorldPivot
     -- IMPORTANT: On NE déplace PAS les parts individuellement car CFrame * CFrame.new(offset)
     -- applique le décalage en espace LOCAL de chaque part. Si les parts ont des rotations
@@ -440,8 +486,10 @@ function PreviewBrainrotController:_StartFollowing()
         -- Position : à gauche et derrière le joueur + bob (INDÉPENDANTE de la rotation)
         local pivotPosition = (uprightFollowFrame * OFFSET * CFrame.new(0, bobOffset, 0)).Position
 
-        -- Orientation : spin en espace monde (axe Y) puis correction debout, pour un mouvement toupie
-        local pivotRotation = rotCFrame * ORIENTATION_CORRECTION
+        -- Orientation : spin en espace monde (axe Y) puis correction debout, pour un mouvement toupie.
+        -- La correction est celle détectée via l'Attachment nommé du PrimaryPart (90/180/etc.)
+        -- ou 90° par défaut.
+        local pivotRotation = rotCFrame * (self._orientationCorrection or ORIENTATION_CORRECTION)
 
         -- Combiner : le modèle tourne sur lui-même autour de son pivot, pas autour d'un point extérieur
         local targetCFrame = CFrame.new(pivotPosition) * pivotRotation
