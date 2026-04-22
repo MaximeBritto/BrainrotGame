@@ -73,7 +73,7 @@ local syncPlayerData = Remotes:WaitForChild("SyncPlayerData")
 syncPlayerData.OnClientEvent:Connect(function(data)
     UIController:UpdateAll(data)
 
-    if data.OwnedSlots or data.SlotCash or data.UnlockedFloor then
+    if data.OwnedSlots or data.SlotCash or data.UnlockedFloor or data.PermanentJumpBonus ~= nil then
         EconomyController:UpdateData(data)
     end
 
@@ -447,8 +447,172 @@ if hudGui then
         task.delay(0.15, updateSpeedButtonVisual)
     end)
 
+    -- Rafraîchir le label x1.0/x2.0 dès que le serveur change WalkSpeed
+    -- (ex: achat cheat menu, boost permanent, respawn, carrying brainrot)
+    local function hookSpeedHumanoid(character)
+        local humanoid = character:FindFirstChildOfClass("Humanoid") or character:WaitForChild("Humanoid", 5)
+        if humanoid then
+            humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(updateSpeedButtonVisual)
+        end
+    end
+    if player.Character then hookSpeedHumanoid(player.Character) end
+    player.CharacterAdded:Connect(hookSpeedHumanoid)
+
     -- Init: afficher le multiplicateur après que le personnage soit chargé
     task.delay(1, updateSpeedButtonVisual)
+
+    -- ── BOUTON JUMP TOGGLE ──
+    local jumpBoosted = true -- état par défaut (saut boosté)
+    local jumpColorOn = Color3.fromRGB(40, 150, 70)
+    local jumpColorOff = Color3.fromRGB(80, 80, 80)
+    local jumpHoverOn = Color3.fromRGB(55, 180, 85)
+    local jumpHoverOff = Color3.fromRGB(110, 110, 110)
+
+    local jumpButton = Instance.new("TextButton")
+    jumpButton.Name = "JumpToggleButton"
+    jumpButton.Size = UDim2.new(1, 0, 0, 55)
+    jumpButton.LayoutOrder = 4
+    jumpButton.BackgroundColor3 = jumpColorOn
+    jumpButton.BackgroundTransparency = 0.1
+    jumpButton.BorderSizePixel = 0
+    jumpButton.Text = ""
+    jumpButton.AutoButtonColor = false
+    jumpButton.Parent = sideButtonsContainer
+
+    local jumpCorner = Instance.new("UICorner")
+    jumpCorner.CornerRadius = UDim.new(0, 14)
+    jumpCorner.Parent = jumpButton
+
+    local jumpStroke = Instance.new("UIStroke")
+    jumpStroke.Color = Color3.fromRGB(60, 200, 90)
+    jumpStroke.Thickness = 1.5
+    jumpStroke.Transparency = 0.3
+    jumpStroke.Parent = jumpButton
+
+    local jumpIcon = Instance.new("TextLabel")
+    jumpIcon.Name = "Icon"
+    jumpIcon.Size = UDim2.new(0, 35, 0, 35)
+    jumpIcon.Position = UDim2.new(0, 12, 0.5, 0)
+    jumpIcon.AnchorPoint = Vector2.new(0, 0.5)
+    jumpIcon.BackgroundTransparency = 1
+    jumpIcon.Text = "\xF0\x9F\xA6\x98" -- 🦘
+    jumpIcon.TextSize = 24
+    jumpIcon.Font = Enum.Font.GothamBold
+    jumpIcon.Parent = jumpButton
+
+    local jumpText = Instance.new("TextLabel")
+    jumpText.Name = "Label"
+    jumpText.Size = UDim2.new(0, 80, 0, 20)
+    jumpText.Position = UDim2.new(0, 48, 0.5, -12)
+    jumpText.BackgroundTransparency = 1
+    jumpText.Text = "JUMP"
+    jumpText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    jumpText.TextSize = 18
+    jumpText.Font = Enum.Font.GothamBlack
+    jumpText.TextXAlignment = Enum.TextXAlignment.Left
+    jumpText.Parent = jumpButton
+
+    local jumpMultiplierLabel = Instance.new("TextLabel")
+    jumpMultiplierLabel.Name = "MultiplierLabel"
+    jumpMultiplierLabel.Size = UDim2.new(0, 80, 0, 14)
+    jumpMultiplierLabel.Position = UDim2.new(0, 48, 0.5, 8)
+    jumpMultiplierLabel.BackgroundTransparency = 1
+    jumpMultiplierLabel.Text = ""
+    jumpMultiplierLabel.TextColor3 = Color3.fromRGB(180, 255, 180)
+    jumpMultiplierLabel.TextSize = 12
+    jumpMultiplierLabel.Font = Enum.Font.GothamBold
+    jumpMultiplierLabel.TextXAlignment = Enum.TextXAlignment.Left
+    jumpMultiplierLabel.Parent = jumpButton
+
+    local jumpToggleTrack = Instance.new("Frame")
+    jumpToggleTrack.Name = "ToggleTrack"
+    jumpToggleTrack.Size = UDim2.new(0, 42, 0, 22)
+    jumpToggleTrack.Position = UDim2.new(1, -52, 0.5, 0)
+    jumpToggleTrack.AnchorPoint = Vector2.new(0, 0.5)
+    jumpToggleTrack.BackgroundColor3 = Color3.fromRGB(80, 180, 80)
+    jumpToggleTrack.BorderSizePixel = 0
+    jumpToggleTrack.Parent = jumpButton
+
+    local jumpToggleTrackCorner = Instance.new("UICorner")
+    jumpToggleTrackCorner.CornerRadius = UDim.new(1, 0)
+    jumpToggleTrackCorner.Parent = jumpToggleTrack
+
+    local jumpToggleKnob = Instance.new("Frame")
+    jumpToggleKnob.Name = "Knob"
+    jumpToggleKnob.Size = UDim2.new(0, 18, 0, 18)
+    jumpToggleKnob.Position = UDim2.new(1, -20, 0.5, 0)
+    jumpToggleKnob.AnchorPoint = Vector2.new(0, 0.5)
+    jumpToggleKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    jumpToggleKnob.BorderSizePixel = 0
+    jumpToggleKnob.Parent = jumpToggleTrack
+
+    local jumpToggleKnobCorner = Instance.new("UICorner")
+    jumpToggleKnobCorner.CornerRadius = UDim.new(1, 0)
+    jumpToggleKnobCorner.Parent = jumpToggleKnob
+
+    local function updateJumpButtonVisual()
+        local color = jumpBoosted and jumpColorOn or jumpColorOff
+        local strokeColor = jumpBoosted and Color3.fromRGB(60, 200, 90) or Color3.fromRGB(130, 130, 130)
+        local trackColor = jumpBoosted and Color3.fromRGB(80, 180, 80) or Color3.fromRGB(120, 120, 120)
+        local knobPos = jumpBoosted and UDim2.new(1, -20, 0.5, 0) or UDim2.new(0, 2, 0.5, 0)
+        TweenService:Create(jumpButton, TweenInfo.new(0.2), {
+            BackgroundColor3 = color,
+        }):Play()
+        TweenService:Create(jumpToggleTrack, TweenInfo.new(0.2), {
+            BackgroundColor3 = trackColor,
+        }):Play()
+        TweenService:Create(jumpToggleKnob, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            Position = knobPos,
+        }):Play()
+        jumpStroke.Color = strokeColor
+        jumpText.Text = jumpBoosted and "JUMP" or "LOW"
+
+        if jumpBoosted then
+            local character = player.Character
+            local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+            local basePower = (GameConfig.Jump and GameConfig.Jump.BasePower) or 50
+            local jumpPower = humanoid and humanoid.JumpPower or basePower
+            jumpMultiplierLabel.Text = "x" .. string.format("%.1f", jumpPower / basePower)
+            jumpMultiplierLabel.Visible = true
+        else
+            jumpMultiplierLabel.Visible = false
+        end
+    end
+
+    jumpButton.MouseEnter:Connect(function()
+        local hoverColor = jumpBoosted and jumpHoverOn or jumpHoverOff
+        TweenService:Create(jumpButton, TweenInfo.new(0.15), {
+            BackgroundColor3 = hoverColor,
+        }):Play()
+    end)
+    jumpButton.MouseLeave:Connect(function()
+        local baseColor = jumpBoosted and jumpColorOn or jumpColorOff
+        TweenService:Create(jumpButton, TweenInfo.new(0.15), {
+            BackgroundColor3 = baseColor,
+        }):Play()
+    end)
+
+    local toggleJumpRemote = Remotes:WaitForChild("ToggleJump")
+    jumpButton.MouseButton1Click:Connect(function()
+        toggleJumpRemote:FireServer()
+    end)
+
+    toggleJumpRemote.OnClientEvent:Connect(function(newState)
+        jumpBoosted = newState
+        task.delay(0.15, updateJumpButtonVisual)
+    end)
+
+    -- Rafraîchir le label x1.0/x2.0 dès que le serveur change JumpPower
+    local function hookJumpHumanoid(character)
+        local humanoid = character:FindFirstChildOfClass("Humanoid") or character:WaitForChild("Humanoid", 5)
+        if humanoid then
+            humanoid:GetPropertyChangedSignal("JumpPower"):Connect(updateJumpButtonVisual)
+        end
+    end
+    if player.Character then hookJumpHumanoid(player.Character) end
+    player.CharacterAdded:Connect(hookJumpHumanoid)
+
+    task.delay(1, updateJumpButtonVisual)
 end
 
 -- ═══════════════════════════════════════════════════════
@@ -628,6 +792,7 @@ task.spawn(function()
 
     if fullData then
         UIController:UpdateAll(fullData)
+        EconomyController:UpdateData(fullData)
         if fullData.PiecesInHand then
             PreviewBrainrotController:UpdatePreview(fullData.PiecesInHand)
         end
@@ -696,6 +861,8 @@ ProximityPromptService.PromptTriggered:Connect(function(prompt, playerWhoTrigger
         local grandParent = parent.Parent
         if grandParent and grandParent.Name == "SlotShop" then
             EconomyController:OpenShop()
+        elseif grandParent and grandParent.Name == "JumpShop" then
+            EconomyController:RequestBuyJumpLevel()
         end
     end
 

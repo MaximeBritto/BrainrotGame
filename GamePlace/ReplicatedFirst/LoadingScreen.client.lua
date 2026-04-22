@@ -198,7 +198,7 @@ statusLabel.AnchorPoint            = Vector2.new(0.5, 1)
 statusLabel.Position               = UDim2.fromScale(0.5, 0.68)
 statusLabel.Size                   = UDim2.fromScale(0.6, 0.035)
 statusLabel.BackgroundTransparency = 1
-statusLabel.Text                   = "Chargement des assets..."
+statusLabel.Text                   = "Loading assets..."
 statusLabel.TextColor3             = Color3.fromRGB(220, 220, 220)
 statusLabel.Font                   = Enum.Font.Gotham
 statusLabel.TextScaled             = true
@@ -294,7 +294,7 @@ task.spawn(function()
     -- ──────────────────────────────────────────────────────────
     -- ÉTAPE 2 : Preload des assets par batchs (15% → 75%)
     -- ──────────────────────────────────────────────────────────
-    statusLabel.Text = "Chargement des assets..."
+    statusLabel.Text = "Loading assets..."
     local assets = collectAssets()
     local total = #assets
 

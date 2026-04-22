@@ -281,7 +281,11 @@ function BatSystem:_RemoveStun(victim)
             else
                 humanoid.WalkSpeed = 16
             end
-            humanoid.JumpPower = 50
+            if PlayerService and PlayerService.GetPlayerJumpPower then
+                humanoid.JumpPower = PlayerService:GetPlayerJumpPower(victim)
+            else
+                humanoid.JumpPower = 50
+            end
         end
     end
 

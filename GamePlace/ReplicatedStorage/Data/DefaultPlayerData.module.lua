@@ -86,6 +86,11 @@ local DefaultPlayerData = {
     PermanentSpeedBonus = 0,  -- Bonus de vitesse permanent (ex: 2 = +2 WalkSpeed)
 
     -- ═══════════════════════════════════════
+    -- SAUT PERMANENT
+    -- ═══════════════════════════════════════
+    PermanentJumpBonus = 0,   -- Bonus de saut permanent (ex: 20 = +20 JumpPower)
+
+    -- ═══════════════════════════════════════
     -- LUCKY BLOCKS
     -- ═══════════════════════════════════════
     LuckyBlocks = 0,  -- Nombre de Lucky Blocks disponibles (achetés via Robux)

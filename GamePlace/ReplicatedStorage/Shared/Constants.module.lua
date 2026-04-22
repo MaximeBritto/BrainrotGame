@@ -75,6 +75,8 @@ local Constants = {
         BuySpinWheel = "BuySpinWheel",                 -- Spin Wheel: Déclenche achat Robux
         SpinWheel = "SpinWheel",                       -- Spin Wheel: Tourner la roue
         ToggleSpeed = "ToggleSpeed",                   -- Toggle vitesse: défaut ↔ boostée
+        ToggleJump = "ToggleJump",                     -- Toggle saut: défaut ↔ boosté
+        BuyJumpMultiplier = "BuyJumpMultiplier",       -- Achat d'un niveau de multiplicateur de saut
 
         -- Serveur → Client
         SyncPlayerData = "SyncPlayerData",
@@ -120,6 +122,7 @@ local Constants = {
         SlotShop = "SlotShop",
         SlotShopSign = "Sign",        -- Le panneau avec ProximityPrompt
         SlotShopDisplay = "Display",  -- L'écran avec le prix
+        JumpShop = "JumpShop",        -- Panneau d'achat des niveaux de saut (créé dynamiquement)
         FloorsFolder = "Floors",
         
         -- Dans un Slot

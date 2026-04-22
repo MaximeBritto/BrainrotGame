@@ -151,6 +151,21 @@ CreateButton("ResetSpeed", "⚡ RESET SPEED\n(SERVER)", Color3.fromRGB(200, 100,
 	testRemote:FireServer("ResetSpeed")
 end).LayoutOrder = 12
 
+-- BOUTON 13: Jump +20 (SERVER - permanent)
+CreateButton("JumpBoost", "🦘 JUMP +20\n(SERVER)", Color3.fromRGB(150, 255, 150), function()
+	testRemote:FireServer("AddJump", 20)
+end).LayoutOrder = 13
+
+-- BOUTON 14: Reset Jump (SERVER)
+CreateButton("ResetJump", "🦘 RESET JUMP\n(SERVER)", Color3.fromRGB(200, 100, 50), function()
+	testRemote:FireServer("ResetJump")
+end).LayoutOrder = 14
+
+-- BOUTON 15: Toggle Jump on/off (SERVER - runtime)
+CreateButton("ToggleJump", "🦘 TOGGLE JUMP\n(runtime)", Color3.fromRGB(100, 200, 100), function()
+	testRemote:FireServer("ToggleJump")
+end).LayoutOrder = 15
+
 -- Speed Display Label
 local speedDisplay = Instance.new("TextLabel")
 speedDisplay.Name = "SpeedDisplay"
@@ -161,24 +176,44 @@ speedDisplay.Text = "Speed Bonus: 0"
 speedDisplay.TextColor3 = Color3.fromRGB(100, 200, 255)
 speedDisplay.TextScaled = true
 speedDisplay.Font = Enum.Font.GothamBold
-speedDisplay.LayoutOrder = 13
+speedDisplay.LayoutOrder = 16
 speedDisplay.Parent = scrollFrame
 
 local speedDisplayCorner = Instance.new("UICorner")
 speedDisplayCorner.CornerRadius = UDim.new(0, 8)
 speedDisplayCorner.Parent = speedDisplay
 
--- Mettre à jour l'affichage du speed bonus
+-- Jump Display Label
+local jumpDisplay = Instance.new("TextLabel")
+jumpDisplay.Name = "JumpDisplay"
+jumpDisplay.Size = UDim2.new(0.9, 0, 0, 40)
+jumpDisplay.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
+jumpDisplay.BackgroundTransparency = 0.3
+jumpDisplay.Text = "JumpPower: 50"
+jumpDisplay.TextColor3 = Color3.fromRGB(150, 255, 150)
+jumpDisplay.TextScaled = true
+jumpDisplay.Font = Enum.Font.GothamBold
+jumpDisplay.LayoutOrder = 17
+jumpDisplay.Parent = scrollFrame
+
+local jumpDisplayCorner = Instance.new("UICorner")
+jumpDisplayCorner.CornerRadius = UDim.new(0, 8)
+jumpDisplayCorner.Parent = jumpDisplay
+
+-- Mettre à jour l'affichage du speed/jump
 local function updateSpeedDisplay()
 	local character = player.Character
 	local walkSpeed = 16
+	local jumpPower = 50
 	if character then
 		local humanoid = character:FindFirstChildOfClass("Humanoid")
 		if humanoid then
 			walkSpeed = humanoid.WalkSpeed
+			jumpPower = humanoid.JumpPower
 		end
 	end
 	speedDisplay.Text = "WalkSpeed: " .. math.floor(walkSpeed)
+	jumpDisplay.Text = "JumpPower: " .. math.floor(jumpPower)
 end
 
 -- Rafraîchir toutes les secondes
@@ -193,7 +228,7 @@ end)
 local syncPlayerData = remotes:FindFirstChild("SyncPlayerData")
 if syncPlayerData then
 	syncPlayerData.OnClientEvent:Connect(function(data)
-		if data.PermanentSpeedBonus ~= nil then
+		if data.PermanentSpeedBonus ~= nil or data.PermanentJumpBonus ~= nil then
 			task.wait(0.1) -- Attendre que le serveur applique
 			updateSpeedDisplay()
 		end
@@ -211,7 +246,7 @@ infoLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
 infoLabel.TextScaled = true
 infoLabel.Font = Enum.Font.Gotham
 infoLabel.TextWrapped = true
-infoLabel.LayoutOrder = 12
+infoLabel.LayoutOrder = 18
 infoLabel.Parent = scrollFrame
 
 local infoCorner = Instance.new("UICorner")

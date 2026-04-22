@@ -49,6 +49,9 @@ local function CreateRuntimeData()
         -- Speed toggle (true = boosted, false = default 16)
         SpeedBoosted = true,
 
+        -- Jump toggle (true = boosted, false = default 50)
+        JumpBoosted = true,
+
         -- Session
         JoinTime = os.time(),
         LastSaveTime = os.time(),
@@ -214,6 +217,10 @@ function PlayerService:OnCharacterAdded(player, character)
     -- Appliquer la vitesse de déplacement (base + bonus permanent)
     humanoid.WalkSpeed = self:GetPlayerWalkSpeed(player)
 
+    -- Appliquer la puissance de saut (base + bonus permanent)
+    humanoid.UseJumpPower = true
+    humanoid.JumpPower = self:GetPlayerJumpPower(player)
+
     -- Réappliquer la collision de porte (respawn : le nouveau personnage
     -- est dans le groupe par défaut et collisionnerait avec ses propres barreaux)
     if self.DoorSystem then
@@ -242,8 +249,9 @@ function PlayerService:OnCharacterAdded(player, character)
             end
         end
         
-        -- Téléporter à la base
-        task.wait(0.5) -- Attendre que le personnage soit complètement chargé
+        -- Téléporter à la base IMMÉDIATEMENT — toute attente laisse le personnage
+        -- au spawn par défaut (0,0,0) où il accumule de la vélocité en chutant,
+        -- vélocité qui le faisait ensuite clip à travers le sol au téléport.
         self.BaseSystem:SpawnPlayerAtBase(player)
         -- Réappliquer la visibilité des étages et des slots débloqués (OwnedSlots est sauvegardé)
         self.BaseSystem:ApplyFloorVisibility(player)
@@ -517,6 +525,70 @@ function PlayerService:ApplyWalkSpeed(player)
     if not humanoid then return end
 
     humanoid.WalkSpeed = self:GetPlayerWalkSpeed(player)
+end
+
+--[[
+    Calcule le JumpPower du joueur (base + bonus permanent)
+    @param player: Player
+    @return number
+]]
+function PlayerService:GetPlayerJumpPower(player)
+    local basePower = GameConfig.Jump.BasePower or 50
+    local maxPower = GameConfig.Jump.MaxPower or 350
+
+    local runtimeData = self:GetRuntimeData(player)
+
+    -- JumpPower fixe quand on porte un brainrot volé (ignore tous les bonus/toggles)
+    if runtimeData and runtimeData.CarriedBrainrot then
+        return GameConfig.Jump.CarryingPower or basePower
+    end
+
+    -- Si le toggle est désactivé, retourner la puissance de base
+    if runtimeData and runtimeData.JumpBoosted == false then
+        return basePower
+    end
+
+    local data = DataService:GetPlayerData(player)
+    if not data then return basePower end
+
+    local jumpBonus = data.PermanentJumpBonus or 0
+    local finalPower = basePower + jumpBonus
+
+    if finalPower > maxPower then
+        finalPower = maxPower
+    end
+
+    return finalPower
+end
+
+--[[
+    Toggle le saut du joueur entre défaut et boosté
+    @param player: Player
+    @return boolean - nouvel état du toggle (true = boosted)
+]]
+function PlayerService:ToggleJump(player)
+    local runtimeData = self:GetRuntimeData(player)
+    if not runtimeData then return true end
+
+    runtimeData.JumpBoosted = not runtimeData.JumpBoosted
+    self:ApplyJumpPower(player)
+
+    return runtimeData.JumpBoosted
+end
+
+--[[
+    Applique le JumpPower calculé au personnage du joueur
+    @param player: Player
+]]
+function PlayerService:ApplyJumpPower(player)
+    local character = player.Character
+    if not character then return end
+
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return end
+
+    humanoid.UseJumpPower = true
+    humanoid.JumpPower = self:GetPlayerJumpPower(player)
 end
 
 return PlayerService

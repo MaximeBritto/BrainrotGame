@@ -302,6 +302,82 @@ testRemote.OnServerEvent:Connect(function(player, action, value)
             syncRemote:FireClient(player, { PermanentSpeedBonus = 0 })
         end
 
+    elseif action == "AddJump" then
+        -- Ajouter du jump bonus permanent
+        local amount = value or 20
+        local GameConfig = require(ReplicatedStorage.Config["GameConfig.module"])
+        local basePower = GameConfig.Jump.BasePower or 50
+        local maxPower = GameConfig.Jump.MaxPower or 350
+        local currentBonus = playerData.PermanentJumpBonus or 0
+        local newBonus = currentBonus + amount
+
+        if basePower + newBonus > maxPower then
+            newBonus = maxPower - basePower
+        end
+
+        DataService:UpdateValue(player, "PermanentJumpBonus", newBonus)
+
+        -- Appliquer immédiatement
+        local PlayerService = require(Core["PlayerService.module"])
+        if PlayerService and PlayerService.ApplyJumpPower then
+            PlayerService:ApplyJumpPower(player)
+        end
+
+        local notifRemote = remotes:FindFirstChild("Notification")
+        if notifRemote then
+            notifRemote:FireClient(player, {
+                Type = "Success",
+                Message = "+" .. amount .. " Jump! Total bonus: " .. newBonus .. " (JumpPower: " .. (basePower + newBonus) .. ")",
+                Duration = 3
+            })
+        end
+
+        -- Sync jump vers le client
+        local syncRemote = remotes:FindFirstChild("SyncPlayerData")
+        if syncRemote then
+            syncRemote:FireClient(player, { PermanentJumpBonus = newBonus })
+        end
+
+    elseif action == "ResetJump" then
+        -- Reset le jump bonus à 0
+        DataService:UpdateValue(player, "PermanentJumpBonus", 0)
+
+        -- Appliquer immédiatement
+        local PlayerService = require(Core["PlayerService.module"])
+        if PlayerService and PlayerService.ApplyJumpPower then
+            PlayerService:ApplyJumpPower(player)
+        end
+
+        local notifRemote = remotes:FindFirstChild("Notification")
+        if notifRemote then
+            notifRemote:FireClient(player, {
+                Type = "Warning",
+                Message = "Jump reset to default (50)",
+                Duration = 3
+            })
+        end
+
+        local syncRemote = remotes:FindFirstChild("SyncPlayerData")
+        if syncRemote then
+            syncRemote:FireClient(player, { PermanentJumpBonus = 0 })
+        end
+
+    elseif action == "ToggleJump" then
+        -- Toggle jump on/off (runtime uniquement, pas sauvegardé)
+        local PlayerService = require(Core["PlayerService.module"])
+        if PlayerService and PlayerService.ToggleJump then
+            local boosted = PlayerService:ToggleJump(player)
+
+            local notifRemote = remotes:FindFirstChild("Notification")
+            if notifRemote then
+                notifRemote:FireClient(player, {
+                    Type = "Info",
+                    Message = boosted and "Jump ENABLED (bonus applied)" or "Jump DISABLED (default 50)",
+                    Duration = 2
+                })
+            end
+        end
+
     elseif action == "SpawnBrainrotPiece" then
         -- Spawn une pièce comme ArenaSystem le fait
         local setName = value.SetName

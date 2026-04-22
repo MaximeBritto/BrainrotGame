@@ -137,6 +137,13 @@ function NetworkHandler:_ConnectHandlers()
             self:_HandleBuySlot(player)
         end)
     end
+
+    -- BuyJumpMultiplier (achat d'un niveau de saut)
+    if remotes.BuyJumpMultiplier then
+        remotes.BuyJumpMultiplier.OnServerEvent:Connect(function(player)
+            self:_HandleBuyJumpMultiplier(player)
+        end)
+    end
     
     -- CollectSlotCash (Phase 3)
     if remotes.CollectSlotCash then
@@ -484,10 +491,11 @@ function NetworkHandler:_ConnectHandlers()
                 local spawnPos = baseSpawnPos + def.offset
 
                 local pieceData = {
-                    SetName     = TUTORIAL_SET,
-                    PieceType   = def.PieceType,
-                    Price       = typeData.Price,
-                    DisplayName = typeData.DisplayName,
+                    SetName           = TUTORIAL_SET,
+                    PieceType         = def.PieceType,
+                    Price             = typeData.Price,
+                    DisplayName       = typeData.DisplayName,
+                    RemainingLifetime = math.huge,
                 }
                 local model = ArenaSystem:SpawnPieceFromData(pieceData, spawnPos)
 
@@ -495,6 +503,8 @@ function NetworkHandler:_ConnectHandlers()
                     model:SetAttribute("IsTutorialPiece", true)
                     model:SetAttribute("TutorialPieceType", def.PieceType)
                     model:SetAttribute("OwnerUserId", player.UserId)
+                    -- Craft gratuit : StartingCash (100) < somme des prix du set tuto.
+                    model:SetAttribute("Price", 0)
                 end
             end
         end)
@@ -519,6 +529,17 @@ function NetworkHandler:_ConnectHandlers()
                 local boosted = PlayerService:ToggleSpeed(player)
                 -- Renvoyer le nouvel état au client
                 remotes.ToggleSpeed:FireClient(player, boosted)
+            end
+        end)
+    end
+
+    -- Toggle Jump
+    if remotes.ToggleJump then
+        remotes.ToggleJump.OnServerEvent:Connect(function(player)
+            if PlayerService then
+                local boosted = PlayerService:ToggleJump(player)
+                -- Renvoyer le nouvel état au client
+                remotes.ToggleJump:FireClient(player, boosted)
             end
         end)
     end
@@ -668,6 +689,40 @@ function NetworkHandler:_HandleBuySlot(player)
 end
 
 --[[
+    Handler: Achat d'un niveau de multiplicateur de saut
+    @param player: Player
+]]
+function NetworkHandler:_HandleBuyJumpMultiplier(player)
+    print("[NetworkHandler] BuyJumpMultiplier reçu de " .. player.Name)
+
+    if not EconomySystem then
+        self:_SendNotification(player, "Error", "Economy system not initialized")
+        return
+    end
+
+    local result, newLevel = EconomySystem:BuyJumpLevel(player)
+
+    if result == "Success" then
+        local multiplier = 1.0 + (newLevel * 0.2)
+        local nextPrice = EconomySystem:GetNextJumpPrice(player)
+        local message = string.format("Jump x%.1f unlocked!", multiplier)
+        if nextPrice then
+            message = message .. " Next: $" .. nextPrice
+        else
+            message = message .. " (Max reached)"
+        end
+        self:_SendNotification(player, "Success", message)
+    elseif result == "NotEnoughMoney" then
+        local nextPrice = EconomySystem:GetNextJumpPrice(player)
+        self:_SendNotification(player, "Error", "Not enough money! ($" .. (nextPrice or 0) .. " required)")
+    elseif result == "MaxSlotsReached" then
+        self:_SendNotification(player, "Warning", "Max jump multiplier reached (x2.6)!")
+    else
+        self:_SendNotification(player, "Error", "Purchase error")
+    end
+end
+
+--[[
     Handler: Collecte de l'argent d'un slot
     @param player: Player
     @param slotIndex: number | nil - Si nil, collecte tout
@@ -796,6 +851,9 @@ function NetworkHandler:_HandleGetFullPlayerData(player)
         ClaimedFusionRewards = playerData and playerData.ClaimedFusionRewards or {},
         DailyPurchases = playerData and playerData.DailyPurchases or {},
         HasSeenTutorial = (playerData and playerData.HasSeenTutorial) or false,
+        PermanentJumpBonus = playerData and playerData.PermanentJumpBonus or 0,
+        PermanentSpeedBonus = playerData and playerData.PermanentSpeedBonus or 0,
+        PermanentMultiplierBonus = playerData and playerData.PermanentMultiplierBonus or 0,
 
         -- Données runtime
         PiecesInHand = runtimeData and runtimeData.PiecesInHand or {},

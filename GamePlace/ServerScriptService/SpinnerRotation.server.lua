@@ -168,12 +168,23 @@ for _, z in ipairs(zones) do
     end
 
     local midRadius  = rMin + ringThickness / 2
-    local wallHeight = kw.Height    or 30
     local wallWidth  = kw.WallWidth or 5
-    local speedRad    = math.rad(kw.Speed or 30)
-    local sweepRad    = math.rad(kw.SweepAngle or 180)
-    local startRad    = math.rad(kw.StartAngle or 0)
-    local color       = ZONE_COLORS[z.index] or Color3.fromRGB(255, 50, 50)
+    local sweepRad   = math.rad(kw.SweepAngle or 180)
+    local startRad   = math.rad(kw.StartAngle or 0)
+    local color      = ZONE_COLORS[z.index] or Color3.fromRGB(255, 50, 50)
+
+    local speedRange  = kw.SpeedRange  or { 30, 30 }
+    local heightRange = kw.HeightRange or { 7,  7  }
+
+    local function randRange(r)
+        local a, b = r[1] or 0, r[2] or r[1] or 0
+        if a == b then return a end
+        return a + math.random() * (b - a)
+    end
+
+    -- Valeurs initiales (tirées au sort pour le 1er passage)
+    local wallHeight = randRange(heightRange)
+    local speedRad   = math.rad(randRange(speedRange))
 
     local wall = Instance.new("Part")
     wall.Name         = "KillWall_Zone" .. z.index
@@ -215,12 +226,17 @@ for _, z in ipairs(zones) do
         end
     end
 
-    -- Sweep 0 → SweepAngle puis reset au StartAngle
+    -- Sweep 0 → SweepAngle puis reset au StartAngle.
+    -- Speed et Height sont ré-tirés UNIQUEMENT au reset, jamais en plein passage.
     local angle = startRad
     RunService.Heartbeat:Connect(function(dt)
         angle += speedRad * dt
         if angle >= startRad + sweepRad then
-            angle = startRad  -- reset au début
+            angle = startRad
+            wallHeight  = randRange(heightRange)
+            speedRad    = math.rad(randRange(speedRange))
+            wallY       = centerY + wallHeight / 2
+            wall.Size   = Vector3.new(wallWidth, wallHeight, ringThickness)
         end
         wall.CFrame = getCF(angle)
         checkHits()

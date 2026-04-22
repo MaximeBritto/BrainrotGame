@@ -17,6 +17,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 -- Modules de configuration (chargés dans Init pour ne pas bloquer le require)
 local GameConfig = nil
 local SlotPrices = nil
+local JumpPrices = nil
 local BrainrotData = nil
 
 -- Services (seront injectés)
@@ -46,6 +47,7 @@ function EconomySystem:Init(services)
     local Data = ReplicatedStorage:WaitForChild("Data")
     GameConfig = require(Config:WaitForChild("GameConfig.module"))
     SlotPrices = require(Data:WaitForChild("SlotPrices.module"))
+    JumpPrices = require(Data:WaitForChild("JumpPrices.module"))
     BrainrotData = require(Data:WaitForChild("BrainrotData.module"))
     
     -- Récupérer les services injectés
@@ -660,13 +662,117 @@ end
 ]]
 function EconomySystem:_SendNotification(player, notifType, message)
     if not NetworkSetup then return end
-    
+
     local remotes = NetworkSetup:GetAllRemotes()
     if remotes and remotes.Notification then
         remotes.Notification:FireClient(player, {
             Type = notifType,
             Message = message,
             Duration = 3,
+        })
+    end
+end
+
+-- ═══════════════════════════════════════════════════════
+-- MULTIPLICATEUR DE SAUT (JumpShop)
+-- ═══════════════════════════════════════════════════════
+
+--[[
+    Calcule le niveau de saut actuel (0..MaxLevel) depuis PermanentJumpBonus.
+    @param player: Player
+    @return number
+]]
+function EconomySystem:GetJumpLevel(player)
+    local data = DataService:GetPlayerData(player)
+    if not data then return 0 end
+
+    local bonus = data.PermanentJumpBonus or 0
+    local perLevel = GameConfig.Jump.BonusPerLevel or 10
+    if perLevel <= 0 then return 0 end
+
+    local level = math.floor(bonus / perLevel)
+    local maxLevel = GameConfig.Jump.MaxLevel or 8
+    if level > maxLevel then level = maxLevel end
+    return level
+end
+
+--[[
+    Prix du prochain niveau de saut (ou nil si max atteint).
+    @param player: Player
+    @return number | nil
+]]
+function EconomySystem:GetNextJumpPrice(player)
+    local currentLevel = self:GetJumpLevel(player)
+    local nextLevel = currentLevel + 1
+    local maxLevel = GameConfig.Jump.MaxLevel or 8
+
+    if nextLevel > maxLevel then
+        return nil
+    end
+
+    return JumpPrices[nextLevel] or 999999
+end
+
+--[[
+    Tente d'acheter le prochain niveau de multiplicateur de saut.
+    @param player: Player
+    @return string - ActionResult (Success, NotEnoughMoney, MaxSlotsReached)
+    @return number | nil - Nouveau niveau si succès
+]]
+function EconomySystem:BuyJumpLevel(player)
+    local data = DataService:GetPlayerData(player)
+    if not data then
+        return "Error", nil
+    end
+
+    local currentLevel = self:GetJumpLevel(player)
+    local nextLevel = currentLevel + 1
+    local maxLevel = GameConfig.Jump.MaxLevel or 8
+
+    if nextLevel > maxLevel then
+        return "MaxSlotsReached", nil
+    end
+
+    local price = JumpPrices[nextLevel]
+    if not price then
+        warn("[EconomySystem] Prix non défini pour le niveau de saut " .. nextLevel)
+        return "Error", nil
+    end
+
+    if not self:CanAfford(player, price) then
+        return "NotEnoughMoney", nil
+    end
+
+    -- Débiter et appliquer le nouveau bonus
+    self:RemoveCash(player, price)
+
+    local perLevel = GameConfig.Jump.BonusPerLevel or 10
+    local newBonus = nextLevel * perLevel
+    DataService:UpdateValue(player, "PermanentJumpBonus", newBonus)
+
+    -- Appliquer immédiatement au humanoid
+    if PlayerService and PlayerService.ApplyJumpPower then
+        PlayerService:ApplyJumpPower(player)
+    end
+
+    -- Sync vers le client
+    self:_SyncJumpBonus(player, newBonus)
+
+    return "Success", nextLevel
+end
+
+--[[
+    Sync le PermanentJumpBonus vers le client
+    @param player: Player
+    @param bonus: number
+]]
+function EconomySystem:_SyncJumpBonus(player, bonus)
+    if not NetworkSetup then return end
+
+    local remotes = NetworkSetup:GetAllRemotes()
+    if remotes and remotes.SyncPlayerData then
+        remotes.SyncPlayerData:FireClient(player, {
+            PermanentJumpBonus = bonus,
         })
     end
 end

@@ -493,7 +493,10 @@ local function StartTutorial()
 
     print("[Tutorial] Showing tutorial!")
     _active      = true
-    _step        = 1
+    -- Reprise si le joueur a quitté en cours : PlacedBrainrots est persisté,
+    -- donc s'il a déjà crafté on saute direct à l'étape 3 (collect cash).
+    local hasPlaced = fullData.PlacedBrainrots and next(fullData.PlacedBrainrots) ~= nil
+    _step        = hasPlaced and 3 or 1
     _cashAtStep3 = fullData.Cash or 0
 
     local gui, panel, title, body, badge, dots = BuildUI()

@@ -26,6 +26,7 @@ local Data = ReplicatedStorage:WaitForChild("Data")
 local Constants = require(Shared:WaitForChild("Constants.module"))
 local GameConfig = require(Config:WaitForChild("GameConfig.module"))
 local SlotPrices = require(Data:WaitForChild("SlotPrices.module"))
+local JumpPrices = require(Data:WaitForChild("JumpPrices.module"))
 
 -- Son (optionnel)
 local SoundHelper = nil
@@ -39,6 +40,7 @@ end
 -- Remotes
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 local buySlot = Remotes:WaitForChild("BuySlot")
+local buyJumpMultiplier = Remotes:WaitForChild("BuyJumpMultiplier")
 local collectSlotCash = Remotes:WaitForChild("CollectSlotCash")
 local getFullPlayerData = Remotes:WaitForChild("GetFullPlayerData")
 
@@ -54,6 +56,7 @@ local shopCloseButton = nil
 -- État local (défaut = Floor 0 débloqué = 10 slots)
 local currentOwnedSlots = GameConfig.Base.StartingSlots
 local currentSlotCash = {}
+local currentJumpBonus = 0
 local isShopOpen = false
 local playerBase = nil
 
@@ -119,6 +122,7 @@ function EconomyController:_FindPlayerBase()
         
         -- Mettre à jour le Display du SlotShop et les CollectPads (au cas où SlotCash a été reçu avant que la base soit trouvée)
         self:UpdateSlotShopDisplay()
+        self:UpdateJumpShopDisplay()
         self:UpdateCollectPads(currentSlotCash)
     end)
 end
@@ -264,6 +268,81 @@ function EconomyController:UpdateSlotShopDisplay()
             end
         end
     end
+end
+
+-- ═══════════════════════════════════════════════════════
+-- JUMPSHOP (achat multiplicateur de saut)
+-- ═══════════════════════════════════════════════════════
+
+--[[
+    Calcule le niveau de saut actuel (0..MaxLevel) depuis le bonus courant.
+]]
+function EconomyController:GetJumpLevel()
+    local perLevel = GameConfig.Jump.BonusPerLevel or 10
+    if perLevel <= 0 then return 0 end
+    local level = math.floor((currentJumpBonus or 0) / perLevel)
+    local maxLevel = GameConfig.Jump.MaxLevel or 8
+    if level > maxLevel then level = maxLevel end
+    return level
+end
+
+--[[
+    Met à jour le Display + ProximityPrompt du JumpShop avec le niveau / prix courant.
+]]
+function EconomyController:UpdateJumpShopDisplay()
+    if not playerBase then return end
+
+    local jumpShop = playerBase:FindFirstChild("JumpShop")
+    if not jumpShop then return end
+
+    local currentLevel = self:GetJumpLevel()
+    local nextLevel = currentLevel + 1
+    local maxLevel = GameConfig.Jump.MaxLevel or 8
+
+    -- Mettre à jour le PriceLabel sur Display/SurfaceGui
+    local display = jumpShop:FindFirstChild("Display")
+    if display then
+        local surfaceGui = display:FindFirstChild("SurfaceGui")
+        if surfaceGui then
+            local priceLabel = surfaceGui:FindFirstChild("PriceLabel")
+            if priceLabel then
+                if nextLevel > maxLevel then
+                    priceLabel.Text = "MAX (x2.6)"
+                    priceLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+                else
+                    local price = JumpPrices[nextLevel] or 0
+                    priceLabel.Text = "$" .. self:FormatNumber(price)
+                    priceLabel.TextColor3 = Color3.fromRGB(100, 180, 255)
+                end
+            end
+        end
+    end
+
+    -- Mettre à jour le ProximityPrompt
+    local sign = jumpShop:FindFirstChild("Sign")
+    if sign then
+        local prompt = sign:FindFirstChildOfClass("ProximityPrompt")
+        if prompt then
+            if nextLevel > maxLevel then
+                prompt.ObjectText = "Jump x2.6 (MAX)"
+                prompt.ActionText = "Max reached"
+            else
+                local nextMult = 1.0 + (nextLevel * 0.2)
+                prompt.ObjectText = string.format("Jump x%.1f", nextMult)
+                prompt.ActionText = "Buy $" .. (JumpPrices[nextLevel] or 0)
+            end
+        end
+    end
+end
+
+--[[
+    Envoie la requête d'achat d'un niveau de saut au serveur.
+]]
+function EconomyController:RequestBuyJumpLevel()
+    local currentLevel = self:GetJumpLevel()
+    local maxLevel = GameConfig.Jump.MaxLevel or 8
+    if currentLevel >= maxLevel then return end
+    buyJumpMultiplier:FireServer()
 end
 
 -- ═══════════════════════════════════════════════════════
@@ -414,6 +493,11 @@ function EconomyController:UpdateData(data)
     
     if data.SlotCash then
         self:UpdateCollectPads(data.SlotCash)
+    end
+
+    if data.PermanentJumpBonus ~= nil then
+        currentJumpBonus = data.PermanentJumpBonus
+        self:UpdateJumpShopDisplay()
     end
 end
 

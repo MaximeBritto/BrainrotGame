@@ -1158,6 +1158,9 @@ function ArenaSystem:_StartCleanupLoop()
             local now = tick()
             local toRemove = {}
             for pieceId, data in pairs(self._pieces) do
+                if data.Model and data.Model:GetAttribute("IsTutorialPiece") then
+                    continue
+                end
                 if (now - data.SpawnedAt) > data.Lifetime then
                     table.insert(toRemove, pieceId)
                 end
@@ -1252,19 +1255,31 @@ function ArenaSystem:GetClosestPositionInZone(zoneName, targetPosition)
     end
     if not targetZone then return nil end
 
-    local bestPart = nil
+    -- Pour chaque part, on calcule le point de sa surface supérieure le plus
+    -- proche de targetPosition (en clampant dans l'espace local de la part).
+    -- On retient celui qui est globalement le plus proche : c'est le "bord
+    -- d'entrée" de la zone vu depuis la base, et non le centre d'une part.
+    local bestPos = nil
     local bestDistSq = math.huge
+    local margin = 0.9
     for _, part in ipairs(targetZone.Parts) do
-        local dx = part.Position.X - targetPosition.X
-        local dz = part.Position.Z - targetPosition.Z
+        local localTarget = part.CFrame:PointToObjectSpace(targetPosition)
+        local halfX = (part.Size.X / 2) * margin
+        local halfZ = (part.Size.Z / 2) * margin
+        local clampedX = math.clamp(localTarget.X, -halfX, halfX)
+        local clampedZ = math.clamp(localTarget.Z, -halfZ, halfZ)
+        local topY = part.Size.Y / 2
+        local worldPos = part.CFrame:PointToWorldSpace(Vector3.new(clampedX, topY, clampedZ))
+
+        local dx = worldPos.X - targetPosition.X
+        local dz = worldPos.Z - targetPosition.Z
         local distSq = dx * dx + dz * dz
         if distSq < bestDistSq then
             bestDistSq = distSq
-            bestPart = part
+            bestPos = Vector3.new(worldPos.X, worldPos.Y + 10, worldPos.Z)
         end
     end
-    if not bestPart then return nil end
-    return Vector3.new(bestPart.Position.X, bestPart.Position.Y + bestPart.Size.Y / 2 + 10, bestPart.Position.Z)
+    return bestPos
 end
 
 function ArenaSystem:SpawnPieceFromData(pieceData, position)

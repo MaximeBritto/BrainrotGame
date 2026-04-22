@@ -39,6 +39,17 @@ local GameConfig = {
         MaxSpeed = 100,                     -- Vitesse maximale
         CarryingSpeed = 14,                 -- Vitesse fixe quand on porte un brainrot volé (ignore bonus/malus)
     },
+
+    -- ═══════════════════════════════════════
+    -- SAUT
+    -- ═══════════════════════════════════════
+    Jump = {
+        BasePower = 50,                     -- JumpPower par défaut (Roblox default, ≈ 6.37 studs)
+        MaxPower = 130,                     -- Cap x2.6 — JumpPower 130 ≈ 43 studs, permet de passer les plus gros spinners
+        CarryingPower = 50,                 -- JumpPower fixe quand on porte un brainrot volé (ignore bonus/malus)
+        BonusPerLevel = 10,                 -- +10 JumpPower par niveau acheté (= +0.2x sur base 50)
+        MaxLevel = 8,                       -- 8 niveaux : x1.0 (base) → x2.6 (max)
+    },
     
     -- ═══════════════════════════════════════
     -- BASE
@@ -101,18 +112,22 @@ local GameConfig = {
         -- MaxPieces     = nombre max de pièces simultanées dans cette zone
         -- PieceLifetime = secondes avant qu'une pièce disparaisse dans cette zone
         -- KillWall :
-        --   Speed       = degrés/seconde de rotation
-        --   Height      = hauteur du mur (studs)
+        --   SpeedRange  = {min, max} degrés/seconde, randomisé à chaque cycle (fin de sweep)
+        --   HeightRange = {min, max} hauteur du mur en studs, randomisé à chaque cycle
         --   WallWidth   = épaisseur du bras (studs)
         --   InnerRadius = rayon intérieur (nil = auto-détection)
         --   OuterRadius = rayon extérieur (nil = auto-détection)
         --   SweepAngle  = degrés balayés avant reset (180 pour demi-cercle)
         --   StartAngle  = angle de départ en degrés (ajuster selon orientation de la map)
-        DefaultZone = { Weight = 65, SpawnInterval = 3,  MaxPieces = 40, PieceLifetime = 90, RarityWeights = { Common = 1.0, Rare = 0.0, Epic = 0.0, Legendary = 0.0 }, KillWall = { Enabled = false, Speed = 30,  Height = 30, WallWidth = 5, InnerRadius = nil, OuterRadius = nil, SweepAngle = 180, StartAngle = -90 } },
-        SpawnZone1  = { Weight = 65, SpawnInterval = 3,  MaxPieces = 40, PieceLifetime = 90, RarityWeights = { Common = 1.0, Rare = 0.0, Epic = 0.0, Legendary = 0.0 }, KillWall = { Enabled = true,  Speed = 30,  Height = 7,  WallWidth = 5, InnerRadius = nil, OuterRadius = nil, SweepAngle = 180, StartAngle = -90 } },
-        SpawnZone2  = { Weight = 22, SpawnInterval = 6,  MaxPieces = 15, PieceLifetime = 60, RarityWeights = { Common = 0.5, Rare = 1.0, Epic = 0.0, Legendary = 0.0 }, KillWall = { Enabled = true,  Speed = 45,  Height = 7,  WallWidth = 5, InnerRadius = 450, OuterRadius = nil, SweepAngle = 180, StartAngle = -90 } },
-        SpawnZone3  = { Weight = 10, SpawnInterval = 15, MaxPieces =  6, PieceLifetime = 45, RarityWeights = { Common = 0.2, Rare = 0.5, Epic = 1.0, Legendary = 0.0 }, KillWall = { Enabled = true,  Speed = 65,  Height = 7,  WallWidth = 5, InnerRadius = 320, OuterRadius = 440, SweepAngle = 180, StartAngle = -90 } },
-        SpawnZone4  = { Weight =  3, SpawnInterval = 60, MaxPieces =  2, PieceLifetime = 30, RarityWeights = { Common = 0.1, Rare = 0.2, Epic = 0.5, Legendary = 1.0 }, KillWall = { Enabled = true,  Speed = 110, Height = 7,  WallWidth = 5, InnerRadius = 0,  OuterRadius = 300, SweepAngle = 180, StartAngle = -90 } },
+        -- NB : le random est appliqué uniquement au reset du sweep — un passage en cours
+        --      ne change jamais de vitesse/hauteur en plein milieu.
+        -- HeightRange : hauteur du mur en studs. Max zone4 = 35 studs < JumpHeight max 43 (JumpPower 130) → franchissable au boost max.
+        -- Progression : zone1 passable au saut de base, zone4 nécessite un gros boost cumulé.
+        DefaultZone = { Weight = 65, SpawnInterval = 3,  MaxPieces = 40, PieceLifetime = 90, RarityWeights = { Common = 1.0, Rare = 0.0, Epic = 0.0, Legendary = 0.0 }, KillWall = { Enabled = false, SpeedRange = {30, 30},   HeightRange = {30, 30}, WallWidth = 5, InnerRadius = nil, OuterRadius = nil, SweepAngle = 180, StartAngle = -90 } },
+        SpawnZone1  = { Weight = 65, SpawnInterval = 3,  MaxPieces = 40, PieceLifetime = 90, RarityWeights = { Common = 1.0, Rare = 0.0, Epic = 0.0, Legendary = 0.0 }, KillWall = { Enabled = true,  SpeedRange = {10, 25},   HeightRange = {3,  6},  WallWidth = 5, InnerRadius = nil, OuterRadius = nil, SweepAngle = 180, StartAngle = -90 } },
+        SpawnZone2  = { Weight = 22, SpawnInterval = 6,  MaxPieces = 15, PieceLifetime = 60, RarityWeights = { Common = 0.5, Rare = 1.0, Epic = 0.0, Legendary = 0.0 }, KillWall = { Enabled = true,  SpeedRange = {35, 70},   HeightRange = {5, 13},  WallWidth = 5, InnerRadius = nil, OuterRadius = nil, SweepAngle = 180, StartAngle = -90 } },
+        SpawnZone3  = { Weight = 10, SpawnInterval = 15, MaxPieces =  6, PieceLifetime = 45, RarityWeights = { Common = 0.2, Rare = 0.5, Epic = 1.0, Legendary = 0.0 }, KillWall = { Enabled = true,  SpeedRange = {55, 100},  HeightRange = {6, 22},  WallWidth = 5, InnerRadius = nil, OuterRadius = nil, SweepAngle = 180, StartAngle = -90 } },
+        SpawnZone4  = { Weight =  3, SpawnInterval = 60, MaxPieces =  2, PieceLifetime = 30, RarityWeights = { Common = 0.1, Rare = 0.2, Epic = 0.5, Legendary = 1.0 }, KillWall = { Enabled = true,  SpeedRange = {85, 160},  HeightRange = {8, 35},  WallWidth = 5, InnerRadius = nil, OuterRadius = nil, SweepAngle = 180, StartAngle = -90 } },
     },
     
     -- ═══════════════════════════════════════

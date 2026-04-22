@@ -78,10 +78,11 @@ function BaseSystem:_InitializeBases()
     
     table.sort(self._availableBases)
 
-    -- Créer les labels "Empty" sur toutes les bases
+    -- Créer les labels "Empty" sur toutes les bases + cacher étages/slots non-défaut
     for _, base in ipairs(basesFolder:GetChildren()) do
         if base:IsA("Model") and string.match(base.Name, "^Base_%d+$") then
             self:_UpdateBaseLabel(base, "Empty")
+            self:_ApplyDefaultVisibility(base)
         end
     end
 
@@ -139,6 +140,9 @@ function BaseSystem:AssignBase(player)
     -- Afficher le multiplicateur par défaut (x1.0)
     self:UpdateMultiplierDisplay(baseModel, 1.0)
 
+    -- Créer (ou réutiliser) le pad JumpShop de l'autre côté de la porte
+    self:_EnsureJumpShop(baseModel)
+
     -- Mettre à jour les données runtime du joueur
     local runtimeData = PlayerService:GetRuntimeData(player)
     if runtimeData then
@@ -165,12 +169,15 @@ function BaseSystem:ReleaseBase(player)
     
     -- Nettoyer les Brainrots visuels de la base
     self:_CleanupBaseBrainrots(assignment.Base)
-    
+
     -- Retirer l'attribut pour que le client ne prenne plus cette base
     assignment.Base:SetAttribute("OwnerUserId", nil)
 
     -- Remettre le label à "Empty"
     self:_UpdateBaseLabel(assignment.Base, "Empty")
+
+    -- Cacher les étages/slots non-défaut pour que la base redevienne visuellement "vide"
+    self:_ApplyDefaultVisibility(assignment.Base)
 
     -- Masquer le multiplicateur
     local doorFolder = assignment.Base:FindFirstChild(Constants.WorkspaceNames.DoorFolder)
@@ -230,18 +237,33 @@ function BaseSystem:SpawnPlayerAtBase(player)
     -- Attendre que le personnage soit prêt
     local character = player.Character or player.CharacterAdded:Wait()
     local humanoidRootPart = character:WaitForChild("HumanoidRootPart", 5)
-    
+
     if not humanoidRootPart then
         warn("[BaseSystem] HumanoidRootPart introuvable pour " .. player.Name)
         return false
     end
-    
-    -- print("[BaseSystem] HumanoidRootPart trouvé, téléportation...")
-    
-    -- Téléporter
-    humanoidRootPart.CFrame = spawnPoint.CFrame + Vector3.new(0, 3, 0)
-    
-    -- print("[BaseSystem] " .. player.Name .. " téléporté à sa base")
+
+    -- Construire une CFrame upright (yaw seul du SpawnPoint) pour éviter
+    -- que le personnage hérite d'un tilt qui le ferait clip dans le sol.
+    local topOffset = (spawnPoint:IsA("BasePart") and spawnPoint.Size.Y / 2 or 0) + 3
+    local targetPos = spawnPoint.Position + Vector3.new(0, topOffset, 0)
+    local lookV = spawnPoint.CFrame.LookVector
+    local flatLook = Vector3.new(lookV.X, 0, lookV.Z)
+    if flatLook.Magnitude < 0.01 then
+        flatLook = Vector3.new(0, 0, -1)
+    else
+        flatLook = flatLook.Unit
+    end
+    local targetCFrame = CFrame.lookAt(targetPos, targetPos + flatLook)
+
+    -- PivotTo déplace atomiquement tout le modèle (HRP + parts liées) en une seule étape
+    character:PivotTo(targetCFrame)
+
+    -- Zéro les vélocités pour ne pas conserver la chute accumulée avant le téléport,
+    -- sinon le personnage peut traverser le sol à l'atterrissage.
+    humanoidRootPart.AssemblyLinearVelocity = Vector3.zero
+    humanoidRootPart.AssemblyAngularVelocity = Vector3.zero
+
     return true
 end
 
@@ -369,6 +391,36 @@ function BaseSystem:CheckFloorUnlock(player)
     end
     
     return nil
+end
+
+--[[
+    Applique la visibilité par défaut d'une base non-assignée :
+    seuls Floor_0 et les slots 1..StartingSlots sont visibles.
+    @param baseModel: Model
+]]
+function BaseSystem:_ApplyDefaultVisibility(baseModel)
+    local startingSlots = GameConfig.Base.StartingSlots
+
+    local floorsFolder = baseModel:FindFirstChild(Constants.WorkspaceNames.FloorsFolder)
+    if floorsFolder then
+        for floorNum, _threshold in pairs(GameConfig.Base.FloorUnlockThresholds) do
+            local floor = floorsFolder:FindFirstChild("Floor_" .. floorNum)
+            if floor then
+                self:_SetFloorVisible(floor, false)
+            end
+        end
+    end
+
+    local slotsFolder = baseModel:FindFirstChild(Constants.WorkspaceNames.SlotsFolder)
+    if slotsFolder then
+        for _, slot in ipairs(slotsFolder:GetChildren()) do
+            local num = slot.Name:match("^Slot_(%d+)$")
+            if num then
+                local slotIndex = tonumber(num)
+                self:_SetFloorVisible(slot, slotIndex <= startingSlots)
+            end
+        end
+    end
 end
 
 --[[
@@ -611,6 +663,178 @@ function BaseSystem:_UpdateBaseLabel(baseModel, text)
         label.TextColor3 = (text == "Empty")
             and Color3.fromRGB(150, 150, 150)
             or Color3.fromRGB(255, 255, 255)
+    end
+end
+
+--[[
+    Renvoie la position monde d'un Model ou BasePart (centre/pivot).
+    @return Vector3 | nil
+]]
+function BaseSystem:_GetInstancePosition(instance)
+    if not instance then return nil end
+    if instance:IsA("BasePart") then
+        return instance.Position
+    elseif instance:IsA("Model") then
+        local ok, cf = pcall(function() return instance:GetPivot() end)
+        if ok and cf then
+            return cf.Position
+        end
+        if instance.PrimaryPart then
+            return instance.PrimaryPart.Position
+        end
+        local okBB, cf2 = pcall(function()
+            local c, _ = instance:GetBoundingBox()
+            return c
+        end)
+        if okBB and cf2 then
+            return cf2.Position
+        end
+    end
+    return nil
+end
+
+--[[
+    Translate un Model ou BasePart d'un offset donné (en monde).
+]]
+function BaseSystem:_TranslateInstance(instance, offset)
+    if not instance or not offset then return end
+    if instance:IsA("BasePart") then
+        instance.CFrame = instance.CFrame + offset
+    elseif instance:IsA("Model") then
+        local ok, pivot = pcall(function() return instance:GetPivot() end)
+        if ok and pivot then
+            instance:PivotTo(pivot + offset)
+        elseif instance.PrimaryPart then
+            instance:SetPrimaryPartCFrame(instance.PrimaryPart.CFrame + offset)
+        end
+    end
+end
+
+--[[
+    Crée (ou réutilise) le pad JumpShop dans la base, en miroir du SlotShop
+    par rapport au centre de la porte.
+    @param baseModel: Model
+    @return Instance | nil - Le JumpShop
+]]
+function BaseSystem:_EnsureJumpShop(baseModel)
+    if not baseModel then return nil end
+
+    -- Déjà présent (placé manuellement ou créé précédemment) → rien à faire
+    local existing = baseModel:FindFirstChild(Constants.WorkspaceNames.JumpShop)
+    if existing then
+        self:_ConfigureJumpShopVisuals(existing)
+        return existing
+    end
+
+    local slotShop = baseModel:FindFirstChild(Constants.WorkspaceNames.SlotShop)
+    if not slotShop then
+        -- Pas de SlotShop de référence : on ne peut pas calculer la position miroir
+        return nil
+    end
+
+    local doorFolder = baseModel:FindFirstChild(Constants.WorkspaceNames.DoorFolder)
+    local doorPos = nil
+    if doorFolder then
+        local anchor = doorFolder:FindFirstChild("_LabelAnchor")
+        if anchor and anchor:IsA("BasePart") then
+            doorPos = anchor.Position
+        else
+            local bars = doorFolder:FindFirstChild(Constants.WorkspaceNames.DoorBars)
+            doorPos = self:_GetInstancePosition(bars)
+        end
+    end
+
+    local slotShopPos = self:_GetInstancePosition(slotShop)
+    if not doorPos or not slotShopPos then
+        return nil
+    end
+
+    -- Centre de la base (pour la rotation tangentielle, base ronde)
+    local baseCenter
+    local spawnPoint = baseModel:FindFirstChild(Constants.WorkspaceNames.SpawnPoint)
+    if spawnPoint and spawnPoint:IsA("BasePart") then
+        baseCenter = spawnPoint.Position
+    else
+        local ok, cf = pcall(function() return baseModel:GetPivot() end)
+        baseCenter = (ok and cf and cf.Position) or slotShopPos
+    end
+    baseCenter = Vector3.new(baseCenter.X, slotShopPos.Y, baseCenter.Z)
+
+    -- Cloner le SlotShop pour réutiliser la même structure (Sign + Display + UI)
+    local jumpShop = slotShop:Clone()
+    jumpShop.Name = Constants.WorkspaceNames.JumpShop
+    jumpShop.Parent = baseModel
+
+    -- Miroir : nouvelle position = 2 * doorPos - slotShopPos, dans le plan XZ
+    local slotShopPosFlat = Vector3.new(slotShopPos.X, slotShopPos.Y, slotShopPos.Z)
+    local mirrorPos = Vector3.new(
+        2 * doorPos.X - slotShopPos.X,
+        slotShopPos.Y,
+        2 * doorPos.Z - slotShopPos.Z
+    )
+    local offset = mirrorPos - slotShopPosFlat
+    self:_TranslateInstance(jumpShop, offset)
+
+    -- Base ronde : tourner le panneau de l'angle entre (centre → SlotShop) et
+    -- (centre → JumpShop), pour qu'il reste tangent au mur circulaire.
+    local vecSlot = Vector3.new(slotShopPos.X - baseCenter.X, 0, slotShopPos.Z - baseCenter.Z)
+    local vecJump = Vector3.new(mirrorPos.X - baseCenter.X, 0, mirrorPos.Z - baseCenter.Z)
+    if vecSlot.Magnitude > 0.01 and vecJump.Magnitude > 0.01 then
+        local angleDelta = math.atan2(vecJump.X, vecJump.Z) - math.atan2(vecSlot.X, vecSlot.Z)
+        self:_RotateInstanceY(jumpShop, angleDelta)
+    end
+
+    self:_ConfigureJumpShopVisuals(jumpShop)
+    return jumpShop
+end
+
+--[[
+    Fait pivoter un Model ou BasePart de `angle` radians autour de son propre
+    axe Y (rotation sur place).
+]]
+function BaseSystem:_RotateInstanceY(instance, angle)
+    if not instance or not angle then return end
+    if instance:IsA("BasePart") then
+        instance.CFrame = CFrame.new(instance.Position) * CFrame.Angles(0, angle, 0) * (instance.CFrame - instance.Position)
+        return
+    end
+    if instance:IsA("Model") then
+        local ok, pivot = pcall(function() return instance:GetPivot() end)
+        if ok and pivot then
+            local pos = pivot.Position
+            local newPivot = CFrame.new(pos) * CFrame.Angles(0, angle, 0) * (pivot - pos)
+            instance:PivotTo(newPivot)
+        end
+    end
+end
+
+--[[
+    Adapte les visuels/prompts d'un JumpShop (cloné du SlotShop) pour qu'il
+    affiche le contenu "multiplicateur de saut" au lieu de "slot".
+]]
+function BaseSystem:_ConfigureJumpShopVisuals(jumpShop)
+    if not jumpShop then return end
+
+    local sign = jumpShop:FindFirstChild(Constants.WorkspaceNames.SlotShopSign)
+    if sign then
+        local prompt = sign:FindFirstChildOfClass("ProximityPrompt")
+        if prompt then
+            prompt.ActionText = "Buy Jump"
+            prompt.ObjectText = "Jump Multiplier"
+            -- Maintenir E pendant 1s pour confirmer l'achat
+            prompt.HoldDuration = 1
+        end
+    end
+
+    local display = jumpShop:FindFirstChild(Constants.WorkspaceNames.SlotShopDisplay)
+    if display then
+        -- Remplacer tous les labels de titre (hors PriceLabel, qui est mis à
+        -- jour dynamiquement par EconomyController) par un libellé jump.
+        for _, desc in ipairs(display:GetDescendants()) do
+            if desc:IsA("TextLabel") and desc.Name ~= "PriceLabel" then
+                desc.Text = "Upgrade Jump"
+            end
+        end
     end
 end
 

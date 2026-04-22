@@ -311,8 +311,10 @@ ProximityPromptService.PromptTriggered:Connect(function(promptObject, playerWhoT
 
 		local slotIndex = promptObject:GetAttribute("SlotIndex")
 		if slotIndex then
-			_isCraftReady = false
-			removeCraftPlacePrompts()
+			-- Ne pas retirer les prompts avant la confirmation du serveur : si le
+			-- craft échoue (ex: NotEnoughMoney), SyncInventory ne re-fire pas et
+			-- le joueur se retrouverait sans prompt. Le succès déclenche naturellement
+			-- SyncInventory (vide) qui nettoie via le handler syncInventory.
 			remotes.Craft:FireServer(slotIndex)
 		end
 		return
