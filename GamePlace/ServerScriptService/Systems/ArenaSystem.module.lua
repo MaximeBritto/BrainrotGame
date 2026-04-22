@@ -408,9 +408,37 @@ end
     @return Vector3
 ]]
 function ArenaSystem:_GetRandomPositionInZone(zone)
-    local part = zone.Parts[math.random(1, #zone.Parts)]
-    -- Spawn 10 studs au-dessus de la surface de la part, les pièces tombent dessus
-    return Vector3.new(part.Position.X, part.Position.Y + part.Size.Y / 2 + 10, part.Position.Z)
+    -- Sélection pondérée par la surface XZ : les grandes parts reçoivent plus de spawns
+    local totalArea = 0
+    for _, p in ipairs(zone.Parts) do
+        totalArea = totalArea + (p.Size.X * p.Size.Z)
+    end
+
+    local part
+    if totalArea > 0 then
+        local roll = math.random() * totalArea
+        local cumulative = 0
+        for _, p in ipairs(zone.Parts) do
+            cumulative = cumulative + (p.Size.X * p.Size.Z)
+            if roll <= cumulative then
+                part = p
+                break
+            end
+        end
+    end
+    part = part or zone.Parts[math.random(1, #zone.Parts)]
+
+    -- Point aléatoire dans l'espace LOCAL de la part (respecte la rotation),
+    -- avec une petite marge pour éviter les bords
+    local margin = 0.9
+    local offX = (math.random() - 0.5) * part.Size.X * margin
+    local offZ = (math.random() - 0.5) * part.Size.Z * margin
+    local topY = part.Size.Y / 2
+
+    local worldPos = part.CFrame:PointToWorldSpace(Vector3.new(offX, topY, offZ))
+
+    -- Spawn 10 studs au-dessus de la surface, les pièces tombent dessus
+    return Vector3.new(worldPos.X, worldPos.Y + 10, worldPos.Z)
 end
 
 --[[
