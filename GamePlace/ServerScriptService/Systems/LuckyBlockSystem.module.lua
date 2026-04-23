@@ -288,6 +288,7 @@ function LuckyBlockSystem:TakeResult(player)
                 PieceType = partType,
                 Price = partData.Price or 0,
                 DisplayName = partData.DisplayName or setName,
+                FreeCraft = true,
             })
         end
     end

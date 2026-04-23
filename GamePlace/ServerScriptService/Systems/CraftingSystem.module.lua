@@ -172,10 +172,12 @@ function CraftingSystem:TryCraft(player, requestedSlotIndex)
         return false, Constants.ActionResult.NoSlotAvailable, nil
     end
     
-    -- 4. Calculer et vérifier le coût total des pièces
+    -- 4. Calculer et vérifier le coût total des pièces (les pièces FreeCraft sont gratuites)
     local craftCost = 0
     for _, piece in ipairs(pieces) do
-        craftCost = craftCost + (piece.Price or 0)
+        if not piece.FreeCraft then
+            craftCost = craftCost + (piece.Price or 0)
+        end
     end
 
     if EconomySystem and not EconomySystem:CanAfford(player, craftCost) then

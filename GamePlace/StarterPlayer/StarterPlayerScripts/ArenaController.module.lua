@@ -186,16 +186,7 @@ function ArenaController:_ConnectActivePieces()
             warn("[ArenaController] ProximityPrompt manquant dans:", piece.Name)
             return
         end
-
-        -- Masquer le prompt pour les pièces tuto appartenant à un autre joueur
-        if piece:GetAttribute("IsTutorialPiece") then
-            local ownerUserId = piece:GetAttribute("OwnerUserId")
-            if ownerUserId and ownerUserId ~= Players.LocalPlayer.UserId then
-                prompt.Enabled = false
-                return
-            end
-        end
-
+        
         -- Connecter le Triggered
         local connection = prompt.Triggered:Connect(function(player)
             -- Vérifier que c'est bien le joueur local
