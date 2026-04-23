@@ -29,6 +29,7 @@ local NetworkSetup = require(Core["NetworkSetup.module"])
 -- Services Core
 local DataService = require(Core["DataService.module"])
 local PlayerService = require(Core["PlayerService.module"])
+local PolicyHelper = require(Core["PolicyHelper.module"])
 
 -- ═══════════════════════════════════════════════════════
 -- PHASE 2 : Charger les handlers
@@ -232,6 +233,9 @@ local remotesFolder = NetworkSetup:Init()
 -- 2. DataService (gestion DataStore)
 DataService:Init({ NetworkSetup = NetworkSetup })
 -- print("[GameServer] DataService: OK")
+
+-- 2.0. PolicyHelper (ArePaidRandomItemsRestricted policy wrapper)
+PolicyHelper:Init()
 
 -- 2.1. CodexService (Phase 6) - centralise l'envoi SyncCodex
 if CodexService then
@@ -558,6 +562,7 @@ if LuckyBlockSystem and PlacementSystem and BrainrotModelSystem then
         BrainrotModelSystem = BrainrotModelSystem,
         NetworkSetup = NetworkSetup,
         ArenaSystem = ArenaSystem,
+        PolicyHelper = PolicyHelper,
     })
     -- print("[GameServer] LuckyBlockSystem: OK")
 
@@ -579,6 +584,7 @@ if SpinWheelSystem and EconomySystem then
         EconomySystem = EconomySystem,
         LuckyBlockSystem = LuckyBlockSystem,
         NetworkSetup = NetworkSetup,
+        PolicyHelper = PolicyHelper,
     })
     -- print("[GameServer] SpinWheelSystem: OK")
 
@@ -610,6 +616,7 @@ if ShopSystem and EconomySystem then
         LuckyBlockSystem = LuckyBlockSystem,
         SpinWheelSystem = SpinWheelSystem,
         DoorSystem = DoorSystem,
+        PolicyHelper = PolicyHelper,
     })
     -- print("[GameServer] ShopSystem: OK")
 

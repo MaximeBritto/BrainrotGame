@@ -33,6 +33,7 @@ local PlayerService = nil
 local LuckyBlockSystem = nil
 local SpinWheelSystem = nil
 local DoorSystem = nil
+local PolicyHelper = nil
 
 -- Mapping: ProductId → { Cash = number, CategoryId = string, DisplayName = string }
 local _productMap = {}
@@ -60,6 +61,7 @@ function ShopSystem:Init(services)
     LuckyBlockSystem = services.LuckyBlockSystem
     SpinWheelSystem = services.SpinWheelSystem
     DoorSystem = services.DoorSystem
+    PolicyHelper = services.PolicyHelper
 
     if not EconomySystem then
         warn("[ShopSystem] EconomySystem requis! Le shop ne fonctionnera pas sans.")
@@ -142,6 +144,16 @@ function ShopSystem:RequestPurchase(player, categoryId, productIndex)
             self:_SendNotification(player, "Error", "Already purchased today!")
             return
         end
+    end
+
+    -- Respecter la politique ArePaidRandomItemsRestricted pour les produits
+    -- qui contiennent des items aléatoires payants (Lucky Blocks, Spin Wheel,
+    -- bundles comme le Starter Pack). Fail-closed si le lookup échoue.
+    local containsRandomItem = (product.LuckyBlocks and product.LuckyBlocks > 0)
+        or (product.Spins and product.Spins > 0)
+    if containsRandomItem and PolicyHelper and PolicyHelper:IsPaidRandomItemsRestricted(player) then
+        self:_SendNotification(player, "Error", "This item is not available in your region.")
+        return
     end
 
     -- Déclencher la fenêtre d'achat Roblox native

@@ -31,6 +31,7 @@ local PlacementSystem = nil
 local BrainrotModelSystem = nil
 local NetworkSetup = nil
 local ArenaSystem = nil
+local PolicyHelper = nil
 
 -- Data (loaded in Init)
 local BrainrotData = nil
@@ -61,6 +62,7 @@ function LuckyBlockSystem:Init(services)
     BrainrotModelSystem = services.BrainrotModelSystem
     NetworkSetup = services.NetworkSetup
     ArenaSystem = services.ArenaSystem
+    PolicyHelper = services.PolicyHelper
 
     if not PlayerService or not DataService then
         error("[LuckyBlockSystem] Missing services (PlayerService, DataService)!")
@@ -98,6 +100,13 @@ function LuckyBlockSystem:RequestBuy(player, amount)
     -- Validate amount
     if type(amount) ~= "number" or (amount ~= 1 and amount ~= 3) then
         self:_SendNotification(player, "Error", "Invalid amount.")
+        return
+    end
+
+    -- Respect ArePaidRandomItemsRestricted policy (required for publishing
+    -- in regulated regions). Fail-closed if the policy lookup fails.
+    if PolicyHelper and PolicyHelper:IsPaidRandomItemsRestricted(player) then
+        self:_SendNotification(player, "Error", "Lucky Blocks are not available in your region.")
         return
     end
 

@@ -30,6 +30,7 @@ local DataService = nil
 local EconomySystem = nil
 local LuckyBlockSystem = nil
 local NetworkSetup = nil
+local PolicyHelper = nil
 
 -- Config (loaded in Init)
 local GameConfig = nil
@@ -55,6 +56,7 @@ function SpinWheelSystem:Init(services)
     EconomySystem = services.EconomySystem
     LuckyBlockSystem = services.LuckyBlockSystem
     NetworkSetup = services.NetworkSetup
+    PolicyHelper = services.PolicyHelper
 
     if not PlayerService or not DataService then
         error("[SpinWheelSystem] Missing services (PlayerService, DataService)!")
@@ -83,6 +85,13 @@ end
 function SpinWheelSystem:RequestBuy(player, amount)
     if type(amount) ~= "number" or (amount ~= 1 and amount ~= 3) then
         self:_SendNotification(player, "Error", "Invalid amount.")
+        return
+    end
+
+    -- Respect ArePaidRandomItemsRestricted policy (required for publishing
+    -- in regulated regions). Fail-closed if the policy lookup fails.
+    if PolicyHelper and PolicyHelper:IsPaidRandomItemsRestricted(player) then
+        self:_SendNotification(player, "Error", "The Spin Wheel is not available in your region.")
         return
     end
 
