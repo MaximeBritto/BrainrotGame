@@ -8,8 +8,20 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
+
+-- ═══════════════════════════════════════════════════════
+-- ORIENTATION PAYSAGE (mobile uniquement)
+-- ═══════════════════════════════════════════════════════
+-- On force le paysage pour les appareils purement tactiles (téléphones/tablettes)
+-- sans souris. PC et console ne sont pas affectés.
+-- LandscapeSensor = paysage dans les deux sens (suit la rotation du téléphone).
+if UserInputService.TouchEnabled and not UserInputService.MouseEnabled then
+    local playerGui = player:WaitForChild("PlayerGui")
+    playerGui.ScreenOrientation = Enum.ScreenOrientation.LandscapeSensor
+end
 
 -- Modules
 local Shared = ReplicatedStorage:WaitForChild("Shared")

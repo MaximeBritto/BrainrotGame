@@ -423,7 +423,7 @@ function BrainrotModelSystem:CreateBrainrotModel(player, slotIndex, brainrotData
     if primaryPart then
         local proximityPrompt = Instance.new("ProximityPrompt")
         proximityPrompt.Name = "StealPrompt"
-        proximityPrompt.ActionText = "Voler"
+        proximityPrompt.ActionText = "Steal"
         proximityPrompt.ObjectText = "Brainrot"
         proximityPrompt.HoldDuration = 3
         proximityPrompt.MaxActivationDistance = 15

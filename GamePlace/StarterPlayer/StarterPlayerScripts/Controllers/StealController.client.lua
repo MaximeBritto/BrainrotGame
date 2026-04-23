@@ -116,7 +116,7 @@ local function createPlacePrompts()
 				local prompt = Instance.new("ProximityPrompt")
 				prompt.Name = "PlacePrompt"
 				prompt.ActionText = "Place"
-				prompt.ObjectText = "Brainrot volé"
+				prompt.ObjectText = "Stolen Brainrot"
 				prompt.HoldDuration = 0
 				prompt.MaxActivationDistance = 8
 				prompt.RequiresLineOfSight = false

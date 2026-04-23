@@ -193,12 +193,12 @@ function EconomyController:UpdateShopDisplay()
     local nextSlot = currentOwnedSlots + 1
     if nextSlot > GameConfig.Base.MaxSlots then
         shopPriceLabel.Text = "MAX"
-        shopBuyButton.Text = "COMPLET"
+        shopBuyButton.Text = "FULL"
         shopBuyButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
     else
         local price = SlotPrices[nextSlot] or 0
         shopPriceLabel.Text = "$" .. self:FormatNumber(price)
-        shopBuyButton.Text = "ACHETER"
+        shopBuyButton.Text = "BUY"
         shopBuyButton.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
     end
 end
