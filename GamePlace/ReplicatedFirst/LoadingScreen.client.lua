@@ -271,7 +271,7 @@ script:SetAttribute("_startTime", tick())
 -- Durée minimum d'affichage de l'écran de chargement (en secondes).
 -- En Studio, les assets sont déjà locaux donc le preload est instantané ;
 -- ce minimum garantit qu'on voit bien la barre se remplir.
-local MIN_SHOW_TIME = 1.8
+local MIN_SHOW_TIME = 1.0
 
 -- Lance le chargement par étapes dans un thread à part
 task.spawn(function()
@@ -343,21 +343,15 @@ task.spawn(function()
         task.wait(MIN_SHOW_TIME - elapsed)
     end
 
-    -- Fin : rattrape visuellement 100%
-    local t0 = tick()
-    while displayedProgress < 0.999 and tick() - t0 < 0.8 do
-        task.wait()
-    end
+    -- Fin : snap direct à 100% (plus de catch-up lent)
     displayedProgress = 1
+    isDone            = true
     fill.Size          = UDim2.fromScale(1, 1)
     percentLabel.Text  = "100%"
     statusLabel.Text   = "Prêt !"
 
-    task.wait(0.15)
-    isDone = true
-
     -- Fade out
-    local tweenInfo = TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local tweenInfo = TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
     TweenService:Create(background,   tweenInfo, { BackgroundTransparency = 1 }):Play()
     TweenService:Create(logo,         tweenInfo, { ImageTransparency = 1 }):Play()
     TweenService:Create(bottomFade,   tweenInfo, { BackgroundTransparency = 1 }):Play()
@@ -367,6 +361,6 @@ task.spawn(function()
     TweenService:Create(percentLabel, tweenInfo, { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
     TweenService:Create(statusLabel,  tweenInfo, { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
 
-    task.wait(0.7)
+    task.wait(0.35)
     screen:Destroy()
 end)

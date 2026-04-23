@@ -12,6 +12,13 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+-- Menu de test/cheat : actif uniquement en Roblox Studio (dev local).
+-- En production (serveur live), le script s'arrête ici.
+if not RunService:IsStudio() then
+    return
+end
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")

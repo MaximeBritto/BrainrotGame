@@ -10,6 +10,13 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
+local RunService = game:GetService("RunService")
+
+-- Handler de test/cheat : actif uniquement en Roblox Studio (dev local).
+-- En production, le script s'arrête ici et n'enregistre aucun RemoteEvent.
+if not RunService:IsStudio() then
+    return
+end
 
 -- Attendre que tout soit chargé
 task.wait(2)
