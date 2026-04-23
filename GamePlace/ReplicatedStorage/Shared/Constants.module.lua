@@ -92,6 +92,7 @@ local Constants = {
         SyncSpinWheelData = "SyncSpinWheelData", -- Spin Wheel: Sync compteur + timer
         SpinWheelResult = "SpinWheelResult",     -- Spin Wheel: Résultat pour animation
         SyncMultiplierBoost = "SyncMultiplierBoost", -- Boost: Sync timer multiplicateur
+        SyncJumpZone = "SyncJumpZone",               -- JumpZoneSystem: true = dans zone NoJumpBoost, false = hors zone
         SyncFusionData = "SyncFusionData",             -- Fusion: Sync fusions découvertes + rewards
         ClaimFusionReward = "ClaimFusionReward",       -- Fusion: Réclamer récompense palier
         RequestDailyPurchase = "RequestDailyPurchase", -- Daily Shop: Achat daily avec cash

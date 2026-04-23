@@ -462,7 +462,8 @@ if hudGui then
     task.delay(1, updateSpeedButtonVisual)
 
     -- ── BOUTON JUMP TOGGLE ──
-    local jumpBoosted = true -- état par défaut (saut boosté)
+    local jumpBoosted = true -- choix manuel (on/off)
+    local inNoBoostZone = false -- override serveur quand le joueur est dans une SpawnZone taggée NoJumpBoost
     local jumpColorOn = Color3.fromRGB(40, 150, 70)
     local jumpColorOff = Color3.fromRGB(80, 80, 80)
     local jumpHoverOn = Color3.fromRGB(55, 180, 85)
@@ -551,10 +552,12 @@ if hudGui then
     jumpToggleKnobCorner.Parent = jumpToggleKnob
 
     local function updateJumpButtonVisual()
-        local color = jumpBoosted and jumpColorOn or jumpColorOff
-        local strokeColor = jumpBoosted and Color3.fromRGB(60, 200, 90) or Color3.fromRGB(130, 130, 130)
-        local trackColor = jumpBoosted and Color3.fromRGB(80, 180, 80) or Color3.fromRGB(120, 120, 120)
-        local knobPos = jumpBoosted and UDim2.new(1, -20, 0.5, 0) or UDim2.new(0, 2, 0.5, 0)
+        -- L'affichage "on" n'apparaît que si le joueur a activé le boost ET n'est pas dans une zone de respawn
+        local effectiveOn = jumpBoosted and not inNoBoostZone
+        local color = effectiveOn and jumpColorOn or jumpColorOff
+        local strokeColor = effectiveOn and Color3.fromRGB(60, 200, 90) or Color3.fromRGB(130, 130, 130)
+        local trackColor = effectiveOn and Color3.fromRGB(80, 180, 80) or Color3.fromRGB(120, 120, 120)
+        local knobPos = effectiveOn and UDim2.new(1, -20, 0.5, 0) or UDim2.new(0, 2, 0.5, 0)
         TweenService:Create(jumpButton, TweenInfo.new(0.2), {
             BackgroundColor3 = color,
         }):Play()
@@ -565,9 +568,13 @@ if hudGui then
             Position = knobPos,
         }):Play()
         jumpStroke.Color = strokeColor
-        jumpText.Text = jumpBoosted and "JUMP" or "LOW"
+        if inNoBoostZone then
+            jumpText.Text = "SAFE"
+        else
+            jumpText.Text = jumpBoosted and "JUMP" or "LOW"
+        end
 
-        if jumpBoosted then
+        if effectiveOn then
             local character = player.Character
             local humanoid = character and character:FindFirstChildOfClass("Humanoid")
             local basePower = (GameConfig.Jump and GameConfig.Jump.BasePower) or 50
@@ -580,13 +587,15 @@ if hudGui then
     end
 
     jumpButton.MouseEnter:Connect(function()
-        local hoverColor = jumpBoosted and jumpHoverOn or jumpHoverOff
+        local effectiveOn = jumpBoosted and not inNoBoostZone
+        local hoverColor = effectiveOn and jumpHoverOn or jumpHoverOff
         TweenService:Create(jumpButton, TweenInfo.new(0.15), {
             BackgroundColor3 = hoverColor,
         }):Play()
     end)
     jumpButton.MouseLeave:Connect(function()
-        local baseColor = jumpBoosted and jumpColorOn or jumpColorOff
+        local effectiveOn = jumpBoosted and not inNoBoostZone
+        local baseColor = effectiveOn and jumpColorOn or jumpColorOff
         TweenService:Create(jumpButton, TweenInfo.new(0.15), {
             BackgroundColor3 = baseColor,
         }):Play()
@@ -594,12 +603,19 @@ if hudGui then
 
     local toggleJumpRemote = Remotes:WaitForChild("ToggleJump")
     jumpButton.MouseButton1Click:Connect(function()
+        if inNoBoostZone then return end -- pas de toggle dans la zone de respawn
         toggleJumpRemote:FireServer()
     end)
 
     toggleJumpRemote.OnClientEvent:Connect(function(newState)
         jumpBoosted = newState
         task.delay(0.15, updateJumpButtonVisual)
+    end)
+
+    local syncJumpZoneRemote = Remotes:WaitForChild("SyncJumpZone")
+    syncJumpZoneRemote.OnClientEvent:Connect(function(inZone)
+        inNoBoostZone = inZone and true or false
+        updateJumpButtonVisual()
     end)
 
     -- Rafraîchir le label x1.0/x2.0 dès que le serveur change JumpPower

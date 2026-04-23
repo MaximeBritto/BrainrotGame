@@ -193,6 +193,19 @@ do
     end
 end
 
+-- Jump Zone System (désactive le saut boosté dans la SpawnZone de respawn)
+local JumpZoneSystem, jumpZoneLoadErr
+do
+    local ok, mod = pcall(function()
+        return require(Systems["JumpZoneSystem.module"])
+    end)
+    if ok then
+        JumpZoneSystem = mod
+    else
+        jumpZoneLoadErr = mod
+    end
+end
+
 -- Phase 9: Shop Robux
 local ShopSystem, shopLoadErr
 do
@@ -578,6 +591,13 @@ else
     if not EconomySystem then
         warn("[GameServer] SpinWheelSystem nécessite EconomySystem!")
     end
+end
+
+-- 13.9. JumpZoneSystem (désactive le saut boosté dans la zone de respawn)
+if JumpZoneSystem then
+    JumpZoneSystem:Init({ PlayerService = PlayerService })
+else
+    warn("[GameServer] JumpZoneSystem non chargé:", jumpZoneLoadErr or "inconnu")
 end
 
 -- 14. ShopSystem (Phase 9)

@@ -52,6 +52,10 @@ local function CreateRuntimeData()
         -- Jump toggle (true = boosted, false = default 50)
         JumpBoosted = true,
 
+        -- Override de zone : nil par défaut, "NoJumpBoost" quand sur une part taggée NoJumpBoost
+        -- (prioritaire sur JumpBoosted + PermanentJumpBonus → ramène à la base)
+        JumpZoneOverride = nil,
+
         -- Session
         JoinTime = os.time(),
         LastSaveTime = os.time(),
@@ -541,6 +545,12 @@ function PlayerService:GetPlayerJumpPower(player)
     -- JumpPower fixe quand on porte un brainrot volé (ignore tous les bonus/toggles)
     if runtimeData and runtimeData.CarriedBrainrot then
         return GameConfig.Jump.CarryingPower or basePower
+    end
+
+    -- Override de zone : si le joueur est dans une zone NoJumpBoost, on force la base
+    -- (prioritaire sur le toggle et le bonus permanent)
+    if runtimeData and runtimeData.JumpZoneOverride == "NoJumpBoost" then
+        return basePower
     end
 
     -- Si le toggle est désactivé, retourner la puissance de base
