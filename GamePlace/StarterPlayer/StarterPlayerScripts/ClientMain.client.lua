@@ -8,20 +8,23 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
 
 -- ═══════════════════════════════════════════════════════
--- ORIENTATION PAYSAGE (mobile uniquement)
+-- ORIENTATION PAYSAGE (mobile)
 -- ═══════════════════════════════════════════════════════
--- On force le paysage pour les appareils purement tactiles (téléphones/tablettes)
--- sans souris. PC et console ne sont pas affectés.
+-- ScreenOrientation n'a aucun effet sur PC/console (pas de rotation hardware),
+-- on le règle donc pour tout le monde sans détection (plus fiable que
+-- TouchEnabled/MouseEnabled qui échoue dans l'émulateur Studio et sur certains
+-- iPads). On réapplique à chaque respawn au cas où ça serait reset.
 -- LandscapeSensor = paysage dans les deux sens (suit la rotation du téléphone).
-if UserInputService.TouchEnabled and not UserInputService.MouseEnabled then
-    local playerGui = player:WaitForChild("PlayerGui")
+local playerGui = player:WaitForChild("PlayerGui")
+local function forceLandscape()
     playerGui.ScreenOrientation = Enum.ScreenOrientation.LandscapeSensor
 end
+forceLandscape()
+player.CharacterAdded:Connect(forceLandscape)
 
 -- Modules
 local Shared = ReplicatedStorage:WaitForChild("Shared")
