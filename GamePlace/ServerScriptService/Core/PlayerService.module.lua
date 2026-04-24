@@ -113,11 +113,32 @@ function PlayerService:OnPlayerJoin(player)
     
     -- 1. Charger les données sauvegardées
     local playerData = DataService:LoadPlayerData(player)
-    
+
     if not playerData then
         warn("[PlayerService] Échec chargement données pour " .. player.Name)
         player:Kick("Impossible de charger vos données. Veuillez réessayer.")
         return
+    end
+
+    -- Auto-réparation : synchroniser Brainrots avec PlacedBrainrots.
+    -- PlacedBrainrots est la source de vérité visuelle (sauvegarde/restauration des modèles 3D),
+    -- Brainrots est utilisé par EconomySystem pour les revenus. Certains chemins passés
+    -- écrivaient seulement dans PlacedBrainrots (ex: retour d'un brainrot volé), laissant
+    -- des slots orphelins qui n'ont jamais généré d'argent. On les recopie ici.
+    if playerData.PlacedBrainrots then
+        if not playerData.Brainrots then playerData.Brainrots = {} end
+        local repaired = 0
+        for slotKey, brainrotData in pairs(playerData.PlacedBrainrots) do
+            local slotNum = tonumber(slotKey)
+            if slotNum and not playerData.Brainrots[slotNum] and not playerData.Brainrots[slotKey] then
+                playerData.Brainrots[slotNum] = brainrotData
+                repaired = repaired + 1
+            end
+        end
+        if repaired > 0 then
+            print(string.format("[PlayerService] Auto-réparation: %d slot(s) orphelin(s) remis dans Brainrots pour %s",
+                repaired, player.Name))
+        end
     end
     
     -- 2. Créer les données runtime

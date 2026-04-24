@@ -113,7 +113,7 @@ function PlacementSystem:PlaceBrainrot(player, slotIndex, brainrotData)
     -- Placer le Brainrot dans PlacedBrainrots (pour la sauvegarde et restauration)
     placedBrainrots[tostring(slotIndex)] = brainrotData
     DataService:UpdateValue(player, "PlacedBrainrots", placedBrainrots)
-    
+
     -- AUSSI placer dans Brainrots pour l'EconomySystem (compatibilité)
     local brainrots = playerData.Brainrots
     if not brainrots then

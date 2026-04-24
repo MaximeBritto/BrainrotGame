@@ -305,7 +305,7 @@ function EconomySystem:_ProcessPlayerRevenue(player)
     for _ in pairs(data.Brainrots) do
         brainrotCount = brainrotCount + 1
     end
-    
+
     if brainrotCount == 0 then
         -- print("[EconomySystem] Aucun Brainrot placé pour " .. player.Name)
         return

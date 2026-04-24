@@ -344,6 +344,12 @@ function BatSystem:ReturnStolenBrainrot(victim)
                 ownerData.PlacedBrainrots[slotKey] = brainrotData
                 DataService_ref:UpdateValue(owner, "PlacedBrainrots", ownerData.PlacedBrainrots)
 
+                -- Aussi réécrire dans Brainrots (utilisé par EconomySystem pour les revenus) :
+                -- sans ça, le slot redevient visible mais ne génère plus d'argent.
+                if not ownerData.Brainrots then ownerData.Brainrots = {} end
+                ownerData.Brainrots[originalSlotId] = brainrotData
+                DataService_ref:UpdateValue(owner, "Brainrots", ownerData.Brainrots)
+
                 -- Recréer le modèle 3D sur le slot
                 if BrainrotModelSystem_ref then
                     BrainrotModelSystem_ref:CreateBrainrotModel(owner, originalSlotId, brainrotData)
