@@ -331,7 +331,7 @@ task.spawn(function()
     -- ──────────────────────────────────────────────────────────
     -- ÉTAPE 4 : Préparation du joueur (90% → 100%)
     -- ──────────────────────────────────────────────────────────
-    statusLabel.Text = "Préparation du joueur..."
+    statusLabel.Text = "Player preparation..."
     if not player.Character then
         player.CharacterAdded:Wait()
     end
@@ -348,7 +348,7 @@ task.spawn(function()
     isDone            = true
     fill.Size          = UDim2.fromScale(1, 1)
     percentLabel.Text  = "100%"
-    statusLabel.Text   = "Prêt !"
+    statusLabel.Text   = "Ready !"
 
     -- Fade out
     local tweenInfo = TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)

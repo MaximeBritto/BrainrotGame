@@ -102,7 +102,15 @@ function InventorySystem:TryPickupPiece(player, pieceId)
     if not piece then
         return false, Constants.ActionResult.InvalidPiece, nil, nil
     end
-    
+
+    -- VALIDATION 1b: Les pièces tutoriel ne peuvent être ramassées que par leur propriétaire
+    if piece:GetAttribute("IsTutorialPiece") then
+        local ownerId = piece:GetAttribute("OwnerUserId")
+        if ownerId and ownerId ~= player.UserId then
+            return false, Constants.ActionResult.InvalidPiece, nil, nil
+        end
+    end
+
     -- VALIDATION 2: Vérifier l'inventaire
     local currentPieces = self:GetPiecesInHand(player)
     
