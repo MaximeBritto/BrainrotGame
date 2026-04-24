@@ -123,7 +123,7 @@ function ArenaController:_StartBlinkLoop()
                 local spawnedAt = piece:GetAttribute("SpawnedAt")
                 local lifetime = piece:GetAttribute("Lifetime")
                 if spawnedAt and lifetime then
-                    local remaining = lifetime - (tick() - spawnedAt)
+                    local remaining = lifetime - (workspace:GetServerTimeNow() - spawnedAt)
                     if remaining <= 0 then
                         -- Expirée : cacher et désactiver le pickup en attendant la destruction serveur
                         local state = self:_GetBlinkState(piece)

@@ -905,7 +905,7 @@ function ArenaSystem:_SpawnInZone(zone)
     piece:SetAttribute("Price", pieceInfo.Price)
     piece:SetAttribute("GainPerSec", pieceInfo.GainPerSec or 0)
     piece:SetAttribute("DisplayName", pieceInfo.DisplayName)
-    piece:SetAttribute("SpawnedAt", tick())
+    piece:SetAttribute("SpawnedAt", workspace:GetServerTimeNow())
     piece:SetAttribute("Lifetime", zone.Config.PieceLifetime or GameConfig.Arena.PieceLifetime)
 
     -- Nom du modèle
@@ -1036,7 +1036,7 @@ function ArenaSystem:_SpawnSpecificPiece(setName, pieceType, pieceInfo, template
     piece:SetAttribute("Price", pieceInfo.Price)
     piece:SetAttribute("GainPerSec", pieceInfo.GainPerSec or 0)
     piece:SetAttribute("DisplayName", pieceInfo.DisplayName)
-    piece:SetAttribute("SpawnedAt", tick())
+    piece:SetAttribute("SpawnedAt", workspace:GetServerTimeNow())
     piece:SetAttribute("Lifetime", lifetimeOverride or GameConfig.Arena.PieceLifetime)
 
     -- Nom du modèle
