@@ -30,6 +30,24 @@ local DoorSystem = {}
 DoorSystem._initialized = false
 DoorSystem._doorStates = {} -- {[userId] = {State, CloseTime, ReopenTime}}
 DoorSystem._pendingDoorOpen = {} -- {[buyerUserId] = targetOwnerUserId}
+DoorSystem._registeredBarsGroups = {} -- {[baseIndex] = groupName}
+
+-- Itère toutes les BaseParts d'un objet "Bars" qui peut être soit un Model/Folder
+-- (cas attendu, on parcourt les descendants), soit lui-même un BasePart.
+-- Sans cette double prise en charge, une base où "Bars" est défini comme une
+-- seule BasePart au lieu d'un Model ne voit jamais ses propriétés modifiées
+-- (CanCollide reste tel quel : la porte semble fermée mais on passe à travers).
+local function ForEachBarPart(bars, callback)
+    if not bars then return end
+    if bars:IsA("BasePart") then
+        callback(bars)
+    end
+    for _, part in ipairs(bars:GetDescendants()) do
+        if part:IsA("BasePart") then
+            callback(part)
+        end
+    end
+end
 
 --[[
     Initialise le système
@@ -65,25 +83,42 @@ end
     Configure les CollisionGroups pour les portes
 ]]
 function DoorSystem:_SetupCollisionGroups()
-    -- Créer les groupes s'ils n'existent pas
-    local _success1 = pcall(function()
+    -- Groupe joueurs (état "porte ouverte" pour tout le monde)
+    pcall(function()
         PhysicsService:RegisterCollisionGroup(Constants.CollisionGroup.Players)
     end)
-    
-    local _success2 = pcall(function()
-        PhysicsService:RegisterCollisionGroup(Constants.CollisionGroup.DoorBars)
+    -- print("[DoorSystem] CollisionGroups configurés")
+end
+
+--[[
+    Récupère (ou crée) le groupe de collision pour les barres d'une base donnée.
+    Chaque base a son propre groupe pour que le bypass du propriétaire ne
+    s'applique QU'À SES barres, pas à celles des autres joueurs.
+    @param base: Model
+    @return string - nom du groupe
+]]
+function DoorSystem:_GetBarsGroupForBase(base)
+    if not base then return nil end
+    local baseIndex = tonumber(string.match(base.Name, "%d+"))
+    if not baseIndex then return nil end
+
+    if self._registeredBarsGroups[baseIndex] then
+        return self._registeredBarsGroups[baseIndex]
+    end
+
+    local groupName = Constants.CollisionGroup.DoorBars .. "_" .. baseIndex
+    pcall(function()
+        PhysicsService:RegisterCollisionGroup(groupName)
     end)
-    
-    -- Par défaut, Players collisionne avec DoorBars
     pcall(function()
         PhysicsService:CollisionGroupSetCollidable(
             Constants.CollisionGroup.Players,
-            Constants.CollisionGroup.DoorBars,
+            groupName,
             true
         )
     end)
-    
-    -- print("[DoorSystem] CollisionGroups configurés")
+    self._registeredBarsGroups[baseIndex] = groupName
+    return groupName
 end
 
 --[[
@@ -104,19 +139,23 @@ function DoorSystem:_InitializeAllDoors()
     for _, base in ipairs(basesFolder:GetChildren()) do
         if base:IsA("Model") and string.match(base.Name, "^Base_%d+$") then
             local doorFolder = base:FindFirstChild(Constants.WorkspaceNames.DoorFolder)
-            
+
             if doorFolder then
                 local bars = doorFolder:FindFirstChild(Constants.WorkspaceNames.DoorBars)
-                
+
                 if bars then
+                    -- Pré-enregistrer le groupe par-base (et l'assigner aux parts)
+                    local groupName = self:_GetBarsGroupForBase(base)
+
                     -- Ouvrir la porte par défaut (INVISIBLE et non-solide)
-                    for _, part in ipairs(bars:GetDescendants()) do
-                        if part:IsA("BasePart") then
-                            part.CanCollide = false
-                            part.Transparency = 1 -- INVISIBLE quand ouvert
+                    ForEachBarPart(bars, function(part)
+                        part.CanCollide = false
+                        part.Transparency = 1 -- INVISIBLE quand ouvert
+                        if groupName then
+                            part.CollisionGroup = groupName
                         end
-                    end
-                    
+                    end)
+
                     doorCount = doorCount + 1
                 end
             end
@@ -188,19 +227,20 @@ function DoorSystem:_CloseDoor(player, base)
     local bars = doorFolder:FindFirstChild(Constants.WorkspaceNames.DoorBars)
     if not bars then return end
     
-    -- Rendre les barres solides et VISIBLES
-    for _, part in ipairs(bars:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.CanCollide = true
-            part.Transparency = 0 -- VISIBLE quand fermé
-            
-            -- Assigner au CollisionGroup DoorBars
-            part.CollisionGroup = Constants.CollisionGroup.DoorBars
+    -- Rendre les barres solides et VISIBLES, en groupe par-base
+    -- (chaque base a son propre groupe pour que le bypass du propriétaire
+    -- ne traverse QUE ses barres, pas celles des autres joueurs)
+    local groupName = self:_GetBarsGroupForBase(base)
+    ForEachBarPart(bars, function(part)
+        part.CanCollide = true
+        part.Transparency = 0 -- VISIBLE quand fermé
+        if groupName then
+            part.CollisionGroup = groupName
         end
-    end
-    
-    -- Désactiver la collision pour le propriétaire
-    self:_SetPlayerDoorCollision(player, false)
+    end)
+
+    -- Désactiver la collision pour le propriétaire (sur SES barres uniquement)
+    self:_SetPlayerDoorCollision(player, false, base)
 end
 
 --[[
@@ -215,49 +255,65 @@ function DoorSystem:_OpenDoor(player, base)
     local bars = doorFolder:FindFirstChild(Constants.WorkspaceNames.DoorBars)
     if not bars then return end
     
-    -- Rendre les barres non-solides et INVISIBLES
-    for _, part in ipairs(bars:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.CanCollide = false
-            part.Transparency = 1 -- INVISIBLE quand ouvert
-        end
-    end
-    
-    -- Réactiver la collision pour le propriétaire
+    -- Rendre les barres non-solides et INVISIBLES (le groupe par-base reste)
+    ForEachBarPart(bars, function(part)
+        part.CanCollide = false
+        part.Transparency = 1 -- INVISIBLE quand ouvert
+    end)
+
+    -- Réactiver la collision pour le propriétaire (retour groupe générique Players)
     self:_SetPlayerDoorCollision(player, true)
 end
 
 --[[
-    Active/désactive la collision entre un joueur et les portes
+    Active/désactive la collision entre un joueur et SES PROPRES barres.
     @param player: Player
-    @param collide: boolean
+    @param collide: boolean - true = retour au groupe générique Players (collide avec
+                              toutes les barres fermées), false = bypass des barres
+                              de SA base uniquement.
+    @param base: Model? - La base du joueur (utile quand collide=false). Si non
+                          fournie, on tente de la récupérer via BaseSystem.
 ]]
-function DoorSystem:_SetPlayerDoorCollision(player, collide)
+function DoorSystem:_SetPlayerDoorCollision(player, collide, base)
     local character = player.Character
     if not character then return end
-    
+
+    if collide then
+        for _, part in ipairs(character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CollisionGroup = Constants.CollisionGroup.Players
+            end
+        end
+        return
+    end
+
+    -- Bypass : il faut un groupe unique au joueur ET la cible (groupe de SA base).
+    -- Sans la cible, on tombe sur l'ancien comportement (bypass global) qui
+    -- permettait à un joueur ayant fermé sa porte de traverser TOUTES les
+    -- portes fermées du serveur. On préfère ne rien faire que ce bypass global.
+    base = base or (BaseSystem and BaseSystem:GetPlayerBase(player))
+    local barsGroup = base and self:_GetBarsGroupForBase(base) or nil
+    if not barsGroup then
+        -- Pas de base identifiée : on garde le joueur dans Players.
+        for _, part in ipairs(character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CollisionGroup = Constants.CollisionGroup.Players
+            end
+        end
+        return
+    end
+
+    local groupName = "Player_" .. player.UserId
+    pcall(function()
+        PhysicsService:RegisterCollisionGroup(groupName)
+    end)
+    pcall(function()
+        PhysicsService:CollisionGroupSetCollidable(groupName, barsGroup, false)
+    end)
+
     for _, part in ipairs(character:GetDescendants()) do
         if part:IsA("BasePart") then
-            if collide then
-                part.CollisionGroup = Constants.CollisionGroup.Players
-            else
-                -- Créer un groupe unique pour ce joueur (pas de collision avec DoorBars)
-                local groupName = "Player_" .. player.UserId
-                
-                pcall(function()
-                    PhysicsService:RegisterCollisionGroup(groupName)
-                end)
-                
-                pcall(function()
-                    PhysicsService:CollisionGroupSetCollidable(
-                        groupName,
-                        Constants.CollisionGroup.DoorBars,
-                        false
-                    )
-                end)
-                
-                part.CollisionGroup = groupName
-            end
+            part.CollisionGroup = groupName
         end
     end
 end

@@ -810,7 +810,10 @@ function NetworkHandler:_HandleDropPieces(player)
             local offset = Vector3.new((i - 1) * 3 - (#pieces - 1) * 1.5, 0, -3)
             local spawnPos = dropPos and (dropPos + offset) or nil
             if spawnPos then
-                ArenaSystem:SpawnPieceFromData(pieceData, spawnPos)
+                local droppedModel = ArenaSystem:SpawnPieceFromData(pieceData, spawnPos)
+                if droppedModel then
+                    droppedModel:SetAttribute("OwnerUserId", player.UserId)
+                end
             end
         end
     end
