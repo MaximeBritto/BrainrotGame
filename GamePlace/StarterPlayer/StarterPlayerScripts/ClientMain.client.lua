@@ -805,8 +805,6 @@ end
 
 -- Demander les données initiales au serveur
 task.spawn(function()
-	task.wait(1)
-
 	local fullData = ClientMain:GetFullPlayerData()
 
 	if fullData then

@@ -480,8 +480,6 @@ end
 -- ── Main ──────────────────────────────────────────────────────────
 local function StartTutorial()
     print("[Tutorial] StartTutorial() called")
-    task.wait(1.5)
-
     local fullData = GetFullPlayerData:InvokeServer()
     if not fullData then warn("[Tutorial] No data received") ; return end
 

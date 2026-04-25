@@ -13,9 +13,6 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 
--- Attendre que tout soit chargé
-task.wait(3)
-
 -- print("═══════════════════════════════════════════════")
 -- print("   ACTIVATION PAD MANAGER - Initialisation")
 -- print("═══════════════════════════════════════════════")
