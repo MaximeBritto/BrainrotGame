@@ -120,6 +120,22 @@ function PlayerService:OnPlayerJoin(player)
         return
     end
 
+    -- Normalisation des clés numériques : DataStore JSON-encode les tables sparses
+    -- avec des clés string (ex: {[1]=X,[3]=Y} → {"1":X,"3":Y} → reload {"1"=X,"3"=Y}).
+    -- Le serveur lit toujours data.X[number] côté collect/revenus, donc sans cette
+    -- normalisation un joueur ne peut plus collecter son argent après reconnexion.
+    local function NormalizeNumericKeys(t)
+        if type(t) ~= "table" then return t end
+        local fixed = {}
+        for k, v in pairs(t) do
+            local n = tonumber(k)
+            fixed[n or k] = v
+        end
+        return fixed
+    end
+    if playerData.SlotCash  then playerData.SlotCash  = NormalizeNumericKeys(playerData.SlotCash)  end
+    if playerData.Brainrots then playerData.Brainrots = NormalizeNumericKeys(playerData.Brainrots) end
+
     -- Auto-réparation : synchroniser Brainrots avec PlacedBrainrots.
     -- PlacedBrainrots est la source de vérité visuelle (sauvegarde/restauration des modèles 3D),
     -- Brainrots est utilisé par EconomySystem pour les revenus. Certains chemins passés
@@ -207,6 +223,17 @@ function PlayerService:OnPlayerLeave(player)
     -- print("[PlayerService] Joueur quitte: " .. player.Name)
 
     local playerData = DataService:GetPlayerData(player)
+
+    -- Si le joueur transportait un Brainrot volé, le retourner à son propriétaire
+    -- d'origine (sinon il disparaît à jamais : CarriedBrainrot vit en runtime data,
+    -- non persistée, et le slot a déjà été vidé chez le propriétaire au moment du vol).
+    local runtimeData = self._runtimeData[player.UserId]
+    if runtimeData and runtimeData.CarriedBrainrot and self.BatSystem then
+        pcall(function()
+            self.BatSystem:ReturnStolenBrainrot(player)
+        end)
+    end
+
     -- Tutoriel non terminé : enlever les pièces d'arène (spawns tuto / drops) taggées OwnerUserId
     if self.ArenaSystem and playerData and playerData.HasSeenTutorial ~= true then
         pcall(function()

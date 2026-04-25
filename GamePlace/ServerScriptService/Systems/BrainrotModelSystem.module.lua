@@ -16,6 +16,14 @@ local BrainrotData = nil
 local BaseSystem = nil
 local GameConfig = nil
 
+-- Applique un contour noir épais (UIStroke) sur un TextLabel
+local function _applyBlackStroke(lbl, thickness)
+    local s = lbl:FindFirstChildOfClass("UIStroke") or Instance.new("UIStroke")
+    s.Color = Color3.new(0, 0, 0)
+    s.Thickness = thickness or 3
+    s.Parent = lbl
+end
+
 local BrainrotModelSystem = {}
 BrainrotModelSystem._initialized = false
 BrainrotModelSystem._models = {} -- [userId][slotIndex] = model
@@ -381,8 +389,9 @@ function BrainrotModelSystem:CreateBrainrotModel(player, slotIndex, brainrotData
     nameLabel.TextScaled = true
     nameLabel.Font = Enum.Font.GothamBold
     nameLabel.Parent = billboard
+    _applyBlackStroke(nameLabel)
 
-    -- Revenu total
+    -- Prix total (utilisé pour le SellPrice plus bas)
     local totalRevenue = 0
     if headSetData and headSetData.Head then
         totalRevenue = totalRevenue + (headSetData.Head.Price or 0)
@@ -394,16 +403,29 @@ function BrainrotModelSystem:CreateBrainrotModel(player, slotIndex, brainrotData
         totalRevenue = totalRevenue + (legsSetData.Legs.Price or 0)
     end
 
+    -- Gain par seconde réel (cohérent avec EconomySystem qui crédite GainPerSec)
+    local totalGainPerSec = 0
+    if headSetData and headSetData.Head then
+        totalGainPerSec = totalGainPerSec + (headSetData.Head.GainPerSec or 0)
+    end
+    if bodySetData and bodySetData.Body then
+        totalGainPerSec = totalGainPerSec + (bodySetData.Body.GainPerSec or 0)
+    end
+    if legsSetData and legsSetData.Legs then
+        totalGainPerSec = totalGainPerSec + (legsSetData.Legs.GainPerSec or 0)
+    end
+
     local revenueLabel = Instance.new("TextLabel")
     revenueLabel.Name = "RevenueLabel"
     revenueLabel.Size = UDim2.new(1, 0, 0, 24)
     revenueLabel.Position = UDim2.new(0, 0, 0, 36)
     revenueLabel.BackgroundTransparency = 1
-    revenueLabel.Text = "$" .. totalRevenue .. "/s"
+    revenueLabel.Text = "$" .. totalGainPerSec .. "/s"
     revenueLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
     revenueLabel.TextScaled = true
     revenueLabel.Font = Enum.Font.Gotham
     revenueLabel.Parent = billboard
+    _applyBlackStroke(revenueLabel)
 
     billboard.Parent = adornPart
 

@@ -14,6 +14,7 @@
 local Players           = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService      = game:GetService("TweenService")
+local RunService        = game:GetService("RunService")
 
 local player    = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -41,19 +42,32 @@ end
 -- ── Visual constants ─────────────────────────────────────────────
 local BG_COLOR     = Color3.fromRGB(15, 15, 25)
 local ACCENT_COLOR = Color3.fromRGB(255, 210, 50)
-local TEXT_COLOR   = Color3.fromRGB(235, 235, 235)
 local DONE_COLOR   = Color3.fromRGB(80, 210, 100)
 local BOX_COLOR    = Color3.fromRGB(255, 210, 50)
-local TOTAL_STEPS  = 3
 
 -- ── State ─────────────────────────────────────────────────────────
-local _active       = false
-local _step         = 1
-local _selectionBox = nil
-local _arrowGui     = nil
-local _connections  = {}
-local _cashAtStep3  = 0
-local _floorArrows  = {}   -- flat Parts au sol indiquant la direction
+local _active        = false
+local _step          = 1
+local _step1Sub      = "Head"   -- "Head" | "Body" | "Legs" : pièce attendue à l'étape 1
+local _selectionBox  = nil
+local _arrowGui      = nil
+local _connections   = {}
+local _cashAtStep3   = 0
+local _floorArrows   = {}        -- flat Parts au sol indiquant la direction
+local _currentPieces = {}        -- dernier snapshot SyncInventory (utilisé pour décider du sub-step)
+local _focusGen      = 0         -- génération du focus caméra courant (pour annuler les précédents)
+
+-- Ordre forcé de collecte des pièces tutoriel
+local PIECE_ORDER = {"Head", "Body", "Legs"}
+
+-- Texte affiché au-dessus de la cible (dans la flèche 3D) — toute la consigne tient ici.
+local STEP_TEXT = {
+    Head    = "PICK UP THE HEAD",
+    Body    = "PICK UP THE BODY",
+    Legs    = "PICK UP THE LEGS",
+    Craft   = "CRAFT YOUR BRAINROT",
+    Collect = "COLLECT YOUR CASH",
+}
 
 -- ── Helpers ───────────────────────────────────────────────────────
 local function GetPlayerBase()
@@ -71,7 +85,7 @@ local function GetSlot1(base)
     if not base then return nil end
     local slots = base:FindFirstChild("Slots")
     if not slots then return nil end
-    return slots:FindFirstChild("1") or slots:GetChildren()[1]
+    return slots:FindFirstChild("Slot_1")
 end
 
 local function HasAllPieceTypes(pieces)
@@ -90,32 +104,51 @@ local ARROW_SPACING = 4    -- studs entre chaque flèche
 local ARROW_COLOR   = Color3.fromRGB(255, 210, 50)
 
 -- Trouve la pièce tutoriel la plus proche du joueur encore présente dans le workspace
-local function FindNearestTutorialPiece()
+-- Retourne (position Vector3, modèle) ou (nil, nil)
+-- Si pieceType est fourni, ne considère que les pièces de ce type.
+local function FindNearestTutorialPiece(pieceType)
     local char = player.Character
     local hrp  = char and char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return nil end
+    if not hrp then return nil, nil end
 
-    local nearest, nearestDist = nil, math.huge
+    local nearest, nearestDist, nearestModel = nil, math.huge, nil
     -- Les pièces actives sont dans workspace (serveur les a taggées IsTutorialPiece)
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj:IsA("Model") and obj:GetAttribute("IsTutorialPiece") then
+            if pieceType and obj:GetAttribute("TutorialPieceType") ~= pieceType then
+                continue
+            end
             local part = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
             if part then
                 local d = (part.Position - hrp.Position).Magnitude
                 if d < nearestDist then
-                    nearestDist = d
-                    nearest = part.Position
+                    nearestDist  = d
+                    nearest      = part.Position
+                    nearestModel = obj
                 end
             end
         end
     end
-    return nearest
+    return nearest, nearestModel
+end
+
+-- Détermine le prochain type de pièce manquant dans l'ordre PIECE_ORDER
+local function GetNextNeededType(pieces)
+    local has = {Head = false, Body = false, Legs = false}
+    for _, p in ipairs(pieces or {}) do
+        if has[p.PieceType] ~= nil then has[p.PieceType] = true end
+    end
+    for _, t in ipairs(PIECE_ORDER) do
+        if not has[t] then return t end
+    end
+    return nil
 end
 
 -- Retourne la position cible des flèches selon l'étape courante
 local function GetArrowTarget()
     if _step == 1 then
-        return FindNearestTutorialPiece()
+        local pos = FindNearestTutorialPiece(_step1Sub)
+        return pos
     elseif _step == 2 then
         local base = GetPlayerBase()
         local slot = GetSlot1(base)
@@ -239,32 +272,50 @@ local function DestroyArrow()
     if _arrowGui then _arrowGui:Destroy() ; _arrowGui = nil end
 end
 
-local function SpawnArrow(target)
+local function SpawnArrow(target, text)
     DestroyArrow()
     if not target then return end
 
     local bill = Instance.new("BillboardGui")
     bill.Name        = "TutorialArrow"
-    bill.Size        = UDim2.new(0, 64, 0, 64)
-    bill.StudsOffset = Vector3.new(0, 8, 0)
-    bill.AlwaysOnTop = false
+    bill.Size        = UDim2.new(0, 280, 0, 110)
+    bill.StudsOffset = Vector3.new(0, 9, 0)
+    bill.AlwaysOnTop = true
     bill.Adornee     = target
     bill.Parent      = workspace
 
-    local lbl = Instance.new("TextLabel")
-    lbl.Size                  = UDim2.new(1, 0, 1, 0)
-    lbl.BackgroundTransparency = 1
-    lbl.Text                  = "▼"
-    lbl.TextColor3            = BOX_COLOR
-    lbl.TextScaled            = true
-    lbl.Font                  = Enum.Font.GothamBold
-    lbl.Parent                = bill
+    -- Texte de consigne (sans bulle)
+    if text and text ~= "" then
+        local lbl = Instance.new("TextLabel")
+        lbl.Size                  = UDim2.new(1, 0, 0.55, 0)
+        lbl.BackgroundTransparency = 1
+        lbl.Text                  = text
+        lbl.TextColor3            = Color3.fromRGB(255, 255, 255)
+        lbl.TextScaled            = true
+        lbl.Font                  = Enum.Font.GothamBold
+        lbl.TextStrokeTransparency = 0
+        lbl.TextStrokeColor3      = Color3.fromRGB(0, 0, 0)
+        lbl.Parent                = bill
+    end
+
+    -- Flèche pointant vers l'élément
+    local arrow = Instance.new("TextLabel")
+    arrow.Size                  = UDim2.new(1, 0, 0.45, 0)
+    arrow.Position              = UDim2.new(0, 0, 0.55, 0)
+    arrow.BackgroundTransparency = 1
+    arrow.Text                  = "▼"
+    arrow.TextColor3            = BOX_COLOR
+    arrow.TextScaled            = true
+    arrow.Font                  = Enum.Font.GothamBold
+    arrow.TextStrokeTransparency = 0
+    arrow.TextStrokeColor3      = Color3.fromRGB(0, 0, 0)
+    arrow.Parent                = bill
 
     task.spawn(function()
         local t = 0
         while bill.Parent do
             t = t + 0.05
-            bill.StudsOffset = Vector3.new(0, 8 + math.sin(t) * 1.5, 0)
+            bill.StudsOffset = Vector3.new(0, 9 + math.sin(t) * 1.0, 0)
             task.wait(0.03)
         end
     end)
@@ -272,9 +323,9 @@ local function SpawnArrow(target)
     _arrowGui = bill
 end
 
-local function ShowTarget(target)
+local function ShowTarget(target, text)
     if _selectionBox then _selectionBox.Adornee = target end
-    SpawnArrow(target)
+    SpawnArrow(target, text)
 end
 
 local function HideTarget()
@@ -282,24 +333,122 @@ local function HideTarget()
     DestroyArrow()
 end
 
+-- ── Camera focus ──────────────────────────────────────────────────
+-- Focus permanent : la caméra reste cadrée sur la cible tant que celle-ci existe.
+-- Position : derrière le joueur sur l'axe joueur→cible (le perso reste visible au premier plan).
+-- Le focus est interrompu si :
+--   • un nouvel appel FocusCameraOn(...) le remplace (changement de sub-step / d'étape),
+--   • la cible est détruite (pièce ramassée, slot vide etc.),
+--   • ReleaseCamera() est appelée explicitement.
+local _camPrevType    = nil
+local _camPrevSubject = nil
+
+local function FocusCameraOn(target)
+    local cam = workspace.CurrentCamera
+    if not cam then return end
+
+    -- Résoudre la part à suivre (besoin de l'objet pour détecter sa destruction)
+    local part = nil
+    if typeof(target) == "Instance" then
+        if target:IsA("BasePart") then
+            part = target
+        elseif target:IsA("Model") then
+            part = target.PrimaryPart or target:FindFirstChildWhichIsA("BasePart")
+        end
+    end
+    if not part then return end
+
+    _focusGen = _focusGen + 1
+    local myGen = _focusGen
+
+    -- Mémoriser le mode caméra original UNIQUEMENT lors du 1er focus (avant Scriptable).
+    if cam.CameraType ~= Enum.CameraType.Scriptable then
+        _camPrevType    = cam.CameraType
+        _camPrevSubject = cam.CameraSubject
+    end
+
+    cam.CameraType = Enum.CameraType.Scriptable
+
+    -- Boucle de suivi
+    local lastTargetPos = part.Position
+    local conn
+    conn = RunService.RenderStepped:Connect(function()
+        if myGen ~= _focusGen then conn:Disconnect() ; return end
+        if not part.Parent then conn:Disconnect() ; return end -- pièce détruite (ramassée)
+
+        lastTargetPos = part.Position
+
+        local char = player.Character
+        local hrp  = char and char:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
+
+        local charPos = hrp.Position + Vector3.new(0, 2, 0)
+        local diff    = lastTargetPos - charPos
+        if diff.Magnitude < 0.5 then return end
+        local unitDir = diff.Unit
+
+        -- Caméra placée derrière le perso sur l'axe perso→cible, légèrement surélevée
+        local camPos = charPos - unitDir * 12 + Vector3.new(0, 4, 0)
+        cam.CFrame   = CFrame.lookAt(camPos, lastTargetPos)
+    end)
+end
+
+-- Libère la caméra (rollback / fin du tuto)
+local function ReleaseCamera()
+    _focusGen = _focusGen + 1 -- annule tout focus en cours
+    local cam = workspace.CurrentCamera
+    if cam and cam.CameraType == Enum.CameraType.Scriptable then
+        cam.CameraType    = _camPrevType or Enum.CameraType.Custom
+        if _camPrevSubject then cam.CameraSubject = _camPrevSubject end
+    end
+    _camPrevType    = nil
+    _camPrevSubject = nil
+end
+
+-- ── Sub-step (étape 1 : 1 pièce à viser à la fois) ───────────────
+-- Vise le type de pièce attendu (déjà spawnée par STEPS[1].onEnter),
+-- attend la pièce dans le workspace si besoin, puis pose SelectionBox +
+-- flèche 3D (avec texte de consigne) + rotation caméra dessus.
+local function EnterStep1Sub(subType)
+    _step1Sub = subType
+    HideTarget()
+
+    task.spawn(function()
+        local model
+        for _ = 1, 30 do -- ~3s max d'attente
+            if not _active or _step ~= 1 or _step1Sub ~= subType then return end
+            local _pos, m = FindNearestTutorialPiece(subType)
+            if m then model = m; break end
+            task.wait(0.1)
+        end
+        if not model then return end
+
+        local part = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
+        if part then
+            ShowTarget(part, STEP_TEXT[subType])
+            FocusCameraOn(part)
+        end
+    end)
+end
+
 -- ── Steps ─────────────────────────────────────────────────────────
 local STEPS = {
     [1] = {
-        title = "COLLECT THE PIECES!",
-        text  = "Pick up the Head, Body and Legs that just appeared in the collect zone!",
         onEnter = function()
             HideTarget()
-            -- Ask server to spawn real tutorial pieces near the base
+            -- Spawn les 3 pièces (Head/Body/Legs) d'un coup.
             if SpawnTutorialPiecesRemote then
                 task.delay(0.5, function()
+                    if not _active or _step ~= 1 then return end
                     SpawnTutorialPiecesRemote:FireServer()
                 end)
             end
+            -- Vise la première pièce manquante (Head au démarrage).
+            local nextType = GetNextNeededType(_currentPieces) or "Head"
+            EnterStep1Sub(nextType)
         end,
     },
     [2] = {
-        title = "CRAFT YOUR BRAINROT!",
-        text  = "Now go craft your Brainrot on your base slot!",
         onEnter = function()
             local base = GetPlayerBase()
             local slot = GetSlot1(base)
@@ -309,12 +458,11 @@ local STEPS = {
             elseif base then
                 target = base:FindFirstChildWhichIsA("BasePart")
             end
-            ShowTarget(target)
+            ShowTarget(target, STEP_TEXT.Craft)
+            if target then FocusCameraOn(target) end
         end,
     },
     [3] = {
-        title = "COLLECT YOUR CASH!",
-        text  = "Step on the green CollectPad below your Brainrot!",
         onEnter = function()
             local base = GetPlayerBase()
             local slot = GetSlot1(base)
@@ -323,130 +471,34 @@ local STEPS = {
                 local pad = slot:FindFirstChild("CollectPad")
                 target = (pad and pad:IsA("BasePart")) and pad or slot:FindFirstChildWhichIsA("BasePart")
             end
-            ShowTarget(target)
+            ShowTarget(target, STEP_TEXT.Collect)
+            if target then FocusCameraOn(target) end
         end,
     },
 }
 
 -- ── UI ────────────────────────────────────────────────────────────
+-- Plus de panneau bottom-left : toute la consigne tient dans la flèche 3D
+-- au-dessus de l'élément focusé. On garde juste une ScreenGui vide pour
+-- l'écran de complétion (court flash centré).
 local function BuildUI()
     local gui = Instance.new("ScreenGui")
     gui.Name         = "TutorialGui"
     gui.ResetOnSpawn = false
     gui.DisplayOrder = 50
     gui.Parent       = playerGui
-
-    local panel = Instance.new("Frame")
-    panel.Name                   = "Panel"
-    panel.Size                   = UDim2.new(0, 370, 0, 118)
-    panel.Position               = UDim2.new(0, 20, 1, 20) -- starts off-screen
-    panel.BackgroundColor3       = BG_COLOR
-    panel.BackgroundTransparency = 0.08
-    panel.BorderSizePixel        = 0
-    panel.Parent                 = gui
-    Instance.new("UICorner", panel).CornerRadius = UDim.new(0, 12)
-
-    -- Accent stripe
-    local stripe = Instance.new("Frame")
-    stripe.Size             = UDim2.new(0, 5, 1, 0)
-    stripe.BackgroundColor3 = ACCENT_COLOR
-    stripe.BorderSizePixel  = 0
-    stripe.Parent           = panel
-    Instance.new("UICorner", stripe).CornerRadius = UDim.new(0, 12)
-
-    -- Badge
-    local badge = Instance.new("TextLabel")
-    badge.Name                   = "Badge"
-    badge.Size                   = UDim2.new(0, 48, 0, 24)
-    badge.Position               = UDim2.new(1, -56, 0, 10)
-    badge.BackgroundColor3       = ACCENT_COLOR
-    badge.BackgroundTransparency = 0
-    badge.Text                   = "1 / " .. TOTAL_STEPS
-    badge.TextColor3             = Color3.fromRGB(20, 20, 30)
-    badge.TextScaled             = true
-    badge.Font                   = Enum.Font.GothamBold
-    badge.BorderSizePixel        = 0
-    badge.Parent                 = panel
-    Instance.new("UICorner", badge).CornerRadius = UDim.new(0, 6)
-
-    -- Title
-    local title = Instance.new("TextLabel")
-    title.Name                   = "Title"
-    title.Size                   = UDim2.new(1, -72, 0, 24)
-    title.Position               = UDim2.new(0, 16, 0, 10)
-    title.BackgroundTransparency = 1
-    title.Text                   = ""
-    title.TextColor3             = ACCENT_COLOR
-    title.TextScaled             = true
-    title.Font                   = Enum.Font.GothamBold
-    title.TextXAlignment         = Enum.TextXAlignment.Left
-    title.Parent                 = panel
-
-    -- Body
-    local body = Instance.new("TextLabel")
-    body.Name                   = "Body"
-    body.Size                   = UDim2.new(1, -20, 0, 46)
-    body.Position               = UDim2.new(0, 16, 0, 38)
-    body.BackgroundTransparency = 1
-    body.Text                   = ""
-    body.TextColor3             = TEXT_COLOR
-    body.TextScaled             = true
-    body.Font                   = Enum.Font.Gotham
-    body.TextXAlignment         = Enum.TextXAlignment.Left
-    body.TextWrapped            = true
-    body.Parent                 = panel
-
-    -- Progress dots
-    local dotsRow = Instance.new("Frame")
-    dotsRow.Size                   = UDim2.new(1, -16, 0, 14)
-    dotsRow.Position               = UDim2.new(0, 16, 1, -24)
-    dotsRow.BackgroundTransparency = 1
-    dotsRow.Parent                 = panel
-
-    local layout = Instance.new("UIListLayout")
-    layout.FillDirection     = Enum.FillDirection.Horizontal
-    layout.Padding           = UDim.new(0, 7)
-    layout.VerticalAlignment = Enum.VerticalAlignment.Center
-    layout.Parent            = dotsRow
-
-    local dots = {}
-    for i = 1, TOTAL_STEPS do
-        local dot = Instance.new("Frame")
-        dot.Size             = UDim2.new(0, 10, 0, 10)
-        dot.BackgroundColor3 = Color3.fromRGB(70, 70, 90)
-        dot.BorderSizePixel  = 0
-        dot.Parent           = dotsRow
-        Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
-        dots[i] = dot
-    end
-
-    return gui, panel, title, body, badge, dots
+    return gui
 end
 
 -- ── Step rendering ────────────────────────────────────────────────
-local function RenderStep(title, body, badge, dots)
+local function RenderStep()
     local s = STEPS[_step]
     if not s then return end
-
-    title.Text = s.title
-    body.Text  = s.text
-    badge.Text = _step .. " / " .. TOTAL_STEPS
-
-    for i, dot in ipairs(dots) do
-        if i < _step then
-            dot.BackgroundColor3 = DONE_COLOR
-        elseif i == _step then
-            dot.BackgroundColor3 = ACCENT_COLOR
-        else
-            dot.BackgroundColor3 = Color3.fromRGB(70, 70, 90)
-        end
-    end
-
     s.onEnter()
 end
 
 -- ── Completion ────────────────────────────────────────────────────
-local function CompleteTutorial(gui, panel, title, body, badge, dots)
+local function CompleteTutorial(gui)
     _active = false
 
     for _, c in ipairs(_connections) do c:Disconnect() end
@@ -454,24 +506,35 @@ local function CompleteTutorial(gui, panel, title, body, badge, dots)
 
     HideTarget()
     DestroyFloorArrows()
+    ReleaseCamera()
     if _selectionBox then _selectionBox:Destroy() ; _selectionBox = nil end
-
-    title.Text             = "TUTORIAL COMPLETE!"
-    body.Text              = "You're ready! Craft more Brainrots and grow your empire!"
-    badge.Text             = "✓"
-    badge.BackgroundColor3 = DONE_COLOR
-    for _, dot in ipairs(dots) do dot.BackgroundColor3 = DONE_COLOR end
 
     if CompleteTutorialRemote then CompleteTutorialRemote:FireServer() end
 
-    task.delay(4, function()
-        local tInfo = TweenInfo.new(1.2, Enum.EasingStyle.Quad)
-        TweenService:Create(panel, tInfo, {BackgroundTransparency = 1}):Play()
-        for _, lbl in ipairs({title, body, badge}) do
-            TweenService:Create(lbl, tInfo, {TextTransparency = 1}):Play()
-        end
-        TweenService:Create(badge, tInfo, {BackgroundTransparency = 1}):Play()
-        task.delay(1.4, function()
+    -- Flash centré "TUTORIAL COMPLETE!" qui s'estompe.
+    local label = Instance.new("TextLabel")
+    label.Size                  = UDim2.new(0, 480, 0, 70)
+    label.AnchorPoint           = Vector2.new(0.5, 0.5)
+    label.Position              = UDim2.new(0.5, 0, 0.35, 0)
+    label.BackgroundColor3      = BG_COLOR
+    label.BackgroundTransparency = 0.1
+    label.Text                  = "TUTORIAL COMPLETE!"
+    label.TextColor3            = DONE_COLOR
+    label.TextScaled            = true
+    label.Font                  = Enum.Font.GothamBold
+    label.TextStrokeTransparency = 0.4
+    label.Parent                = gui
+    Instance.new("UICorner", label).CornerRadius = UDim.new(0, 12)
+    local stroke = Instance.new("UIStroke")
+    stroke.Color     = DONE_COLOR
+    stroke.Thickness = 2
+    stroke.Parent    = label
+
+    task.delay(2.5, function()
+        local tInfo = TweenInfo.new(1.0, Enum.EasingStyle.Quad)
+        TweenService:Create(label, tInfo, {BackgroundTransparency = 1, TextTransparency = 1}):Play()
+        TweenService:Create(stroke, tInfo, {Transparency = 1}):Play()
+        task.delay(1.2, function()
             if gui and gui.Parent then gui:Destroy() end
         end)
     end)
@@ -497,7 +560,7 @@ local function StartTutorial()
     _step        = hasPlaced and 3 or 1
     _cashAtStep3 = fullData.Cash or 0
 
-    local gui, panel, title, body, badge, dots = BuildUI()
+    local gui = BuildUI()
 
     _selectionBox = Instance.new("SelectionBox")
     _selectionBox.Color3              = BOX_COLOR
@@ -507,11 +570,7 @@ local function StartTutorial()
     _selectionBox.Parent              = workspace
 
     -- Show step 1 (fires SpawnTutorialPieces on server)
-    RenderStep(title, body, badge, dots)
-
-    -- Slide in
-    TweenService:Create(panel, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-        {Position = UDim2.new(0, 20, 1, -138)}):Play()
+    RenderStep()
 
     -- Floor arrows
     CreateFloorArrows()
@@ -524,12 +583,15 @@ local function StartTutorial()
     end)
 
     -- Rollback sur mort (étapes 1 et 2 seulement — étape 3 le brainrot est déjà placé)
-    -- Note : RenderStep(1) déclenche déjà STEPS[1].onEnter qui fire SpawnTutorialPieces.
-    -- Pas besoin de re-fire ici pour éviter les doubles spawns.
+    -- À la mort, l'inventaire runtime est vidé serveur ; _currentPieces sera mis à jour
+    -- par le prochain SyncInventory. On reset aussi le sub-step à "Head".
     local function RollbackToStep1()
         if not _active or _step >= 3 then return end
-        _step = 1
-        RenderStep(title, body, badge, dots)
+        ReleaseCamera()
+        _step         = 1
+        _step1Sub     = "Head"
+        _currentPieces = {}
+        RenderStep()
     end
 
     local respawnConn = player.CharacterAdded:Connect(function()
@@ -538,12 +600,24 @@ local function StartTutorial()
     end)
     table.insert(_connections, respawnConn)
 
-    -- Step 1: wait for all 3 piece types
+    -- Step 1 : avancer sub-step par sub-step (Head → Body → Legs).
+    -- Quand le joueur ramasse la pièce attendue, on passe à la suivante (ou à l'étape 2).
     local invConn = SyncInventoryRemote.OnClientEvent:Connect(function(pieces)
+        _currentPieces = pieces or {}
         if not _active or _step ~= 1 then return end
-        if HasAllPieceTypes(pieces or {}) then
+
+        local nextType = GetNextNeededType(_currentPieces)
+        if not nextType then
+            -- Les 3 types sont collectés → étape 2
             _step = 2
-            RenderStep(title, body, badge, dots)
+            RenderStep()
+            return
+        end
+
+        -- Si le type attendu a changé (= pièce courante ramassée), entrer le nouveau sub-step.
+        -- Sinon (ex: pièce ramassée puis remplacée par même type, peu probable), on ne refait rien.
+        if nextType ~= _step1Sub then
+            EnterStep1Sub(nextType)
         end
     end)
     table.insert(_connections, invConn)
@@ -556,12 +630,12 @@ local function StartTutorial()
             if data.PlacedBrainrots and next(data.PlacedBrainrots) then
                 _cashAtStep3 = data.Cash or _cashAtStep3
                 _step = 3
-                RenderStep(title, body, badge, dots)
+                RenderStep()
             end
 
         elseif _step == 3 then
             if data.Cash and data.Cash > _cashAtStep3 then
-                CompleteTutorial(gui, panel, title, body, badge, dots)
+                CompleteTutorial(gui)
             end
         end
     end)

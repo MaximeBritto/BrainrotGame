@@ -15,6 +15,14 @@ local GameConfig = nil
 local BrainrotData = nil
 local Constants = nil
 
+-- Applique un contour noir épais (UIStroke) sur un TextLabel
+local function _applyBlackStroke(lbl, thickness)
+    local s = lbl:FindFirstChildOfClass("UIStroke") or Instance.new("UIStroke")
+    s.Color = Color3.new(0, 0, 0)
+    s.Thickness = thickness or 3
+    s.Parent = lbl
+end
+
 local ArenaSystem = {}
 ArenaSystem._initialized = false
 ArenaSystem._pieces = {}  -- [pieceId] = {Model, SpawnedAt, ZoneName, Lifetime}
@@ -213,31 +221,16 @@ function ArenaSystem:_AddHighlightToPiece(piece, pieceType, setName)
     end
 
     if existingBillboard then
-        -- Augmenter la taille du BillboardGui pour TypeLabel + GainLabel
+        -- Layout vertical : TypeLabel (top) → NameLabel (mid, full) → [PriceLabel | GainLabel] (bottom)
         local originalSize = existingBillboard.Size
         existingBillboard.Size = UDim2.new(originalSize.X.Scale, originalSize.X.Offset,
-                                           originalSize.Y.Scale, originalSize.Y.Offset + 52)
+                                           originalSize.Y.Scale, originalSize.Y.Offset + 30)
 
         -- Décaler le StudsOffset pour compenser l'agrandissement
         local originalOffset = existingBillboard.StudsOffset
-        existingBillboard.StudsOffset = Vector3.new(originalOffset.X, originalOffset.Y + 1.5, originalOffset.Z)
+        existingBillboard.StudsOffset = Vector3.new(originalOffset.X, originalOffset.Y + 0.85, originalOffset.Z)
 
-        -- GainLabel : gain par seconde en vert, tout en haut
-        local gainLabel = Instance.new("TextLabel")
-        gainLabel.Name = "GainLabel"
-        gainLabel.Size = UDim2.new(1, 0, 0, 22)
-        gainLabel.Position = UDim2.new(0, 0, 0, 22)
-        gainLabel.BackgroundTransparency = 1
-        gainLabel.Text = gainPerSec .. "/s"
-        gainLabel.TextColor3 = Color3.fromRGB(100, 220, 100)
-        gainLabel.TextScaled = true
-        gainLabel.Font = Enum.Font.GothamBold
-        gainLabel.TextStrokeTransparency = 0.3
-        gainLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
-        gainLabel.Visible = true
-        gainLabel.Parent = existingBillboard
-
-        -- TypeLabel : couleur nude par type, sobre
+        -- TypeLabel : couleur nude par type, sobre, tout en haut
         local typeLabel = Instance.new("TextLabel")
         typeLabel.Name = "TypeLabel"
         typeLabel.Size = UDim2.new(1, 0, 0, 22)
@@ -247,23 +240,40 @@ function ArenaSystem:_AddHighlightToPiece(piece, pieceType, setName)
         typeLabel.TextColor3 = typeColor
         typeLabel.TextScaled = true
         typeLabel.Font = Enum.Font.GothamMedium
-        typeLabel.TextStrokeTransparency = 0.4
-        typeLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
         typeLabel.Visible = true
         typeLabel.Parent = existingBillboard
+        _applyBlackStroke(typeLabel)
 
-        -- NameLabel : couleur selon la RARETÉ
+        -- GainLabel : gain par seconde en vert, à DROITE du prix (même ligne)
+        local gainLabel = Instance.new("TextLabel")
+        gainLabel.Name = "GainLabel"
+        gainLabel.Size = UDim2.new(0.3, 0, 0, 40)
+        gainLabel.Position = UDim2.new(0.7, 0, 0, 54)
+        gainLabel.BackgroundTransparency = 1
+        gainLabel.Text = gainPerSec .. "/s"
+        gainLabel.TextColor3 = Color3.fromRGB(100, 220, 100)
+        gainLabel.TextScaled = true
+        gainLabel.TextXAlignment = Enum.TextXAlignment.Right
+        gainLabel.Font = Enum.Font.GothamBold
+        gainLabel.Visible = true
+        gainLabel.Parent = existingBillboard
+        _applyBlackStroke(gainLabel)
+
+        -- NameLabel : couleur selon la RARETÉ, sur sa propre ligne
         local nameLabel = existingBillboard:FindFirstChild("NameLabel")
         if nameLabel and nameLabel:IsA("TextLabel") then
-            nameLabel.Position = UDim2.new(0, 0, 0, 44)
+            nameLabel.Position = UDim2.new(0, 0, 0, 22)
             nameLabel.Size = UDim2.new(1, 0, 0, 32)
             nameLabel.TextColor3 = rarityColor
+            _applyBlackStroke(nameLabel)
         end
 
         local priceLabel = existingBillboard:FindFirstChild("PriceLabel")
         if priceLabel and priceLabel:IsA("TextLabel") then
-            priceLabel.Position = UDim2.new(0, 0, 0, 76)
-            priceLabel.Size = UDim2.new(1, 0, 0, 40)
+            priceLabel.Position = UDim2.new(0, 0, 0, 54)
+            priceLabel.Size = UDim2.new(0.7, 0, 0, 40)
+            priceLabel.TextXAlignment = Enum.TextXAlignment.Left
+            _applyBlackStroke(priceLabel)
         end
     end
 end
@@ -930,16 +940,18 @@ function ArenaSystem:_SpawnInZone(zone)
             local nameLabel = billboard:FindFirstChild("NameLabel")
             if nameLabel and nameLabel:IsA("TextLabel") then
                 nameLabel.Text = templateName -- Affiche "brrbrr", "lalero", etc.
+                _applyBlackStroke(nameLabel)
             end
 
             -- Chercher PriceLabel pour afficher le prix
             local priceLabel = billboard:FindFirstChild("PriceLabel")
             if priceLabel and priceLabel:IsA("TextLabel") then
                 priceLabel.Text = "$" .. pieceInfo.Price
+                _applyBlackStroke(priceLabel)
             end
         end
     end
-    
+
     -- Supprimer l'ancien PickupZone s'il existe (pour éviter les problèmes de réplication)
     local oldPickupZone = primaryPart:FindFirstChild("PickupZone")
     if oldPickupZone then
@@ -1058,12 +1070,14 @@ function ArenaSystem:_SpawnSpecificPiece(setName, pieceType, pieceInfo, template
             local nameLabel = billboard:FindFirstChild("NameLabel")
             if nameLabel and nameLabel:IsA("TextLabel") then
                 nameLabel.Text = templateName
+                _applyBlackStroke(nameLabel)
             end
 
             -- Chercher PriceLabel pour afficher le prix
             local priceLabel = billboard:FindFirstChild("PriceLabel")
             if priceLabel and priceLabel:IsA("TextLabel") then
                 priceLabel.Text = "$" .. pieceInfo.Price
+                _applyBlackStroke(priceLabel)
             end
         end
     end

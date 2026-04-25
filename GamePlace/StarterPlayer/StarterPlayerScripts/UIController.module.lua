@@ -13,6 +13,7 @@ local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
 
 -- Assets pickup cash (icône = même $ que la pilule HUD, son demandé)
 local CASH_BILL_IMAGE = "rbxassetid://75938011448548"
@@ -223,7 +224,7 @@ function UIController:_CreateInventoryDisplay(parent)
 	-- Container
 	local invContainer = Instance.new("Frame")
 	invContainer.Name = "InventoryDisplay"
-	invContainer.Size = UDim2.new(0, 310, 0, 170)
+	invContainer.Size = UDim2.new(0, 396, 0, 215)
 	invContainer.Position = UDim2.new(1, -15, 1, -15)
 	invContainer.AnchorPoint = Vector2.new(1, 1)
 	invContainer.BackgroundTransparency = 1
@@ -266,8 +267,8 @@ function UIController:_CreateInventoryDisplay(parent)
 	-- Container pour les 3 slots
 	local slotsContainer = Instance.new("Frame")
 	slotsContainer.Name = "SlotsContainer"
-	slotsContainer.Size = UDim2.new(1, 0, 0, 115)
-	slotsContainer.Position = UDim2.new(0, 0, 0, 50)
+	slotsContainer.Size = UDim2.new(1, 0, 0, 155)
+	slotsContainer.Position = UDim2.new(0, 0, 0, 55)
 	slotsContainer.BackgroundTransparency = 1
 	slotsContainer.Parent = invContainer
 
@@ -284,6 +285,9 @@ function UIController:_CreateInventoryDisplay(parent)
 		local slot = self:_CreateInventorySlot(slotsContainer, i)
 		self._inventorySlots[i] = slot
 	end
+
+	-- Démarrer la boucle de rotation des viewports 3D
+	self:_StartViewportRotation()
 
 	-- Message Craft (au-dessus de l'inventaire, centré) - remplace l'ancien bouton
 	local craftLabel = Instance.new("TextLabel")
@@ -355,100 +359,218 @@ function UIController:_CreateInventoryDisplay(parent)
 end
 
 function UIController:_CreateInventorySlot(parent, index)
+	local typeInfo = SLOT_TYPE_INFO[index] or { Symbol = "?", Color = Color3.fromRGB(150, 150, 150), Label = "EMPTY" }
+	local MISSING_COLOR = Color3.fromRGB(220, 70, 70)
+
 	local slot = Instance.new("Frame")
 	slot.Name = "Slot" .. index
-	slot.Size = UDim2.new(0, 93, 0, 115)
+	slot.Size = UDim2.new(0, 120, 0, 150)
 	slot.LayoutOrder = index
 	slot.BackgroundColor3 = COLORS.SlotEmpty
 	slot.BackgroundTransparency = 0.2
 	slot.BorderSizePixel = 0
+	slot.ClipsDescendants = true
 
 	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 12)
+	corner.CornerRadius = UDim.new(0, 14)
 	corner.Parent = slot
 
 	local stroke = Instance.new("UIStroke")
-	stroke.Color = Color3.fromRGB(75, 75, 85)
-	stroke.Thickness = 1.5
-	stroke.Transparency = 0.3
+	stroke.Color = MISSING_COLOR
+	stroke.Thickness = 2.5
+	stroke.Transparency = 0.4
 	stroke.Parent = slot
 
-	-- Icône de type (▲/■/●) visible quand vide
-	local typeInfo = SLOT_TYPE_INFO[index] or { Symbol = "?", Color = Color3.fromRGB(75, 75, 85), Label = "EMPTY" }
-	local dimColor = Color3.fromRGB(
-		math.floor(typeInfo.Color.R * 255 * 0.35),
-		math.floor(typeInfo.Color.G * 255 * 0.35),
-		math.floor(typeInfo.Color.B * 255 * 0.35)
-	)
-
-	local questionIcon = Instance.new("TextLabel")
-	questionIcon.Name = "QuestionIcon"
-	questionIcon.Size = UDim2.new(0, 44, 0, 44)
-	questionIcon.Position = UDim2.new(0.5, 0, 0.38, 0)
-	questionIcon.AnchorPoint = Vector2.new(0.5, 0.5)
-	questionIcon.BackgroundColor3 = dimColor
-	questionIcon.BackgroundTransparency = 0.2
-	questionIcon.Text = typeInfo.Symbol
-	questionIcon.TextColor3 = typeInfo.Color
-	questionIcon.TextSize = 22
-	questionIcon.Font = FONTS.Black
-	questionIcon.BorderSizePixel = 0
-	questionIcon.Parent = slot
-
-	local qCorner = Instance.new("UICorner")
-	qCorner.CornerRadius = UDim.new(0, 10)
-	qCorner.Parent = questionIcon
-
-	-- Label du type (HEAD/BODY/LEGS) visible quand vide
-	local emptyLabel = Instance.new("TextLabel")
-	emptyLabel.Name = "EmptyLabel"
-	emptyLabel.Size = UDim2.new(1, 0, 0, 18)
-	emptyLabel.Position = UDim2.new(0, 0, 1, -25)
-	emptyLabel.BackgroundTransparency = 1
-	emptyLabel.Text = typeInfo.Label
-	emptyLabel.TextColor3 = typeInfo.Color
-	emptyLabel.TextSize = 11
-	emptyLabel.Font = FONTS.Bold
-	emptyLabel.Parent = slot
-
-	-- Label pour pièce (visible quand occupé)
-	local pieceLabel = Instance.new("TextLabel")
-	pieceLabel.Name = "PieceLabel"
-	pieceLabel.Size = UDim2.new(1, -8, 0, 40)
-	pieceLabel.Position = UDim2.new(0, 4, 0.5, -5)
-	pieceLabel.AnchorPoint = Vector2.new(0, 0.5)
-	pieceLabel.BackgroundTransparency = 1
-	pieceLabel.Text = ""
-	pieceLabel.TextColor3 = COLORS.White
-	pieceLabel.TextSize = 12
-	pieceLabel.Font = FONTS.Bold
-	pieceLabel.TextWrapped = true
-	pieceLabel.Visible = false
-	pieceLabel.Parent = slot
-
-	-- Type de pièce (Head/Body/Legs)
+	-- ── Top bar : type label + status badge ──────────────────
 	local typeLabel = Instance.new("TextLabel")
 	typeLabel.Name = "TypeLabel"
-	typeLabel.Size = UDim2.new(1, 0, 0, 16)
-	typeLabel.Position = UDim2.new(0, 0, 1, -22)
+	typeLabel.Size = UDim2.new(1, -28, 0, 20)
+	typeLabel.Position = UDim2.new(0, 7, 0, 5)
 	typeLabel.BackgroundTransparency = 1
-	typeLabel.Text = ""
-	typeLabel.TextColor3 = Color3.fromRGB(180, 180, 190)
-	typeLabel.TextSize = 10
-	typeLabel.Font = FONTS.Regular
-	typeLabel.Visible = false
+	typeLabel.Text = typeInfo.Symbol .. " " .. typeInfo.Label
+	typeLabel.TextColor3 = typeInfo.Color
+	typeLabel.TextSize = 14
+	typeLabel.Font = FONTS.Black
+	typeLabel.TextXAlignment = Enum.TextXAlignment.Left
 	typeLabel.Parent = slot
+	addTextOutline(typeLabel, 2, 0)
+
+	local statusBadge = Instance.new("TextLabel")
+	statusBadge.Name = "StatusBadge"
+	statusBadge.Size = UDim2.new(0, 22, 0, 22)
+	statusBadge.Position = UDim2.new(1, -27, 0, 4)
+	statusBadge.BackgroundTransparency = 1
+	statusBadge.Text = "✗"
+	statusBadge.TextColor3 = MISSING_COLOR
+	statusBadge.TextSize = 22
+	statusBadge.Font = FONTS.Black
+	statusBadge.Parent = slot
+	addTextOutline(statusBadge, 2, 0)
+
+	-- ── Centre : ViewportFrame (filled) ou gros ✗ + MISSING (empty) ──
+	local viewport = Instance.new("ViewportFrame")
+	viewport.Name = "Viewport"
+	viewport.Size = UDim2.new(1, -12, 0, 90)
+	viewport.Position = UDim2.new(0, 6, 0, 30)
+	viewport.BackgroundTransparency = 1
+	viewport.Ambient = Color3.fromRGB(200, 200, 200)
+	viewport.LightColor = Color3.fromRGB(255, 255, 255)
+	viewport.LightDirection = Vector3.new(-1, -1, -1)
+	viewport.Visible = false
+	viewport.Parent = slot
+
+	local missingIcon = Instance.new("TextLabel")
+	missingIcon.Name = "MissingIcon"
+	missingIcon.Size = UDim2.new(0, 80, 0, 80)
+	missingIcon.Position = UDim2.new(0.5, 0, 0, 35)
+	missingIcon.AnchorPoint = Vector2.new(0.5, 0)
+	missingIcon.BackgroundTransparency = 1
+	missingIcon.Text = "?"
+	missingIcon.TextColor3 = MISSING_COLOR
+	missingIcon.TextSize = 76
+	missingIcon.Font = FONTS.Black
+	missingIcon.Parent = slot
+	addTextOutline(missingIcon, 3, 0)
+
+	-- ── Bottom : nom de la pièce ou "MISSING" ────────────────
+	local pieceLabel = Instance.new("TextLabel")
+	pieceLabel.Name = "PieceLabel"
+	pieceLabel.Size = UDim2.new(1, -8, 0, 26)
+	pieceLabel.Position = UDim2.new(0, 4, 1, -29)
+	pieceLabel.BackgroundTransparency = 1
+	pieceLabel.Text = "MISSING"
+	pieceLabel.TextColor3 = MISSING_COLOR
+	pieceLabel.TextSize = 14
+	pieceLabel.Font = FONTS.Black
+	pieceLabel.TextXAlignment = Enum.TextXAlignment.Center
+	pieceLabel.TextScaled = false
+	pieceLabel.TextTruncate = Enum.TextTruncate.AtEnd
+	pieceLabel.Parent = slot
+	addTextOutline(pieceLabel, 2, 0)
 
 	slot.Parent = parent
 
 	return {
 		Frame = slot,
-		QuestionIcon = questionIcon,
-		EmptyLabel = emptyLabel,
-		PieceLabel = pieceLabel,
-		TypeLabel = typeLabel,
 		Stroke = stroke,
+		TypeLabel = typeLabel,
+		StatusBadge = statusBadge,
+		Viewport = viewport,
+		MissingIcon = missingIcon,
+		PieceLabel = pieceLabel,
+		TypeInfo = typeInfo,
+		_currentPieceKey = nil, -- "<setName>:<pieceType>" pour éviter de re-assembler si identique
 	}
+end
+
+-- Remplit un ViewportFrame avec le template 3D d'une pièce et configure la caméra
+function UIController:_PopulateSlotViewport(viewport, setName, pieceType)
+	-- Vider le viewport
+	for _, child in ipairs(viewport:GetChildren()) do
+		child:Destroy()
+	end
+
+	local setData = BrainrotData.Sets[setName]
+	if not setData then return end
+	local pieceData = setData[pieceType]
+	if not pieceData or not pieceData.TemplateName or pieceData.TemplateName == "" then return end
+
+	local assetsFolder = ReplicatedStorage:FindFirstChild("Assets")
+	if not assetsFolder then return end
+	local templatesFolder = assetsFolder:FindFirstChild("BodyPartTemplates")
+	if not templatesFolder then return end
+	local typeFolder = templatesFolder:FindFirstChild(pieceType .. "Template")
+	if not typeFolder then return end
+	local source = typeFolder:FindFirstChild(pieceData.TemplateName)
+	if not source then return end
+
+	local clone = source:Clone()
+	-- Nettoyer : supprimer BillboardGui, désactiver collisions, ancrer
+	for _, desc in ipairs(clone:GetDescendants()) do
+		if desc:IsA("BillboardGui") then
+			desc:Destroy()
+		elseif desc:IsA("BasePart") then
+			desc.Anchored = true
+			desc.CanCollide = false
+		end
+	end
+
+	clone.Parent = viewport
+
+	-- Caméra cadrée sur la bounding box du modèle (la rotation continue se charge ensuite de la bouger)
+	local camera = Instance.new("Camera")
+	camera.FieldOfView = 50
+	viewport.CurrentCamera = camera
+	camera.Parent = viewport
+
+	-- Bounding box TIGHT : seulement les parts visibles (Transparency < 1)
+	-- Évite que des parts cachées gonflent la BBox et fassent paraître le modèle minuscule.
+	local minX, minY, minZ = math.huge, math.huge, math.huge
+	local maxX, maxY, maxZ = -math.huge, -math.huge, -math.huge
+	local partCount = 0
+	for _, desc in ipairs(clone:GetDescendants()) do
+		if desc:IsA("BasePart") and desc.Transparency < 1 then
+			local pos = desc.CFrame.Position
+			local half = desc.Size / 2
+			minX = math.min(minX, pos.X - half.X)
+			maxX = math.max(maxX, pos.X + half.X)
+			minY = math.min(minY, pos.Y - half.Y)
+			maxY = math.max(maxY, pos.Y + half.Y)
+			minZ = math.min(minZ, pos.Z - half.Z)
+			maxZ = math.max(maxZ, pos.Z + half.Z)
+			partCount = partCount + 1
+		end
+	end
+	if partCount == 0 then return end
+
+	local center = Vector3.new((minX + maxX) / 2, (minY + maxY) / 2, (minZ + maxZ) / 2)
+	local sizeX, sizeY, sizeZ = maxX - minX, maxY - minY, maxZ - minZ
+	local maxDim = math.max(sizeX, sizeY, sizeZ)
+	local distance = maxDim * 1.2 -- aligné sur le Codex pour bien remplir le cadre
+
+	-- Stocker les paramètres pour la boucle de rotation (_StartViewportRotation)
+	viewport:SetAttribute("RotCenterX", center.X)
+	viewport:SetAttribute("RotCenterY", center.Y)
+	viewport:SetAttribute("RotCenterZ", center.Z)
+	viewport:SetAttribute("RotDistance", distance)
+
+	-- Position initiale (sera écrasée par la boucle au prochain frame)
+	local camPos = center + Vector3.new(distance * 0.7, distance * 0.4, distance * 0.9)
+	camera.CFrame = CFrame.new(camPos, center)
+end
+
+-- Boucle unique de rotation des viewports 3D (caméra orbite autour du modèle)
+function UIController:_StartViewportRotation()
+	if self._viewportRotationStarted then return end
+	self._viewportRotationStarted = true
+
+	local elapsed = 0
+	RunService.RenderStepped:Connect(function(dt)
+		elapsed = elapsed + dt
+		local slots = self._inventorySlots
+		if not slots then return end
+
+		for index, slot in ipairs(slots) do
+			local viewport = slot.Viewport
+			if viewport and viewport.Visible then
+				local cam = viewport.CurrentCamera
+				local cx = viewport:GetAttribute("RotCenterX")
+				local cy = viewport:GetAttribute("RotCenterY")
+				local cz = viewport:GetAttribute("RotCenterZ")
+				local distance = viewport:GetAttribute("RotDistance")
+				if cam and cx and distance then
+					local center = Vector3.new(cx, cy, cz)
+					-- 1 rad/sec ≈ 6.3s/tour ; léger décalage par slot pour varier
+					local angle = elapsed * 1.0 + (index - 1) * 0.7
+					local horizDist = distance * 0.95
+					local x = math.cos(angle) * horizDist
+					local z = math.sin(angle) * horizDist
+					local y = distance * 0.4
+					cam.CFrame = CFrame.new(center + Vector3.new(x, y, z), center)
+				end
+			end
+		end
+	end)
 end
 
 -- ═══════════════════════════════════════════════════════
@@ -499,47 +621,62 @@ function UIController:UpdateInventory(pieces)
 	end
 
 	-- Mettre à jour chaque slot
+	local MISSING_COLOR = Color3.fromRGB(220, 70, 70)
+	local SUCCESS_COLOR = Color3.fromRGB(80, 220, 110)
+
 	for i, slotData in ipairs(self._inventorySlots) do
 		local piece = sortedPieces[i]
+		local typeInfo = slotData.TypeInfo
 
 		if piece then
-			-- Slot occupé - fond sombre, couleur de rareté sur le contour et le type
-			slotData.QuestionIcon.Visible = false
-			slotData.EmptyLabel.Visible = false
+			-- Slot REMPLI : viewport 3D + nom + bordure rareté + ✓ vert
+			local rarityColor = self:GetRarityColor(piece.SetName)
+			local pieceKey = piece.SetName .. ":" .. piece.PieceType
+
+			-- Recharger le viewport seulement si la pièce a changé (perf)
+			if slotData._currentPieceKey ~= pieceKey then
+				self:_PopulateSlotViewport(slotData.Viewport, piece.SetName, piece.PieceType)
+				slotData._currentPieceKey = pieceKey
+			end
+
+			slotData.Viewport.Visible = true
+			slotData.MissingIcon.Visible = false
+
 			slotData.PieceLabel.Visible = true
 			slotData.PieceLabel.Text = piece.DisplayName
-			slotData.TypeLabel.Visible = true
-			slotData.TypeLabel.Text = piece.PieceType
+			slotData.PieceLabel.TextColor3 = rarityColor
 
-			local rarityColor = self:GetRarityColor(piece.SetName)
-			slotData.Frame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+			slotData.StatusBadge.Text = "✓"
+			slotData.StatusBadge.TextColor3 = SUCCESS_COLOR
+
+			slotData.TypeLabel.TextColor3 = typeInfo.Color
+
+			slotData.Frame.BackgroundColor3 = Color3.fromRGB(35, 38, 48)
 			slotData.Frame.BackgroundTransparency = 0.1
 			slotData.Stroke.Color = rarityColor
 			slotData.Stroke.Transparency = 0
-			slotData.TypeLabel.TextColor3 = rarityColor
+			slotData.Stroke.Thickness = 2.5
 		else
-			-- Slot vide
-			slotData.QuestionIcon.Visible = true
-			slotData.EmptyLabel.Visible = true
-			slotData.PieceLabel.Visible = false
-			slotData.TypeLabel.Visible = false
+			-- Slot VIDE : "?" + "MISSING" + bordure rouge dim + ✗ rouge
+			slotData.Viewport.Visible = false
+			slotData.MissingIcon.Visible = true
 
-			local typeInfo = SLOT_TYPE_INFO[i]
+			slotData.PieceLabel.Visible = true
+			slotData.PieceLabel.Text = "MISSING"
+			slotData.PieceLabel.TextColor3 = MISSING_COLOR
+
+			slotData.StatusBadge.Text = "✗"
+			slotData.StatusBadge.TextColor3 = MISSING_COLOR
+
+			slotData.TypeLabel.TextColor3 = typeInfo.Color
+
 			slotData.Frame.BackgroundColor3 = COLORS.SlotEmpty
 			slotData.Frame.BackgroundTransparency = 0.2
-			if typeInfo then
-				local dimColor = Color3.fromRGB(
-					math.floor(typeInfo.Color.R * 255 * 0.35),
-					math.floor(typeInfo.Color.G * 255 * 0.35),
-					math.floor(typeInfo.Color.B * 255 * 0.35)
-				)
-				slotData.Stroke.Color = dimColor
-				slotData.Stroke.Transparency = 0.1
-			else
-				slotData.Stroke.Color = Color3.fromRGB(75, 75, 85)
-				slotData.Stroke.Transparency = 0.3
-			end
-			slotData.TypeLabel.TextColor3 = Color3.fromRGB(180, 180, 190)
+			slotData.Stroke.Color = MISSING_COLOR
+			slotData.Stroke.Transparency = 0.4
+			slotData.Stroke.Thickness = 2
+
+			slotData._currentPieceKey = nil
 		end
 	end
 
