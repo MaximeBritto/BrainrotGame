@@ -206,6 +206,27 @@ end
 function PlayerService:OnPlayerLeave(player)
     -- print("[PlayerService] Joueur quitte: " .. player.Name)
 
+    local playerData = DataService:GetPlayerData(player)
+    -- Tutoriel non terminé : enlever les pièces d'arène (spawns tuto / drops) taggées OwnerUserId
+    if self.ArenaSystem and playerData and playerData.HasSeenTutorial ~= true then
+        pcall(function()
+            self.ArenaSystem:DestroyPiecesOwnedByUserId(player.UserId)
+        end)
+    end
+
+    -- Barreaux de base : si le joueur part la porte fermée, le timer ne peut plus
+    -- rouvrir physiquement (il n'y a plus de Player). On remet les barreaux en « ouvert »
+    -- tant qu'on connaît encore sa base, puis on nettoie l'état DoorSystem.
+    if self.DoorSystem and self.BaseSystem then
+        pcall(function()
+            local base = self.BaseSystem:GetPlayerBase(player)
+            if base then
+                self.DoorSystem:OpenBaseDoorPhysically(base)
+            end
+            self.DoorSystem:CleanupPlayer(player)
+        end)
+    end
+
     -- 1. Libérer la base (Phase 2) - protégé par pcall pour ne pas bloquer la sauvegarde
     if self.BaseSystem then
         local ok, err = pcall(function()

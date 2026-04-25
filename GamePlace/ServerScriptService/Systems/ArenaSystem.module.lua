@@ -1210,6 +1210,29 @@ function ArenaSystem:RemovePiece(piece)
 end
 
 --[[
+    Supprime toutes les pièces d'arène taggées pour ce joueur (OwnerUserId).
+    Utilisé au départ si le tutoriel n'est pas fini (pièces tuto + éventuels drops taggés).
+    @param userId: number
+]]
+function ArenaSystem:DestroyPiecesOwnedByUserId(userId)
+    if not self._piecesFolder or userId == nil then return end
+
+    local toRemove = {}
+    for _, child in ipairs(self._piecesFolder:GetChildren()) do
+        if child:GetAttribute("OwnerUserId") == userId then
+            table.insert(toRemove, child)
+        end
+    end
+
+    for _, model in ipairs(toRemove) do
+        self:RemovePiece(model)
+    end
+    if #toRemove > 0 then
+        print("[ArenaSystem] DestroyPiecesOwnedByUserId: removed " .. tostring(#toRemove) .. " for user " .. tostring(userId))
+    end
+end
+
+--[[
     Spawn une pièce dans l'arène à partir de pieceData (utilisé quand un joueur remplace une pièce).
     La pièce apparaît légèrement au-dessus de la position donnée et tombe naturellement.
     @param pieceData: table - {SetName, PieceType, Price, DisplayName}

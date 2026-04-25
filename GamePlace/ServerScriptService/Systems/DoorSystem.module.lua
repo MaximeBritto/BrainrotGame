@@ -244,23 +244,32 @@ function DoorSystem:_CloseDoor(player, base)
 end
 
 --[[
+    Remet les barreaux d'une base en état « ouvert » (sans collision, invisibles).
+    Indispensable quand l'ancien proprio se déconnecte les barreaux fermés : la loop
+    de timer ne peut plus appeler _OpenDoor sans Player.
+    @param base: Model
+]]
+function DoorSystem:OpenBaseDoorPhysically(base)
+    if not base then return end
+    local doorFolder = base:FindFirstChild(Constants.WorkspaceNames.DoorFolder)
+    if not doorFolder then return end
+
+    local bars = doorFolder:FindFirstChild(Constants.WorkspaceNames.DoorBars)
+    if not bars then return end
+
+    ForEachBarPart(bars, function(part)
+        part.CanCollide = false
+        part.Transparency = 1
+    end)
+end
+
+--[[
     Ouvre physiquement la porte
     @param player: Player
     @param base: Model
 ]]
 function DoorSystem:_OpenDoor(player, base)
-    local doorFolder = base:FindFirstChild(Constants.WorkspaceNames.DoorFolder)
-    if not doorFolder then return end
-    
-    local bars = doorFolder:FindFirstChild(Constants.WorkspaceNames.DoorBars)
-    if not bars then return end
-    
-    -- Rendre les barres non-solides et INVISIBLES (le groupe par-base reste)
-    ForEachBarPart(bars, function(part)
-        part.CanCollide = false
-        part.Transparency = 1 -- INVISIBLE quand ouvert
-    end)
-
+    self:OpenBaseDoorPhysically(base)
     -- Réactiver la collision pour le propriétaire (retour groupe générique Players)
     self:_SetPlayerDoorCollision(player, true)
 end
@@ -559,6 +568,10 @@ function DoorSystem:_StartDoorUpdateLoop()
                             self:_SyncDoorState(player)
                             
                             -- print("[DoorSystem] Porte rouverte pour " .. player.Name)
+                        else
+                            -- Joueur déjà parti : l'état aurait dû être nettoyé au leave;
+                            -- on enlève l'entrée pour ne pas laisser un timer fantôme.
+                            self._doorStates[userId] = nil
                         end
                     end
                 end
