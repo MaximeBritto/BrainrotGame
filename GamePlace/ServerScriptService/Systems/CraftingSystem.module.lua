@@ -251,4 +251,38 @@ function CraftingSystem:TryCraft(player, requestedSlotIndex)
     }
 end
 
+--[[
+    Indices des cases HUD inventaire (1=Head, 2=Body, 3=Legs) où il manque un type pour crafter.
+    @param pieces: liste des pièces en main (peut être vide ou < 3)
+    @return tableau d'entiers trié 1..3
+]]
+function CraftingSystem:GetMissingTypeSlotIndices(pieces)
+    pieces = pieces or {}
+    local hasHead = false
+    local hasBody = false
+    local hasLegs = false
+    for _, piece in ipairs(pieces) do
+        if piece.PieceType == Constants.PieceType.Head then
+            hasHead = true
+        end
+        if piece.PieceType == Constants.PieceType.Body then
+            hasBody = true
+        end
+        if piece.PieceType == Constants.PieceType.Legs then
+            hasLegs = true
+        end
+    end
+    local missing = {}
+    if not hasHead then
+        table.insert(missing, 1)
+    end
+    if not hasBody then
+        table.insert(missing, 2)
+    end
+    if not hasLegs then
+        table.insert(missing, 3)
+    end
+    return missing
+end
+
 return CraftingSystem

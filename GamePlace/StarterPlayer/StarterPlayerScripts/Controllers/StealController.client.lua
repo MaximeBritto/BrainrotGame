@@ -19,7 +19,10 @@ local remotes = ReplicatedStorage:WaitForChild("Remotes")
 -- État local
 local _isCarrying = false
 local _placePrompts = {} -- ProximityPrompts créés pour les slots vides (brainrot volé)
+-- Craft valide côté serveur (3 pièces + Head/Body/Legs) — utilisé seulement pour cohérence locale
 local _isCraftReady = false
+-- Dernière taille inventaire (pour rafraîchir les prompts craft après SyncPlayerData)
+local _inventoryPieceCount = 0
 local _craftPlacePrompts = {} -- ProximityPrompts créés pour le craft
 
 -- Le modèle 3D porté est désormais géré côté serveur (StealSystem)
@@ -179,7 +182,8 @@ local function createCraftPlacePrompts()
 				local prompt = Instance.new("ProximityPrompt")
 				prompt.Name = "CraftPlacePrompt"
 				prompt.ActionText = "Place"
-				prompt.ObjectText = "Brainrot"
+				-- Indique si le craft est possible ; le serveur refuse sinon (feedback HUD)
+				prompt.ObjectText = _isCraftReady and "Brainrot" or "Brainrot (incomplet)"
 				prompt.HoldDuration = 0
 				prompt.MaxActivationDistance = 8
 				prompt.RequiresLineOfSight = false
@@ -229,6 +233,9 @@ end)
 ---
 local syncInventory = remotes:WaitForChild("SyncInventory")
 syncInventory.OnClientEvent:Connect(function(pieces)
+	pieces = pieces or {}
+	_inventoryPieceCount = #pieces
+
 	if _isCarrying then
 		-- Si on porte un brainrot volé, pas de craft prompts
 		_isCraftReady = false
@@ -236,26 +243,20 @@ syncInventory.OnClientEvent:Connect(function(pieces)
 		return
 	end
 
-	if pieces and #pieces >= 3 then
-		local hasHead = false
-		local hasBody = false
-		local hasLegs = false
+	local hasHead = false
+	local hasBody = false
+	local hasLegs = false
+	for _, piece in ipairs(pieces) do
+		if piece.PieceType == Constants.PieceType.Head then hasHead = true end
+		if piece.PieceType == Constants.PieceType.Body then hasBody = true end
+		if piece.PieceType == Constants.PieceType.Legs then hasLegs = true end
+	end
+	_isCraftReady = (#pieces >= 3 and hasHead and hasBody and hasLegs)
 
-		for _, piece in ipairs(pieces) do
-			if piece.PieceType == Constants.PieceType.Head then hasHead = true end
-			if piece.PieceType == Constants.PieceType.Body then hasBody = true end
-			if piece.PieceType == Constants.PieceType.Legs then hasLegs = true end
-		end
-
-		if hasHead and hasBody and hasLegs then
-			_isCraftReady = true
-			createCraftPlacePrompts()
-		else
-			_isCraftReady = false
-			removeCraftPlacePrompts()
-		end
+	-- Prompts visibles dès qu'on a au moins une pièce (craft incomplet = le serveur refuse + feedback UI)
+	if #pieces >= 1 then
+		createCraftPlacePrompts()
 	else
-		_isCraftReady = false
 		removeCraftPlacePrompts()
 	end
 end)
@@ -305,10 +306,8 @@ ProximityPromptService.PromptTriggered:Connect(function(promptObject, playerWhoT
 		return
 	end
 
-	-- Handle CraftPlacePrompt (crafter et placer sur un slot)
+	-- Handle CraftPlacePrompt (crafter et placer sur un slot ; serveur valide si complet)
 	if promptObject.Name == "CraftPlacePrompt" then
-		if not _isCraftReady then return end
-
 		local slotIndex = promptObject:GetAttribute("SlotIndex")
 		if slotIndex then
 			-- Ne pas retirer les prompts avant la confirmation du serveur : si le
@@ -329,7 +328,7 @@ syncPlayerData.OnClientEvent:Connect(function(data)
 	if data.PlacedBrainrots then
 		if _isCarrying then
 			createPlacePrompts()
-		elseif _isCraftReady then
+		elseif _inventoryPieceCount >= 1 then
 			createCraftPlacePrompts()
 		end
 	end

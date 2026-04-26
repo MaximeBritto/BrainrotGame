@@ -14,6 +14,7 @@ local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
 -- Assets pickup cash (icône = même $ que la pilule HUD, son demandé)
 local CASH_BILL_IMAGE = "rbxassetid://75938011448548"
@@ -50,7 +51,13 @@ local FONTS = {
 	Bold = Enum.Font.GothamBold,
 	Black = Enum.Font.GothamBlack,
 	Regular = Enum.Font.Gotham,
+	-- Aligné sur CodexController (cartes / onglets)
+	CodexDisplay = Enum.Font.LuckiestGuy,
 }
+
+-- Bandeau craft « incomplet » : même famille que le Codex, légèrement plus grand que le texte craft normal
+local CRAFT_LABEL_TEXT_SIZE = 16
+local CRAFT_LABEL_INCOMPLETE_TEXT_SIZE = 18
 
 local function addTextOutline(label, thickness, transparency)
 	local stroke = Instance.new("UIStroke")
@@ -71,6 +78,9 @@ local SLOT_TYPE_INFO = {
 	[3] = { Symbol = "●", Color = Color3.fromRGB(140, 155, 160), Label = "LEGS" },  -- ardoise gris-bleu (très désaturé)
 }
 
+-- Marge au-dessus des contrôles tactiles Roblox (bouton saut en bas à droite), en pixels écran
+local MOBILE_JUMP_CLEARANCE_PX = 118
+
 -- ═══════════════════════════════════════════════════════
 -- ÉTAT LOCAL
 -- ═══════════════════════════════════════════════════════
@@ -90,6 +100,7 @@ UIController._inventoryTitle = nil
 UIController._inventorySlots = {}
 UIController._craftLabel = nil
 UIController._dropButton = nil
+UIController._inventoryContainer = nil
 UIController._notifContainer = nil
 UIController._notifTemplate = nil
 UIController._initialized = false
@@ -220,6 +231,27 @@ end
 -- INVENTORY DISPLAY (bas-droite)
 -- ═══════════════════════════════════════════════════════
 
+function UIController:_RefreshInventoryScreenPosition()
+	local container = self._inventoryContainer
+	local screenGui = self._screenGui
+	if not container or not screenGui then
+		return
+	end
+	local marginX, marginY = -15, -15
+	if not UserInputService.TouchEnabled then
+		container.Position = UDim2.new(1, marginX, 1, marginY)
+		return
+	end
+	local uiScale = screenGui:FindFirstChild("_ResponsiveScale")
+	local s = (uiScale and uiScale:IsA("UIScale")) and uiScale.Scale or 1
+	if s < 0.01 then
+		s = 0.01
+	end
+	-- Les offsets GUI sont mis à l'échelle par UIScale : compenser pour une marge écran constante
+	local extraLayoutPx = math.ceil(MOBILE_JUMP_CLEARANCE_PX / s)
+	container.Position = UDim2.new(1, marginX, 1, marginY - extraLayoutPx)
+end
+
 function UIController:_CreateInventoryDisplay(parent)
 	-- Container
 	local invContainer = Instance.new("Frame")
@@ -286,6 +318,16 @@ function UIController:_CreateInventoryDisplay(parent)
 		self._inventorySlots[i] = slot
 	end
 
+	self._inventoryContainer = invContainer
+	self:_RefreshInventoryScreenPosition()
+	local uiScale = parent:FindFirstChild("_ResponsiveScale")
+	if uiScale and uiScale:IsA("UIScale") then
+		-- ResponsiveScale met à jour Scale au changement de viewport ; on recalcule la marge saut
+		uiScale:GetPropertyChangedSignal("Scale"):Connect(function()
+			self:_RefreshInventoryScreenPosition()
+		end)
+	end
+
 	-- Démarrer la boucle de rotation des viewports 3D
 	self:_StartViewportRotation()
 
@@ -300,7 +342,7 @@ function UIController:_CreateInventoryDisplay(parent)
 	craftLabel.BorderSizePixel = 0
 	craftLabel.Text = "Go place your Brainrot at your base!"
 	craftLabel.TextColor3 = COLORS.White
-	craftLabel.TextSize = 16
+	craftLabel.TextSize = CRAFT_LABEL_TEXT_SIZE
 	craftLabel.Font = FONTS.Black
 	craftLabel.Visible = false
 	craftLabel.Parent = invContainer
@@ -715,12 +757,21 @@ function UIController:UpdateInventory(pieces)
 			end
 
 			if hasHead and hasBody and hasLegs then
+				self._craftLabel.Font = FONTS.Black
+				self._craftLabel.TextSize = CRAFT_LABEL_TEXT_SIZE
+				self._craftLabel.TextWrapped = false
+				self._craftLabel.Size = UDim2.new(1, 0, 0, 40)
 				self._craftLabel.BackgroundColor3 = COLORS.CraftGreen
 				self._craftLabel.Text = "Go place your Brainrot at your base!"
 				self._craftReady = true
 			else
+				self._craftLabel.Font = FONTS.CodexDisplay
+				self._craftLabel.TextSize = CRAFT_LABEL_INCOMPLETE_TEXT_SIZE
+				self._craftLabel.TextWrapped = true
+				self._craftLabel.TextYAlignment = Enum.TextYAlignment.Center
+				self._craftLabel.Size = UDim2.new(1, 0, 0, 46)
 				self._craftLabel.BackgroundColor3 = COLORS.CraftYellow
-				self._craftLabel.Text = "Need 3 different types!"
+				self._craftLabel.Text = Constants.ErrorMessages.MissingPieces
 				self._craftReady = false
 			end
 		else
@@ -752,10 +803,13 @@ end
 -- NOTIFICATIONS
 -- ═══════════════════════════════════════════════════════
 
-function UIController:ShowNotification(notifType, message, duration)
-	duration = duration or 3
+function UIController:ShowNotification(notifType, message, duration, serverPayload)
+	duration = tonumber(duration) or 3
+	message = message ~= nil and tostring(message) or ""
 
-	if not self._notifContainer or not self._notifTemplate then return end
+	if not self._notifContainer or not self._notifTemplate then
+		return
+	end
 
 	-- Cloner le template
 	local notif = self._notifTemplate:Clone()
@@ -764,10 +818,31 @@ function UIController:ShowNotification(notifType, message, duration)
 	notif.LayoutOrder = notificationCounter
 	notificationCounter = notificationCounter + 1
 
-	-- Configurer le contenu
-	local messageLabel = notif:FindFirstChild("Message")
-	if not messageLabel then return end
+	-- Configurer le contenu (Message = TextLabel ou Frame parent du texte selon le ScreenGui Studio)
+	local messageLabel = notif:FindFirstChild("Message", true)
+	if not messageLabel then
+		notif:Destroy()
+		return
+	end
+	if not (messageLabel:IsA("TextLabel") or messageLabel:IsA("TextButton")) then
+		local inner = messageLabel:FindFirstChildWhichIsA("TextLabel", true)
+		if inner then
+			messageLabel = inner
+		end
+	end
+	if not (messageLabel:IsA("TextLabel") or messageLabel:IsA("TextButton")) then
+		notif:Destroy()
+		return
+	end
 	messageLabel.Text = message
+	-- Police type Codex pour cette erreur (ne pas forcer TextScaled=false : cassait l’affichage sur certains gabarits)
+	if message == Constants.ErrorMessages.MissingPieces then
+		messageLabel.Font = FONTS.CodexDisplay
+		local ts = messageLabel.TextSize
+		if ts >= 1 then
+			messageLabel.TextSize = math.clamp(ts + 2, 15, 26)
+		end
+	end
 
 	-- Configurer la couleur
 	local color = NOTIFICATION_COLORS[notifType] or NOTIFICATION_COLORS.Info
@@ -782,6 +857,15 @@ function UIController:ShowNotification(notifType, message, duration)
 		Position = UDim2.new(0, 0, 0, 0),
 	})
 	tweenIn:Play()
+
+	-- Pulsation inventaire après affichage (ne doit pas bloquer ni faire échouer la notif)
+	if serverPayload and type(serverPayload) == "table" and serverPayload.MissingInventorySlots then
+		task.defer(function()
+			pcall(function()
+				self:PulseInventorySlotsForIncompleteCraft(serverPayload.MissingInventorySlots)
+			end)
+		end)
+	end
 
 	-- Attendre la durée
 	task.delay(duration, function()
@@ -815,6 +899,87 @@ function UIController:PulseElement(element)
 	tweenBig:Play()
 	tweenBig.Completed:Wait()
 	tweenNormal:Play()
+end
+
+function UIController:PulseInventorySlotsForIncompleteCraft(slotIndices)
+	if not slotIndices or #slotIndices == 0 then
+		return
+	end
+	for _, idx in ipairs(slotIndices) do
+		if type(idx) == "number" and idx >= 1 and idx <= 3 then
+			local slotData = self._inventorySlots[idx]
+			if slotData then
+				task.spawn(function()
+					self:_PulseSingleInventorySlotForIncompleteCraft(slotData)
+				end)
+			end
+		end
+	end
+end
+
+function UIController:_PulseSingleInventorySlotForIncompleteCraft(slotData)
+	local frame = slotData.Frame
+	local stroke = slotData.Stroke
+	if not frame or not stroke then
+		return
+	end
+
+	slotData._pulseSeq = (slotData._pulseSeq or 0) + 1
+	local seq = slotData._pulseSeq
+
+	local origColor = stroke.Color
+	local origThick = stroke.Thickness
+	local origTrans = stroke.Transparency
+
+	local uis = frame:FindFirstChild("_IncompleteCraftPulse")
+	if not uis then
+		uis = Instance.new("UIScale")
+		uis.Name = "_IncompleteCraftPulse"
+		uis.Parent = frame
+	end
+	uis.Scale = 1
+	frame.Rotation = 0
+
+	stroke.Color = Color3.fromRGB(255, 48, 58)
+	stroke.Thickness = 3.2
+	stroke.Transparency = 0.05
+
+	local shakeAngles = { 5, -5, 4, -4, 2.5, -2.5, 0 }
+	for _, ang in ipairs(shakeAngles) do
+		if slotData._pulseSeq ~= seq then
+			return
+		end
+		TweenService:Create(frame, TweenInfo.new(0.042, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			Rotation = ang,
+		}):Play()
+		task.wait(0.048)
+	end
+
+	if slotData._pulseSeq ~= seq then
+		return
+	end
+	TweenService:Create(uis, TweenInfo.new(0.14, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+		Scale = 1.065,
+	}):Play()
+	task.wait(0.16)
+	if slotData._pulseSeq ~= seq then
+		return
+	end
+	TweenService:Create(uis, TweenInfo.new(0.28, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		Scale = 1,
+	}):Play()
+
+	task.delay(0.32, function()
+		if slotData._pulseSeq ~= seq then
+			return
+		end
+		TweenService:Create(stroke, TweenInfo.new(0.22), {
+			Color = origColor,
+			Thickness = origThick,
+			Transparency = origTrans,
+		}):Play()
+		frame.Rotation = 0
+	end)
 end
 
 function UIController:AnimateCashGain(amount)

@@ -111,7 +111,7 @@ end)
 -- Notification
 local notification = Remotes:WaitForChild("Notification")
 notification.OnClientEvent:Connect(function(data)
-	UIController:ShowNotification(data.Type, data.Message, data.Duration)
+	UIController:ShowNotification(data.Type, data.Message, data.Duration, data)
 	if SoundHelper then
 		local msg = data.Message or ""
 		if data.Type == "Success" then

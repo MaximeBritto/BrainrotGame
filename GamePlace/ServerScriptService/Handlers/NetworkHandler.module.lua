@@ -649,9 +649,17 @@ function NetworkHandler:_HandleCraft(player, slotIndex)
             })
         end
     else
-        -- Notifier l'échec
+        -- Notifier l'échec (+ indices des cases manquantes pour feedback HUD)
         local errorMessage = Constants.ErrorMessages[result] or "Cannot craft"
-        self:_SendNotification(player, "Error", errorMessage, 3)
+        local extra = nil
+        if result == Constants.ActionResult.MissingPieces and InventorySystem and CraftingSystem then
+            local pieces = InventorySystem:GetPiecesInHand(player)
+            local missingSlots = CraftingSystem:GetMissingTypeSlotIndices(pieces)
+            if #missingSlots > 0 then
+                extra = { MissingInventorySlots = missingSlots }
+            end
+        end
+        self:_SendNotification(player, "Error", errorMessage, 3, extra)
     end
 end
 
@@ -985,15 +993,21 @@ end
     @param message: string
     @param duration: number (optionnel, défaut 3)
 ]]
-function NetworkHandler:_SendNotification(player, notifType, message, duration)
+function NetworkHandler:_SendNotification(player, notifType, message, duration, extra)
     local remotes = NetworkSetup:GetAllRemotes()
-    
+
     if remotes.Notification then
-        remotes.Notification:FireClient(player, {
+        local payload = {
             Type = notifType,
             Message = message,
             Duration = duration or 3,
-        })
+        }
+        if type(extra) == "table" then
+            for k, v in pairs(extra) do
+                payload[k] = v
+            end
+        end
+        remotes.Notification:FireClient(player, payload)
     end
 end
 
